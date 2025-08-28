@@ -562,41 +562,67 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
   return {
     // deno-lint-ignore no-explicit-any
     async onHelp(ctx: any, commandName?: string) {
-      if (commandName && COMMAND_HELP[commandName as keyof typeof COMMAND_HELP]) {
-        // Show detailed help for specific command
-        const help = COMMAND_HELP[commandName as keyof typeof COMMAND_HELP];
-        
-        const fields = [
-          { name: "📝 Usage", value: `\`${help.usage}\``, inline: false }
-        ];
-        
-        if (help.parameters.length > 0) {
-          const paramText = help.parameters.map(p => 
-            `• **${p.name}** ${p.required ? '(required)' : '(optional)'}: ${p.description}`
-          ).join('\n');
-          fields.push({ name: "🔧 Parameters", value: paramText, inline: false });
+      if (commandName) {
+        if (COMMAND_HELP[commandName as keyof typeof COMMAND_HELP]) {
+          // Show detailed help for specific command
+          const help = COMMAND_HELP[commandName as keyof typeof COMMAND_HELP];
+          
+          const fields = [
+            { name: "📝 Usage", value: `\`${help.usage}\``, inline: false }
+          ];
+          
+          if (help.parameters.length > 0) {
+            const paramText = help.parameters.map(p => 
+              `• **${p.name}** ${p.required ? '(required)' : '(optional)'}: ${p.description}`
+            ).join('\n');
+            fields.push({ name: "🔧 Parameters", value: paramText, inline: false });
+          }
+          
+          if (help.examples.length > 0) {
+            const exampleText = help.examples.map(ex => `\`${ex}\``).join('\n');
+            fields.push({ name: "💡 Examples", value: exampleText, inline: false });
+          }
+          
+          if (help.notes.length > 0) {
+            const noteText = help.notes.map(note => `• ${note}`).join('\n');
+            fields.push({ name: "📌 Notes", value: noteText, inline: false });
+          }
+          
+          await ctx.reply({
+            embeds: [{
+              color: 0x0099ff,
+              title: help.title,
+              description: help.description,
+              fields,
+              timestamp: true
+            }],
+            ephemeral: true
+          });
+        } else {
+          // Command not found - show available commands
+          const availableCommands = Object.keys(COMMAND_HELP).sort().join('`, `');
+          await ctx.reply({
+            embeds: [{
+              color: 0xff6600,
+              title: '❓ Command Not Found',
+              description: `Command "${commandName}" not found. Use \`/help\` without parameters to see all commands.`,
+              fields: [
+                { 
+                  name: "📋 Available Commands", 
+                  value: `\`${availableCommands}\``, 
+                  inline: false 
+                },
+                { 
+                  name: "💡 Tip", 
+                  value: 'Use `/help command:[name]` for detailed help on specific commands', 
+                  inline: false 
+                }
+              ],
+              timestamp: true
+            }],
+            ephemeral: true
+          });
         }
-        
-        if (help.examples.length > 0) {
-          const exampleText = help.examples.map(ex => `\`${ex}\``).join('\n');
-          fields.push({ name: "💡 Examples", value: exampleText, inline: false });
-        }
-        
-        if (help.notes.length > 0) {
-          const noteText = help.notes.map(note => `• ${note}`).join('\n');
-          fields.push({ name: "📌 Notes", value: noteText, inline: false });
-        }
-        
-        await ctx.reply({
-          embeds: [{
-            color: 0x0099ff,
-            title: help.title,
-            description: help.description,
-            fields,
-            timestamp: true
-          }],
-          ephemeral: true
-        });
       } else {
         // Show general help with all commands
         await ctx.reply({
