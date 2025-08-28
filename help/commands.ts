@@ -745,24 +745,11 @@ export const COMMAND_HELP = {
       "Customize display preferences for better readability"
     ]
   },
-  "quick-model": {
-    title: "🚀 Quick Model Switch",
-    description: "Quickly switch Claude model for your next conversation",
-    usage: "/quick-model model: [model-id]",
-    examples: [
-      "/quick-model model: claude-sonnet-4",
-      "/quick-model model: claude-sonnet-4-20250514?thinking_mode=true",
-      "/quick-model model: claude-3-5-sonnet-20241022"
-    ],
-    parameters: [
-      { name: "model", description: "Claude model to use", required: true }
-    ],
-    notes: [
-      "Instantly switches to selected model",
-      "Shows model capabilities and features",
-      "Applies to all new conversations until changed again"
-    ]
-  }
+  // NOTE: The following commands are removed as they are not fully implemented:
+  // - developer-settings: Command defined but no handler implemented
+  // - session-settings: Command defined but no handler implemented  
+  // - monitoring-settings: Command defined but no handler implemented
+  // - profile-settings: Command defined but no handler implemented
 };
 
 export function createHelpHandlers(deps: HelpHandlerDeps) {
