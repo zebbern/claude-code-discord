@@ -200,6 +200,14 @@ export async function createDiscordBot(
           return (interaction as any).options.getInteger(name, required ?? false);
         }
         return null;
+      },
+      
+      getBoolean(name: string, required?: boolean): boolean | null {
+        if (interaction.isCommand && interaction.isCommand()) {
+          // deno-lint-ignore no-explicit-any
+          return (interaction as any).options.getBoolean(name, required ?? false);
+        }
+        return null;
       }
     };
   }
