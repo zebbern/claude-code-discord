@@ -355,6 +355,7 @@ export function createFormattedEmbed(
     description: string;
     timestamp: boolean;
     footer?: { text: string };
+    fields?: Array<{ name: string; value: string; inline?: boolean }>;
   };
   wasTruncated: boolean;
 } {
