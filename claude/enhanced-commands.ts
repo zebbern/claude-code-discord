@@ -345,38 +345,8 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
       }
     },
 
-    async onClaudeTemplates(ctx: any, template: string, content: string) {
-      try {
-        if (!CLAUDE_TEMPLATES[template as keyof typeof CLAUDE_TEMPLATES]) {
-          await ctx.reply({
-            content: 'Unknown template specified.',
-            ephemeral: true
-          });
-          return;
-        }
-
-        const templateText = CLAUDE_TEMPLATES[template as keyof typeof CLAUDE_TEMPLATES];
-        const fullPrompt = `${templateText}\n\n${content}`;
-
-        await ctx.reply({
-          embeds: [{
-            color: 0x0099ff,
-            title: `📝 Template: ${template.charAt(0).toUpperCase() + template.slice(1)}`,
-            fields: [
-              { name: 'Template', value: `\`${templateText}\``, inline: false },
-              { name: 'Your Content', value: `\`${content.substring(0, 500)}${content.length > 500 ? '...' : ''}\``, inline: false },
-              { name: 'Combined Prompt', value: `\`${fullPrompt.substring(0, 500)}${fullPrompt.length > 500 ? '...' : ''}\``, inline: false },
-              { name: 'Usage', value: 'Copy the combined prompt and use it with `/claude` or `/claude-enhanced`', inline: false }
-            ],
-            timestamp: true
-          }],
-          ephemeral: true
-        });
-      } catch (error) {
-        await crashHandler.reportCrash('main', error instanceof Error ? error : new Error(String(error)), 'claude-templates', `Template: ${template}`);
-        throw error;
-      }
-    },
+    // NOTE: onClaudeTemplates handler removed as the claude-templates command was removed
+    // Template functionality is now handled through the enhanced prompting system
 
     async onClaudeContext(
       ctx: any,
