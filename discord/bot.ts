@@ -250,6 +250,26 @@ export async function createDiscordBot(
     }
     
     const ctx = createInteractionContext(interaction);
+    
+    // Handle pagination buttons first
+    if (interaction.customId.startsWith('pagination:')) {
+      try {
+        const paginationResult = handlePaginationInteraction(interaction.customId);
+        if (paginationResult) {
+          await ctx.update({
+            embeds: [paginationResult.embed],
+            components: paginationResult.components ? [{ type: 'actionRow', components: paginationResult.components }] : []
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Error handling pagination:', error);
+        if (crashHandler) {
+          await crashHandler.reportCrash('main', error instanceof Error ? error : new Error(String(error)), 'pagination', 'Button interaction');
+        }
+      }
+    }
+    
     const handler = buttonHandlers.get(interaction.customId);
     
     if (handler) {
@@ -257,6 +277,9 @@ export async function createDiscordBot(
         await handler(ctx);
       } catch (error) {
         console.error(`Error handling button ${interaction.customId}:`, error);
+        if (crashHandler) {
+          await crashHandler.reportCrash('main', error instanceof Error ? error : new Error(String(error)), 'button', `ID: ${interaction.customId}`);
+        }
         try {
           await ctx.followUp({
             content: `Error handling button: ${error instanceof Error ? error.message : 'Unknown error'}`,
