@@ -4,9 +4,11 @@ export const helpCommand = new SlashCommandBuilder()
   .setName('help')
   .setDescription('Display detailed help for all available commands')
   .addStringOption(option =>
-    option.setName('command')
+    option
+      .setName('command')
       .setDescription('Command name for detailed help (e.g., claude, system-info, processes)')
-      .setRequired(false));
+      .setRequired(false)
+  );
 
 export interface HelpHandlerDeps {
   workDir: string;
