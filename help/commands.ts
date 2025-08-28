@@ -558,6 +558,206 @@ export const COMMAND_HELP = {
       "Includes current load averages (1, 5, 15 minutes)",
       "Useful for monitoring system stability"
     ]
+  },
+  "claude-explain": {
+    title: "🧠 Claude Code Explanation",
+    description: "Ask Claude to explain code, concepts, or errors in detail",
+    usage: "/claude-explain content: [code/concept] detail_level: [basic/detailed/expert] include_examples: [true/false]",
+    examples: [
+      "/claude-explain content: const result = array.reduce((acc, item) => acc + item, 0)",
+      "/claude-explain content: What is recursion? detail_level: basic include_examples: true",
+      "/claude-explain content: TypeError: Cannot read property 'x' of undefined detail_level: detailed"
+    ],
+    parameters: [
+      { name: "content", description: "Code, concept, or error message to explain", required: true },
+      { name: "detail_level", description: "Level of explanation (basic, detailed, expert)", required: false },
+      { name: "include_examples", description: "Include practical examples", required: false }
+    ],
+    notes: [
+      "Adjusts explanation complexity based on detail level",
+      "Examples help reinforce understanding",
+      "Great for learning new concepts or debugging"
+    ]
+  },
+  "claude-debug": {
+    title: "🐛 Claude Code Debugging",
+    description: "Get help debugging code issues and errors with Claude's assistance",
+    usage: "/claude-debug error_or_code: [error/code] language: [language] context_files: [files]",
+    examples: [
+      "/claude-debug error_or_code: TypeError: Cannot read property 'length' of null language: javascript",
+      "/claude-debug error_or_code: def broken_function(): ... language: python context_files: utils.py,main.py",
+      "/claude-debug error_or_code: Segmentation fault (core dumped) language: cpp"
+    ],
+    parameters: [
+      { name: "error_or_code", description: "Error message or problematic code", required: true },
+      { name: "language", description: "Programming language for context", required: false },
+      { name: "context_files", description: "Related files for debugging context", required: false }
+    ],
+    notes: [
+      "Provides root cause analysis and solutions",
+      "Includes prevention tips and best practices",
+      "Context files help Claude understand the full picture"
+    ]
+  },
+  "claude-optimize": {
+    title: "⚡ Claude Code Optimization",
+    description: "Get code optimization suggestions from Claude with specific focus areas",
+    usage: "/claude-optimize code: [code] focus: [performance/readability/memory/security/all] preserve_functionality: [true/false]",
+    examples: [
+      "/claude-optimize code: for(let i=0; i<items.length; i++) {...} focus: performance",
+      "/claude-optimize code: function complexLogic() {...} focus: readability preserve_functionality: true",
+      "/claude-optimize code: const data = JSON.parse(userInput) focus: security"
+    ],
+    parameters: [
+      { name: "code", description: "Code to optimize", required: true },
+      { name: "focus", description: "Optimization focus (performance, readability, memory, security, all)", required: false },
+      { name: "preserve_functionality", description: "Ensure functionality remains the same", required: false }
+    ],
+    notes: [
+      "Provides optimized version with explanations",
+      "Shows performance impact and trade-offs",
+      "Preserves functionality by default"
+    ]
+  },
+  "claude-review": {
+    title: "🔍 Claude Code Review",
+    description: "Get comprehensive code review from Claude with quality analysis",
+    usage: "/claude-review code_or_file: [code/file] review_type: [quick/standard/deep] include_security: [true/false] include_performance: [true/false]",
+    examples: [
+      "/claude-review code_or_file: src/components/UserForm.tsx review_type: standard",
+      "/claude-review code_or_file: function authenticate() {...} include_security: true",
+      "/claude-review code_or_file: api/users.js review_type: deep include_security: true include_performance: true"
+    ],
+    parameters: [
+      { name: "code_or_file", description: "Code to review or file path", required: true },
+      { name: "review_type", description: "Review depth (quick, standard, deep)", required: false },
+      { name: "include_security", description: "Include security vulnerability analysis", required: false },
+      { name: "include_performance", description: "Include performance analysis", required: false }
+    ],
+    notes: [
+      "Analyzes code quality and maintainability",
+      "Identifies potential bugs and issues",
+      "Provides specific recommendations with examples"
+    ]
+  },
+  "claude-generate": {
+    title: "🔨 Claude Code Generation",
+    description: "Generate code, tests, or documentation with Claude's assistance",
+    usage: "/claude-generate request: [description] type: [function/class/test/documentation/api/component] style: [clean/performance/functional/oop]",
+    examples: [
+      "/claude-generate request: Create a user authentication function type: function style: clean",
+      "/claude-generate request: Generate unit tests for the Calculator class type: test",
+      "/claude-generate request: Build a React form component with validation type: component style: functional"
+    ],
+    parameters: [
+      { name: "request", description: "Description of what to generate", required: true },
+      { name: "type", description: "Type of generation (function, class, test, documentation, api, component)", required: false },
+      { name: "style", description: "Code style (clean, performance, functional, oop)", required: false }
+    ],
+    notes: [
+      "Generates well-commented, production-ready code",
+      "Includes error handling and type annotations",
+      "Follows best practices for the specified style"
+    ]
+  },
+  "claude-refactor": {
+    title: "🔧 Claude Code Refactoring",
+    description: "Refactor existing code with Claude's guidance and best practices",
+    usage: "/claude-refactor code: [code] goal: [modernize/simplify/extract/typescript/performance] preserve_behavior: [true/false] add_tests: [true/false]",
+    examples: [
+      "/claude-refactor code: var oldFunction = function() {...} goal: modernize",
+      "/claude-refactor code: complexFunction() {...} goal: simplify preserve_behavior: true",
+      "/claude-refactor code: legacyCode.js goal: typescript add_tests: true"
+    ],
+    parameters: [
+      { name: "code", description: "Code to refactor", required: true },
+      { name: "goal", description: "Refactoring goal (modernize, simplify, extract, typescript, performance)", required: false },
+      { name: "preserve_behavior", description: "Preserve exact behavior (default: true)", required: false },
+      { name: "add_tests", description: "Generate tests for refactored code", required: false }
+    ],
+    notes: [
+      "Maintains exact behavior while improving code quality",
+      "Explains all changes and their benefits",
+      "Can generate tests to verify refactoring"
+    ]
+  },
+  "claude-learn": {
+    title: "🎓 Claude Programming Tutor",
+    description: "Learn programming concepts with Claude as your personal tutor",
+    usage: "/claude-learn topic: [concept] level: [beginner/intermediate/advanced] include_exercises: [true/false] step_by_step: [true/false]",
+    examples: [
+      "/claude-learn topic: async/await in JavaScript level: intermediate include_exercises: true",
+      "/claude-learn topic: recursion level: beginner step_by_step: true",
+      "/claude-learn topic: design patterns level: advanced include_exercises: true"
+    ],
+    parameters: [
+      { name: "topic", description: "Programming topic or concept to learn", required: true },
+      { name: "level", description: "Your experience level (beginner, intermediate, advanced)", required: false },
+      { name: "include_exercises", description: "Include practical exercises", required: false },
+      { name: "step_by_step", description: "Break down into step-by-step guide", required: false }
+    ],
+    notes: [
+      "Adapts explanations to your experience level",
+      "Includes real-world examples and use cases",
+      "Provides exercises for hands-on practice"
+    ]
+  },
+  "claude-settings": {
+    title: "⚙️ Claude Code Settings",
+    description: "Manage Claude Code specific settings and preferences",
+    usage: "/claude-settings action: [show/set-model/set-temperature/toggle-auto-system-info/etc] value: [optional]",
+    examples: [
+      "/claude-settings action: show",
+      "/claude-settings action: set-model value: claude-sonnet-4",
+      "/claude-settings action: set-temperature value: 0.8",
+      "/claude-settings action: toggle-auto-git-context"
+    ],
+    parameters: [
+      { name: "action", description: "Setting action to perform", required: true },
+      { name: "value", description: "New value for the setting", required: false }
+    ],
+    notes: [
+      "Configure default model, temperature, and context options",
+      "Enable/disable automatic system info and git context",
+      "Set custom system prompts for specialized tasks"
+    ]
+  },
+  "output-settings": {
+    title: "🎨 Output Display Settings",
+    description: "Configure output formatting and display preferences",
+    usage: "/output-settings action: [show/toggle-code-highlighting/set-max-length/etc] value: [optional]",
+    examples: [
+      "/output-settings action: show",
+      "/output-settings action: toggle-code-highlighting",
+      "/output-settings action: set-max-length value: 5000"
+    ],
+    parameters: [
+      { name: "action", description: "Output setting to configure", required: true },
+      { name: "value", description: "New value for the setting", required: false }
+    ],
+    notes: [
+      "Control syntax highlighting and pagination",
+      "Set maximum output length and timestamp format",
+      "Customize display preferences for better readability"
+    ]
+  },
+  "quick-model": {
+    title: "🚀 Quick Model Switch",
+    description: "Quickly switch Claude model for your next conversation",
+    usage: "/quick-model model: [model-id]",
+    examples: [
+      "/quick-model model: claude-sonnet-4",
+      "/quick-model model: claude-sonnet-4-20250514?thinking_mode=true",
+      "/quick-model model: claude-3-5-sonnet-20241022"
+    ],
+    parameters: [
+      { name: "model", description: "Claude model to use", required: true }
+    ],
+    notes: [
+      "Instantly switches to selected model",
+      "Shows model capabilities and features",
+      "Applies to all new conversations until changed again"
+    ]
   }
 };
 
