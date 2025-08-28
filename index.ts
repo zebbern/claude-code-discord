@@ -187,6 +187,13 @@ export async function createClaudeCodeBot(config: BotConfig) {
       }
     }
   });
+
+  const helpHandlers = createHelpHandlers({
+    workDir,
+    repoName,
+    branchName,
+    categoryName: actualCategoryName
+  });
   
   // Command handlers implementation
   const handlers: CommandHandlers = new Map([
