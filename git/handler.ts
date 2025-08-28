@@ -171,9 +171,69 @@ export async function removeWorktree(workDir: string, branch: string): Promise<W
 }
 
 export async function getGitStatus(workDir: string): Promise<GitStatus> {
-  const status = await executeGitCommand(workDir, "git status --short");
-  const branch = await executeGitCommand(workDir, "git branch --show-current");
-  const remote = await executeGitCommand(workDir, "git remote -v");
-  
-  return { status, branch, remote };
+  try {
+    // Get git status with better formatting
+    const statusResult = await executeGitCommand(workDir, "git status --porcelain");
+    const branchResult = await executeGitCommand(workDir, "git branch --show-current");
+    const remoteResult = await executeGitCommand(workDir, "git remote -v");
+    
+    // Format status output
+    let formattedStatus = "Working directory clean";
+    if (statusResult && !statusResult.includes("Error") && statusResult.trim()) {
+      const lines = statusResult.trim().split('\n');
+      const changes = lines.map(line => {
+        const status = line.substring(0, 2);
+        const file = line.substring(3);
+        
+        // Skip deno.lock and other build artifacts
+        if (file.includes('deno.lock') || file.includes('.DS_Store') || file.includes('node_modules/')) {
+          return null;
+        }
+        
+        let changeType = "";
+        if (status === "??") changeType = "Untracked";
+        else if (status.includes("M")) changeType = "Modified";
+        else if (status.includes("A")) changeType = "Added";
+        else if (status.includes("D")) changeType = "Deleted";
+        else if (status.includes("R")) changeType = "Renamed";
+        else changeType = "Changed";
+        
+        return `${changeType}: ${file}`;
+      }).filter(Boolean);
+      
+      if (changes.length > 0) {
+        formattedStatus = changes.slice(0, 10).join('\n');
+        if (changes.length > 10) {
+          formattedStatus += `\n... and ${changes.length - 10} more files`;
+        }
+      }
+    }
+    
+    // Clean up branch name
+    const cleanBranch = branchResult.replace(/Error:.*|Execution error:.*/, "").trim() || "unknown";
+    
+    // Format remote info  
+    let formattedRemote = "No remotes configured";
+    if (remoteResult && !remoteResult.includes("Error") && remoteResult.trim()) {
+      const remotes = remoteResult.trim().split('\n')
+        .filter(line => line.includes('(fetch)'))
+        .map(line => {
+          const parts = line.split(/\s+/);
+          return `${parts[0]}: ${parts[1]}`;
+        });
+      formattedRemote = remotes.join('\n') || "No remotes configured";
+    }
+    
+    return { 
+      status: formattedStatus, 
+      branch: cleanBranch, 
+      remote: formattedRemote 
+    };
+  } catch (error) {
+    return {
+      status: "Error getting git status",
+      branch: "unknown", 
+      remote: "unknown"
+    };
+  }
 }
