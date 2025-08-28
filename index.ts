@@ -872,10 +872,23 @@ export async function createClaudeCodeBot(config: BotConfig) {
           claudeController.abort();
         }
         
+        // Clean up monitoring and crash handlers
+        healthMonitor.stopAll();
+        crashHandler.cleanup();
+        
+        // Clean up pagination states
+        cleanupPaginationStates();
+        
         // Wait a bit before exiting
         setTimeout(() => {
           Deno.exit(0);
         }, 1000);
+      }
+    }],
+    ['help', {
+      execute: async (ctx: InteractionContext) => {
+        const commandName = ctx.getString('command');
+        await helpHandlers.onHelp(ctx, commandName || undefined);
       }
     }]
   ]);
