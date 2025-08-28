@@ -1267,6 +1267,40 @@ export async function createClaudeCodeBot(config: BotConfig) {
         await advancedSettingsHandlers.onClaudeSettings(ctx, action, value || undefined);
       }
     }],
+    // Unified Settings Commands (NEW)
+    ['settings', {
+      execute: async (ctx: InteractionContext) => {
+        const category = ctx.getString('category', true)!;
+        const action = ctx.getString('action');
+        const value = ctx.getString('value');
+        await unifiedSettingsHandlers.onUnifiedSettings(ctx, category, action || undefined, value || undefined);
+      }
+    }],
+    ['todos', {
+      execute: async (ctx: InteractionContext) => {
+        const action = ctx.getString('action', true)!;
+        const content = ctx.getString('content');
+        const priority = ctx.getString('priority');
+        const rateTier = ctx.getString('rate_tier');
+        await unifiedSettingsHandlers.onTodos(ctx, action, content || undefined, priority || undefined, rateTier || undefined);
+      }
+    }],
+    ['mcp', {
+      execute: async (ctx: InteractionContext) => {
+        const action = ctx.getString('action', true)!;
+        const serverName = ctx.getString('server_name');
+        const serverUrl = ctx.getString('server_url');
+        const serverType = ctx.getString('server_type');
+        await unifiedSettingsHandlers.onMCP(ctx, action, serverName || undefined, serverUrl || undefined, serverType || undefined);
+      }
+    }],
+    ['claude-settings', {
+      execute: async (ctx: InteractionContext) => {
+        const action = ctx.getString('action', true)!;
+        const value = ctx.getString('value');
+        await advancedSettingsHandlers.onClaudeSettings(ctx, action, value || undefined);
+      }
+    }],
     ['output-settings', {
       execute: async (ctx: InteractionContext) => {
         const action = ctx.getString('action', true)!;
