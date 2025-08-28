@@ -376,7 +376,8 @@ export function createFormattedEmbed(
     timestamp: true,
     footer: result.wasTruncated ? { 
       text: `Content truncated (${result.originalLength} → ${result.truncatedLength} chars)` 
-    } : undefined
+    } : undefined,
+    fields: [] as Array<{ name: string; value: string; inline?: boolean }>
   };
 
   return {
