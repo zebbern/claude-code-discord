@@ -353,6 +353,9 @@ export const COMMAND_HELP = {
       "cleanup: Remove old sessions (>24 hours)"
     ]
   },
+  // NOTE: claude-templates command removed as requested
+  // Template functionality is now handled through enhanced prompting
+  /*
   "claude-templates": {
     title: "📝 Claude Code Templates",
     description: "Use predefined templates for common Claude Code tasks",
@@ -372,6 +375,7 @@ export const COMMAND_HELP = {
       "Available templates: debug, explain, optimize, test, refactor, document, security, convert"
     ]
   },
+  */
   "claude-context": {
     title: "📋 Claude Context Preview",
     description: "Preview what context information would be sent to Claude",
