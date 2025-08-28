@@ -1256,6 +1256,8 @@ export async function createClaudeCodeBot(config: BotConfig) {
     commands: [
       ...claudeCommands,
       ...enhancedClaudeCommands,
+      ...additionalClaudeCommands,
+      ...advancedSettingsCommands,
       ...gitCommands,
       ...shellCommands,
       ...utilsCommands,
