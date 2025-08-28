@@ -134,6 +134,22 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // Set up crash handler dependencies
   crashHandler.setManagers(shellManager, worktreeBotManager);
   
+  // Setup periodic cleanup tasks
+  const cleanupInterval = setInterval(() => {
+    try {
+      crashHandler.cleanup();
+      cleanupPaginationStates();
+    } catch (error) {
+      console.error('Error during periodic cleanup:', error);
+    }
+  }, 3600000); // Clean up every hour
+  
+  // Setup crash notification
+  crashHandler.setNotificationCallback(async (report) => {
+    // Notification will be sent through Discord when bot is ready
+    console.warn(`Process crash: ${report.processType} ${report.processId || ''} - ${report.error.message}`);
+  });
+  
   // Manage bot settings (set default values)
   const botSettings = {
     mentionEnabled: !!defaultMentionUserId,  // Turn on if user ID is specified
