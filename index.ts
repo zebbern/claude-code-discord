@@ -1003,13 +1003,6 @@ export async function createClaudeCodeBot(config: BotConfig) {
         await enhancedClaudeHandlers.onClaudeSessions(ctx, action, sessionId || undefined);
       }
     }],
-    ['claude-templates', {
-      execute: async (ctx: InteractionContext) => {
-        const template = ctx.getString('template', true)!;
-        const content = ctx.getString('content', true)!;
-        await enhancedClaudeHandlers.onClaudeTemplates(ctx, template, content);
-      }
-    }],
     ['claude-context', {
       execute: async (ctx: InteractionContext) => {
         const includeSystemInfo = ctx.getBoolean('include_system_info');
