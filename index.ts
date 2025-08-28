@@ -213,6 +213,25 @@ export async function createClaudeCodeBot(config: BotConfig) {
     branchName,
     categoryName: actualCategoryName
   });
+
+  const enhancedClaudeHandlers = createEnhancedClaudeHandlers({
+    workDir,
+    claudeController,
+    setClaudeController: (controller) => { claudeController = controller; },
+    setClaudeSessionId: (sessionId) => { claudeSessionId = sessionId; },
+    sendClaudeMessages: async (messages) => {
+      if (claudeSender) {
+        await claudeSender(messages);
+      }
+    },
+    sessionManager: claudeSessionManager,
+    crashHandler
+  });
+
+  const systemHandlers = createSystemHandlers({
+    workDir,
+    crashHandler
+  });
   
   // Command handlers implementation
   const handlers: CommandHandlers = new Map([
