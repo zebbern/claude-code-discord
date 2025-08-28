@@ -246,25 +246,43 @@ async function getDenoInfo(): Promise<string> {
   }
 }
 
-// Claude Code model options
+// Claude Code model options - Updated with latest models
 export const CLAUDE_MODELS = {
-  'claude-3-5-sonnet-20241022': {
-    name: 'Claude 3.5 Sonnet (Latest)',
-    description: 'Best balance of intelligence and speed',
+  'claude-sonnet-4': {
+    name: 'Claude Sonnet 4 (Latest)',
+    description: 'Most advanced Claude model with superior reasoning',
     contextWindow: 200000,
-    recommended: true
+    recommended: true,
+    supportsThinking: true
+  },
+  'claude-sonnet-4-20250514?thinking_mode=true': {
+    name: 'Claude Sonnet 4 (Thinking Mode)',
+    description: 'Claude Sonnet 4 with visible reasoning process',
+    contextWindow: 200000,
+    recommended: true,
+    supportsThinking: true,
+    thinkingMode: true
+  },
+  'claude-3-5-sonnet-20241022': {
+    name: 'Claude 3.5 Sonnet',
+    description: 'Previous generation high-performance model',
+    contextWindow: 200000,
+    recommended: false,
+    supportsThinking: false
   },
   'claude-3-5-haiku-20241022': {
     name: 'Claude 3.5 Haiku',
-    description: 'Fastest model for quick tasks',
+    description: 'Fast model for quick tasks and simple queries',
     contextWindow: 200000,
-    recommended: false
+    recommended: false,
+    supportsThinking: false
   },
   'claude-3-opus-20240229': {
     name: 'Claude 3 Opus',
-    description: 'Most capable model for complex tasks',
+    description: 'Legacy model for complex reasoning (deprecated)',
     contextWindow: 200000,
-    recommended: false
+    recommended: false,
+    supportsThinking: false
   }
 };
 
