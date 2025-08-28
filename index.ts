@@ -538,20 +538,26 @@ export async function createClaudeCodeBot(config: BotConfig) {
             if (isCompleted) return;
             isCompleted = true;
             
-            const truncatedOutput = output.substring(0, 4000);
-            await ctx.editReply({
-              embeds: [{
-                color: exitCode === 0 ? 0x00ff00 : 0xff0000,
-                title: exitCode === 0 ? 'Shell Command Complete' : 'Shell Command Error',
-                description: `\`${command}\``,
-                fields: [
-                  { name: 'Process ID', value: executionResult.processId.toString(), inline: true },
-                  { name: 'Exit Code', value: exitCode.toString(), inline: true },
-                  { name: 'Output', value: `\`\`\`\n${truncatedOutput || '(no output)'}\n\`\`\``, inline: false }
-                ],
-                timestamp: true
-              }]
-            });
+            const formatted = formatShellOutput(command, output, exitCode);
+            const { embed } = createFormattedEmbed(
+              exitCode === 0 ? '✅ Shell Command Complete' : '❌ Shell Command Failed',
+              formatted.formatted,
+              exitCode === 0 ? 0x00ff00 : 0xff0000
+            );
+
+            // Add process info as fields
+            embed.fields = [
+              { name: 'Process ID', value: executionResult.processId.toString(), inline: true },
+              { name: 'Exit Code', value: exitCode.toString(), inline: true },
+              ...(embed.fields || [])
+            ];
+
+            await ctx.editReply({ embeds: [embed] });
+            
+            // Report crash if command failed
+            if (exitCode !== 0) {
+              await crashHandler.reportCrash('shell', new Error(`Process exited with code ${exitCode}`), executionResult.processId, `Command: ${command}`);
+            }
           });
           
           executionResult.onError(async (error) => {
