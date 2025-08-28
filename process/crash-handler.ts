@@ -164,7 +164,7 @@ export class ProcessCrashHandler {
   }
 
   // Recover worktree process
-  private async recoverWorktreeProcess(report: CrashReport): boolean {
+  private async recoverWorktreeProcess(report: CrashReport): Promise<boolean> {
     if (!this.worktreeManager || typeof report.processId !== 'string') {
       return false;
     }
