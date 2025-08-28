@@ -155,10 +155,25 @@ export async function createClaudeCodeBot(config: BotConfig) {
     console.warn(`Process crash: ${report.processType} ${report.processId || ''} - ${report.error.message}`);
   });
   
-  // Manage bot settings (set default values)
-  const botSettings = {
-    mentionEnabled: !!defaultMentionUserId,  // Turn on if user ID is specified
+  // Initialize advanced bot settings
+  const advancedSettings: AdvancedBotSettings = {
+    ...DEFAULT_SETTINGS,
+    mentionEnabled: !!defaultMentionUserId,
     mentionUserId: defaultMentionUserId || null,
+  };
+
+  // Legacy bot settings for backward compatibility
+  const botSettings = {
+    mentionEnabled: advancedSettings.mentionEnabled,
+    mentionUserId: advancedSettings.mentionUserId,
+  };
+
+  // Function to update settings
+  const updateAdvancedSettings = (newSettings: Partial<AdvancedBotSettings>) => {
+    Object.assign(advancedSettings, newSettings);
+    // Update legacy settings
+    botSettings.mentionEnabled = advancedSettings.mentionEnabled;
+    botSettings.mentionUserId = advancedSettings.mentionUserId;
   };
   
   // Create Discord bot first
