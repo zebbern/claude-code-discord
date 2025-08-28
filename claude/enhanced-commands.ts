@@ -181,7 +181,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
           controller,
           sessionId,
           undefined,
-          (jsonData) => {
+          async (jsonData) => {
             const { convertToClaudeMessages } = await import("./message-converter.ts");
             const claudeMessages = convertToClaudeMessages(jsonData);
             if (claudeMessages.length > 0) {
