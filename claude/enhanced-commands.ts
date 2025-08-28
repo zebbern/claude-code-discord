@@ -405,9 +405,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
         const contextParts: string[] = [];
 
         if (includeSystemInfo) {
-          const { getSystemContext } = await import("./enhanced-client.ts");
           try {
-            // We need to create a mock function since getSystemContext is not exported
             const systemInfo = `System: ${Deno.build.os} ${Deno.build.arch}\nDeno: ${Deno.version.deno}\nWorking Directory: ${workDir}`;
             contextParts.push(`**System Information:**\n\`\`\`\n${systemInfo}\n\`\`\``);
           } catch (error) {
