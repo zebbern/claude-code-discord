@@ -1269,6 +1269,16 @@ export async function createClaudeCodeBot(config: BotConfig) {
         await unifiedSettingsHandlers.onMCP(ctx, action, serverName || undefined, serverUrl || undefined, serverType || undefined);
       }
     }],
+    ['agent', {
+      execute: async (ctx: InteractionContext) => {
+        const action = ctx.getString('action', true)!;
+        const agentName = ctx.getString('agent_name');
+        const message = ctx.getString('message');
+        const contextFiles = ctx.getString('context_files');
+        const includeSystemInfo = ctx.getBoolean('include_system_info');
+        await agentHandlers.onAgent(ctx, action, agentName || undefined, message || undefined, contextFiles || undefined, includeSystemInfo || undefined);
+      }
+    }],
     ['output-settings', {
       execute: async (ctx: InteractionContext) => {
         const action = ctx.getString('action', true)!;
