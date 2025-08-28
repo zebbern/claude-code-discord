@@ -184,7 +184,16 @@ export async function createClaudeCodeBot(config: BotConfig) {
     mentionUserId: advancedSettings.mentionUserId,
   };
 
-  // Function to update settings
+  // Function to update settings (unified and legacy)
+  const updateUnifiedSettings = (newSettings: Partial<UnifiedBotSettings>) => {
+    Object.assign(unifiedSettings, newSettings);
+    // Update legacy settings for backward compatibility
+    botSettings.mentionEnabled = unifiedSettings.mentionEnabled;
+    botSettings.mentionUserId = unifiedSettings.mentionUserId;
+    // Also update advanced settings
+    Object.assign(advancedSettings, newSettings);
+  };
+
   const updateAdvancedSettings = (newSettings: Partial<AdvancedBotSettings>) => {
     Object.assign(advancedSettings, newSettings);
     // Update legacy settings
