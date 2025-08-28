@@ -15,6 +15,7 @@ import {
 } from "npm:discord.js@14.14.1";
 
 import { sanitizeChannelName } from "./utils.ts";
+import { handlePaginationInteraction } from "./pagination.ts";
 import type { 
   BotConfig, 
   CommandHandlers, 
