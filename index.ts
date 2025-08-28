@@ -922,7 +922,8 @@ export async function createClaudeCodeBot(config: BotConfig) {
       ...utilsCommands,
       helpCommand,
     ],
-    cleanSessionId
+    cleanSessionId,
+    botSettings
   };
 
   // Create Discord bot
