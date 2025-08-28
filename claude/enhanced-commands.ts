@@ -68,23 +68,8 @@ export const enhancedClaudeCommands = [
         .setDescription('Session ID (required for info/delete actions)')
         .setRequired(false)),
 
-  new SlashCommandBuilder()
-    .setName('claude-templates')
-    .setDescription('Use predefined Claude Code templates')
-    .addStringOption(option =>
-      option.setName('template')
-        .setDescription('Template to use')
-        .setRequired(true)
-        .addChoices(
-          ...Object.entries(CLAUDE_TEMPLATES).map(([key, value]) => ({
-            name: key.charAt(0).toUpperCase() + key.slice(1),
-            value: key
-          }))
-        ))
-    .addStringOption(option =>
-      option.setName('content')
-        .setDescription('Content to apply the template to')
-        .setRequired(true)),
+  // NOTE: claude-templates command removed as requested
+  // Template functionality is now handled through enhanced prompting
 
   new SlashCommandBuilder()
     .setName('claude-context')
