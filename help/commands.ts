@@ -641,7 +641,12 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
             fields: [
               {
                 name: "🤖 Claude Code Commands",
-                value: "`/claude` - Send prompts to Claude Code\n`/continue` - Continue conversation\n`/claude-cancel` - Cancel running operation",
+                value: "`/claude` - Send prompts to Claude Code\n`/claude-enhanced` - Advanced Claude with options\n`/continue` - Continue conversation\n`/claude-cancel` - Cancel running operation",
+                inline: false
+              },
+              {
+                name: "🚀 Enhanced Claude Features",
+                value: "`/claude-models` - List available models\n`/claude-sessions` - Manage sessions\n`/claude-templates` - Use predefined templates\n`/claude-context` - Preview context",
                 inline: false
               },
               {
@@ -652,6 +657,16 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
               {
                 name: "🖥️ Shell Commands",
                 value: "`/shell` - Execute shell commands\n`/shell-input` - Send input to process\n`/shell-list` - List running processes\n`/shell-kill` - Kill process",
+                inline: false
+              },
+              {
+                name: "📊 System Monitoring",
+                value: "`/system-info` - System information\n`/processes` - Running processes\n`/system-resources` - Resource usage\n`/network-info` - Network details\n`/disk-usage` - Disk space\n`/uptime` - System uptime",
+                inline: false
+              },
+              {
+                name: "🔧 System Tools",
+                value: "`/env-vars` - Environment variables\n`/system-logs` - System logs\n`/port-scan` - Check open ports\n`/service-status` - Service status",
                 inline: false
               },
               {
