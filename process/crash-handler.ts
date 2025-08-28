@@ -146,7 +146,7 @@ export class ProcessCrashHandler {
   }
 
   // Recover shell process
-  private async recoverShellProcess(report: CrashReport): boolean {
+  private async recoverShellProcess(report: CrashReport): Promise<boolean> {
     if (!this.shellManager || typeof report.processId !== 'number') {
       return false;
     }
