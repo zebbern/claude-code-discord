@@ -358,7 +358,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             fields: [
               { name: 'Model ID', value: `\`${model}\``, inline: true },
               { name: 'Context Window', value: selectedModel.contextWindow.toLocaleString() + ' tokens', inline: true },
-              { name: 'Thinking Mode', value: selectedModel.thinkingMode ? 'Enabled' : 'Disabled', inline: true }
+              { name: 'Thinking Mode', value: (selectedModel as any).thinkingMode ? 'Enabled' : 'Disabled', inline: true }
             ],
             footer: { text: 'This applies to all new conversations' },
             timestamp: true
