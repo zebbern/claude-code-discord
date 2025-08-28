@@ -1294,13 +1294,6 @@ export async function createClaudeCodeBot(config: BotConfig) {
         await unifiedSettingsHandlers.onMCP(ctx, action, serverName || undefined, serverUrl || undefined, serverType || undefined);
       }
     }],
-    ['claude-settings', {
-      execute: async (ctx: InteractionContext) => {
-        const action = ctx.getString('action', true)!;
-        const value = ctx.getString('value');
-        await advancedSettingsHandlers.onClaudeSettings(ctx, action, value || undefined);
-      }
-    }],
     ['output-settings', {
       execute: async (ctx: InteractionContext) => {
         const action = ctx.getString('action', true)!;
