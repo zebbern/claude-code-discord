@@ -164,7 +164,14 @@ export async function createClaudeCodeBot(config: BotConfig) {
     console.warn(`Process crash: ${report.processType} ${report.processId || ''} - ${report.error.message}`);
   });
   
-  // Initialize advanced bot settings
+  // Initialize unified bot settings (new system)
+  const unifiedSettings: UnifiedBotSettings = {
+    ...UNIFIED_DEFAULT_SETTINGS,
+    mentionEnabled: !!defaultMentionUserId,
+    mentionUserId: defaultMentionUserId || null,
+  };
+
+  // Initialize advanced bot settings (legacy compatibility)
   const advancedSettings: AdvancedBotSettings = {
     ...DEFAULT_SETTINGS,
     mentionEnabled: !!defaultMentionUserId,
