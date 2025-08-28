@@ -24,7 +24,22 @@ export const helpCommand = new SlashCommandBuilder()
         { name: 'status', value: 'status' },
         { name: 'settings', value: 'settings' },
         { name: 'pwd', value: 'pwd' },
-        { name: 'shutdown', value: 'shutdown' }
+        { name: 'shutdown', value: 'shutdown' },
+        { name: 'claude-enhanced', value: 'claude-enhanced' },
+        { name: 'claude-models', value: 'claude-models' },
+        { name: 'claude-sessions', value: 'claude-sessions' },
+        { name: 'claude-templates', value: 'claude-templates' },
+        { name: 'claude-context', value: 'claude-context' },
+        { name: 'system-info', value: 'system-info' },
+        { name: 'processes', value: 'processes' },
+        { name: 'system-resources', value: 'system-resources' },
+        { name: 'network-info', value: 'network-info' },
+        { name: 'disk-usage', value: 'disk-usage' },
+        { name: 'env-vars', value: 'env-vars' },
+        { name: 'system-logs', value: 'system-logs' },
+        { name: 'port-scan', value: 'port-scan' },
+        { name: 'service-status', value: 'service-status' },
+        { name: 'uptime', value: 'uptime' }
       ));
 
 export interface HelpHandlerDeps {
