@@ -854,8 +854,13 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
                 inline: false
               },
               {
+                name: "🆕 New Features",
+                value: "`/todos` - Development task management\n`/mcp` - Model Context Protocol servers\n`/agent` - Specialized AI agents",
+                inline: false
+              },
+              {
                 name: "⚙️ Advanced Settings",
-                value: "`/claude-settings` - Claude preferences\n`/output-settings` - Display settings\n`/quick-model` - Switch Claude model",
+                value: "`/settings` - Unified bot settings (NEW)\n`/claude-settings` - Claude preferences\n`/output-settings` - Display settings\n`/quick-model` - Switch Claude model",
                 inline: false
               },
               {
