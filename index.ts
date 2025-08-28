@@ -899,6 +899,9 @@ export async function createClaudeCodeBot(config: BotConfig) {
         // Clean up pagination states
         cleanupPaginationStates();
         
+        // Clear periodic cleanup
+        clearInterval(cleanupInterval);
+        
         // Wait a bit before exiting
         setTimeout(() => {
           Deno.exit(0);
