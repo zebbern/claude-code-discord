@@ -294,6 +294,12 @@ export async function createClaudeCodeBot(config: BotConfig) {
     updateSettings: updateAdvancedSettings,
     crashHandler
   });
+
+  const unifiedSettingsHandlers = createUnifiedSettingsHandlers({
+    settings: unifiedSettings,
+    updateSettings: updateUnifiedSettings,
+    crashHandler
+  });
   
   // Command handlers implementation
   const handlers: CommandHandlers = new Map([
