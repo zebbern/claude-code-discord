@@ -74,7 +74,7 @@ Object.keys(COMMAND_HELP).forEach(cmd => {
   if (cmd.startsWith('claude-')) {
     if (['claude-explain', 'claude-debug', 'claude-optimize', 'claude-review', 'claude-generate', 'claude-refactor', 'claude-learn'].includes(cmd)) {
       categories['claude-debug']++;
-    } else if (['claude-enhanced', 'claude-models', 'claude-sessions', 'claude-templates', 'claude-context'].includes(cmd)) {
+    } else if (['claude-enhanced', 'claude-models', 'claude-sessions', 'claude-context'].includes(cmd)) {
       categories['claude-enhanced']++;
     } else if (['claude-settings'].includes(cmd)) {
       categories['claude-settings']++;
