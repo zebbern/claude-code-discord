@@ -17,6 +17,10 @@ import { createGitHandlers, gitCommands, WorktreeBotManager } from "./git/index.
 import { createShellHandlers, shellCommands } from "./shell/index.ts";
 import { createUtilsHandlers, utilsCommands } from "./util/index.ts";
 import { ClaudeMessage } from "./claude/types.ts";
+import { helpCommand, createHelpHandlers } from "./help/commands.ts";
+import { ProcessCrashHandler, setupGlobalErrorHandlers, ProcessHealthMonitor } from "./process/crash-handler.ts";
+import { handlePaginationInteraction, cleanupPaginationStates } from "./discord/pagination.ts";
+import { formatShellOutput, formatGitOutput, formatError, createFormattedEmbed } from "./discord/formatting.ts";
 
 
 
