@@ -845,6 +845,16 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
                 inline: false
               },
               {
+                name: "🧠 Claude Development Tools",
+                value: "`/claude-explain` - Explain code/concepts\n`/claude-debug` - Debug assistance\n`/claude-optimize` - Code optimization\n`/claude-review` - Code review\n`/claude-generate` - Generate code\n`/claude-refactor` - Refactor code\n`/claude-learn` - Programming tutor",
+                inline: false
+              },
+              {
+                name: "⚙️ Advanced Settings",
+                value: "`/claude-settings` - Claude preferences\n`/output-settings` - Display settings\n`/quick-model` - Switch Claude model",
+                inline: false
+              },
+              {
                 name: "📂 Git Commands", 
                 value: "`/git` - Execute git commands\n`/worktree` - Create worktrees\n`/worktree-list` - List worktrees\n`/worktree-remove` - Remove worktree\n`/worktree-bots` - List bot instances\n`/worktree-kill` - Kill bot instance",
                 inline: false
