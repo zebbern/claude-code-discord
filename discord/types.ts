@@ -14,6 +14,7 @@ export interface ComponentData {
   customId: string;
   label: string;
   style: 'primary' | 'secondary' | 'success' | 'danger' | 'link';
+  disabled?: boolean;
 }
 
 export interface MessageContent {
