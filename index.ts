@@ -29,6 +29,7 @@ import { createShellHandlers, shellCommands } from "./shell/index.ts";
 import { createUtilsHandlers, utilsCommands } from "./util/index.ts";
 import { systemCommands, createSystemHandlers } from "./system/index.ts";
 import { helpCommand, createHelpHandlers } from "./help/index.ts";
+import { agentCommand, createAgentHandlers } from "./agent/index.ts";
 import { ProcessCrashHandler, setupGlobalErrorHandlers, ProcessHealthMonitor } from "./process/index.ts";
 import { handlePaginationInteraction, cleanupPaginationStates, formatShellOutput, formatGitOutput, formatError, createFormattedEmbed } from "./discord/index.ts";
 
