@@ -306,7 +306,7 @@ export function createPaginatedMessage(
   content: string,
   codeBlock?: string,
   options: PaginationOptions = {}
-): { embed: EmbedData; components?: ComponentData[] } {
+): { embed: EmbedData; components?: Array<{ type: 'actionRow'; components: ComponentData[] }> } {
   let processedContent = content;
   
   // Add code block formatting if specified
