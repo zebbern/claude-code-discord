@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    },
+    "exclude": ["node_modules/", ".git/"]
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": false,
+    "proseWrap": "preserve",
+    "exclude": ["node_modules/", ".git/"]
+  },
+  "tasks": {
+    "start": "deno run --allow-all index.ts",
+    "dev": "deno run --allow-all --watch index.ts",
+    "lint": "deno lint",
+    "fmt": "deno fmt",
+    "check": "deno check index.ts"
+  },
+  "imports": {
+    "discord.js": "npm:discord.js@14.14.1",
+    "@anthropic-ai/claude-code": "npm:@anthropic-ai/claude-code@latest"
+  },
+  "permissions": {
+    "allow-all": true
+  }
+}
