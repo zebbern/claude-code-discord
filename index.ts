@@ -1298,8 +1298,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
   const dependencies: BotDependencies = {
     commands: [
       ...claudeCommands,
-      // Filter out claude-templates from enhanced commands
-      ...enhancedClaudeCommands.filter(cmd => cmd.name !== 'claude-templates'),
+      ...enhancedClaudeCommands, // claude-templates already removed from source
       ...additionalClaudeCommands,
       ...advancedSettingsCommands,
       ...unifiedSettingsCommands,
