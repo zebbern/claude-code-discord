@@ -935,6 +935,201 @@ export async function createClaudeCodeBot(config: BotConfig) {
         const commandName = ctx.getString('command');
         await helpHandlers.onHelp(ctx, commandName || undefined);
       }
+    }],
+    ['claude-enhanced', {
+      execute: async (ctx: InteractionContext) => {
+        const prompt = ctx.getString('prompt', true)!;
+        const model = ctx.getString('model');
+        const template = ctx.getString('template');
+        const includeSystemInfo = ctx.getBoolean('include_system_info');
+        const includeGitContext = ctx.getBoolean('include_git_context');
+        const contextFiles = ctx.getString('context_files');
+        const sessionId = ctx.getString('session_id');
+        
+        await enhancedClaudeHandlers.onClaudeEnhanced(
+          ctx, prompt, model || undefined, template || undefined,
+          includeSystemInfo || undefined, includeGitContext || undefined,
+          contextFiles || undefined, sessionId || undefined
+        );
+      }
+    }],
+    ['claude-models', {
+      execute: async (ctx: InteractionContext) => {
+        await enhancedClaudeHandlers.onClaudeModels(ctx);
+      }
+    }],
+    ['claude-sessions', {
+      execute: async (ctx: InteractionContext) => {
+        const action = ctx.getString('action', true)!;
+        const sessionId = ctx.getString('session_id');
+        await enhancedClaudeHandlers.onClaudeSessions(ctx, action, sessionId || undefined);
+      }
+    }],
+    ['claude-templates', {
+      execute: async (ctx: InteractionContext) => {
+        const template = ctx.getString('template', true)!;
+        const content = ctx.getString('content', true)!;
+        await enhancedClaudeHandlers.onClaudeTemplates(ctx, template, content);
+      }
+    }],
+    ['claude-context', {
+      execute: async (ctx: InteractionContext) => {
+        const includeSystemInfo = ctx.getBoolean('include_system_info');
+        const includeGitContext = ctx.getBoolean('include_git_context');
+        const contextFiles = ctx.getString('context_files');
+        await enhancedClaudeHandlers.onClaudeContext(
+          ctx, includeSystemInfo || undefined, includeGitContext || undefined,
+          contextFiles || undefined
+        );
+      }
+    }],
+    ['system-info', {
+      execute: async (ctx: InteractionContext) => {
+        await ctx.deferReply();
+        try {
+          const result = await systemHandlers.onSystemInfo(ctx);
+          const { embed } = createFormattedEmbed('🖥️ System Information', result.data, 0x00ff00);
+          await ctx.editReply({ embeds: [embed] });
+        } catch (error) {
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'system-info');
+          const { embed } = createFormattedEmbed('❌ System Info Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed] });
+        }
+      }
+    }],
+    ['processes', {
+      execute: async (ctx: InteractionContext) => {
+        await ctx.deferReply();
+        const filter = ctx.getString('filter');
+        const limit = ctx.getInteger('limit') || 20;
+        try {
+          const result = await systemHandlers.onProcesses(ctx, filter || undefined, limit);
+          const { embed } = createFormattedEmbed('⚙️ Running Processes', result.data, 0x0099ff);
+          await ctx.editReply({ embeds: [embed] });
+        } catch (error) {
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'processes');
+          const { embed } = createFormattedEmbed('❌ Process List Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed] });
+        }
+      }
+    }],
+    ['system-resources', {
+      execute: async (ctx: InteractionContext) => {
+        await ctx.deferReply();
+        try {
+          const result = await systemHandlers.onSystemResources(ctx);
+          const { embed } = createFormattedEmbed('📊 System Resources', result.data, 0x00ffff);
+          await ctx.editReply({ embeds: [embed] });
+        } catch (error) {
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'system-resources');
+          const { embed } = createFormattedEmbed('❌ Resource Monitor Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed] });
+        }
+      }
+    }],
+    ['network-info', {
+      execute: async (ctx: InteractionContext) => {
+        await ctx.deferReply();
+        try {
+          const result = await systemHandlers.onNetworkInfo(ctx);
+          const { embed } = createFormattedEmbed('🌐 Network Information', result.data, 0x9932cc);
+          await ctx.editReply({ embeds: [embed] });
+        } catch (error) {
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'network-info');
+          const { embed } = createFormattedEmbed('❌ Network Info Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed] });
+        }
+      }
+    }],
+    ['disk-usage', {
+      execute: async (ctx: InteractionContext) => {
+        await ctx.deferReply();
+        try {
+          const result = await systemHandlers.onDiskUsage(ctx);
+          const { embed } = createFormattedEmbed('💽 Disk Usage', result.data, 0xff6600);
+          await ctx.editReply({ embeds: [embed] });
+        } catch (error) {
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'disk-usage');
+          const { embed } = createFormattedEmbed('❌ Disk Usage Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed] });
+        }
+      }
+    }],
+    ['env-vars', {
+      execute: async (ctx: InteractionContext) => {
+        await ctx.deferReply();
+        const filter = ctx.getString('filter');
+        try {
+          const result = await systemHandlers.onEnvVars(ctx, filter || undefined);
+          const { embed } = createFormattedEmbed('🔧 Environment Variables', result.data, 0x663399);
+          await ctx.editReply({ embeds: [embed] });
+        } catch (error) {
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'env-vars');
+          const { embed } = createFormattedEmbed('❌ Environment Variables Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed] });
+        }
+      }
+    }],
+    ['system-logs', {
+      execute: async (ctx: InteractionContext) => {
+        await ctx.deferReply();
+        const lines = ctx.getInteger('lines') || 50;
+        const service = ctx.getString('service');
+        try {
+          const result = await systemHandlers.onSystemLogs(ctx, lines, service || undefined);
+          const { embed } = createFormattedEmbed('📋 System Logs', result.data, 0x990000);
+          await ctx.editReply({ embeds: [embed] });
+        } catch (error) {
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'system-logs');
+          const { embed } = createFormattedEmbed('❌ System Logs Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed] });
+        }
+      }
+    }],
+    ['port-scan', {
+      execute: async (ctx: InteractionContext) => {
+        await ctx.deferReply();
+        const host = ctx.getString('host') || 'localhost';
+        const ports = ctx.getString('ports');
+        try {
+          const result = await systemHandlers.onPortScan(ctx, host, ports || undefined);
+          const { embed } = createFormattedEmbed('🔍 Port Scan Results', result.data, 0x006600);
+          await ctx.editReply({ embeds: [embed] });
+        } catch (error) {
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'port-scan');
+          const { embed } = createFormattedEmbed('❌ Port Scan Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed] });
+        }
+      }
+    }],
+    ['service-status', {
+      execute: async (ctx: InteractionContext) => {
+        await ctx.deferReply();
+        const service = ctx.getString('service');
+        try {
+          const result = await systemHandlers.onServiceStatus(ctx, service || undefined);
+          const { embed } = createFormattedEmbed('🔧 Service Status', result.data, 0x0066cc);
+          await ctx.editReply({ embeds: [embed] });
+        } catch (error) {
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'service-status');
+          const { embed } = createFormattedEmbed('❌ Service Status Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed] });
+        }
+      }
+    }],
+    ['uptime', {
+      execute: async (ctx: InteractionContext) => {
+        await ctx.deferReply();
+        try {
+          const result = await systemHandlers.onUptime(ctx);
+          const { embed } = createFormattedEmbed('⏰ System Uptime', result.data, 0x339933);
+          await ctx.editReply({ embeds: [embed] });
+        } catch (error) {
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'uptime');
+          const { embed } = createFormattedEmbed('❌ Uptime Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed] });
+        }
+      }
     }]
   ]);
   
