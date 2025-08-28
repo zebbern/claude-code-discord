@@ -13,10 +13,16 @@ console.log("  Has Options:", helpCommand.options.length > 0);
 
 // Check that options don't have choices (which was causing the error)
 const commandOption = helpCommand.options.find(opt => opt.name === 'command');
-if (commandOption && 'choices' in commandOption) {
-  console.log("  ❌ Still has choices - this will cause the error");
+console.log("  Command Option:", commandOption);
+if (commandOption) {
+  const hasChoices = commandOption.choices && commandOption.choices.length > 0;
+  if (hasChoices) {
+    console.log("  ❌ Still has choices:", commandOption.choices?.length);
+  } else {
+    console.log("  ✅ No predefined choices - error fixed");
+  }
 } else {
-  console.log("  ✅ No predefined choices - error fixed");
+  console.log("  ❌ Command option not found");
 }
 
 console.log("");
