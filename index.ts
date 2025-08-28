@@ -1167,6 +1167,87 @@ export async function createClaudeCodeBot(config: BotConfig) {
           await ctx.editReply({ embeds: [embed] });
         }
       }
+    }],
+    // Additional Claude Commands
+    ['claude-explain', {
+      execute: async (ctx: InteractionContext) => {
+        const content = ctx.getString('content', true)!;
+        const detailLevel = ctx.getString('detail_level');
+        const includeExamples = ctx.getBoolean('include_examples');
+        await additionalClaudeHandlers.onClaudeExplain(ctx, content, detailLevel || undefined, includeExamples || undefined);
+      }
+    }],
+    ['claude-debug', {
+      execute: async (ctx: InteractionContext) => {
+        const errorOrCode = ctx.getString('error_or_code', true)!;
+        const language = ctx.getString('language');
+        const contextFiles = ctx.getString('context_files');
+        await additionalClaudeHandlers.onClaudeDebug(ctx, errorOrCode, language || undefined, contextFiles || undefined);
+      }
+    }],
+    ['claude-optimize', {
+      execute: async (ctx: InteractionContext) => {
+        const code = ctx.getString('code', true)!;
+        const focus = ctx.getString('focus');
+        const preserveFunctionality = ctx.getBoolean('preserve_functionality');
+        await additionalClaudeHandlers.onClaudeOptimize(ctx, code, focus || undefined, preserveFunctionality || undefined);
+      }
+    }],
+    ['claude-review', {
+      execute: async (ctx: InteractionContext) => {
+        const codeOrFile = ctx.getString('code_or_file', true)!;
+        const reviewType = ctx.getString('review_type');
+        const includeSecurity = ctx.getBoolean('include_security');
+        const includePerformance = ctx.getBoolean('include_performance');
+        await additionalClaudeHandlers.onClaudeReview(ctx, codeOrFile, reviewType || undefined, includeSecurity || undefined, includePerformance || undefined);
+      }
+    }],
+    ['claude-generate', {
+      execute: async (ctx: InteractionContext) => {
+        const request = ctx.getString('request', true)!;
+        const type = ctx.getString('type');
+        const style = ctx.getString('style');
+        await additionalClaudeHandlers.onClaudeGenerate(ctx, request, type || undefined, style || undefined);
+      }
+    }],
+    ['claude-refactor', {
+      execute: async (ctx: InteractionContext) => {
+        const code = ctx.getString('code', true)!;
+        const goal = ctx.getString('goal');
+        const preserveBehavior = ctx.getBoolean('preserve_behavior');
+        const addTests = ctx.getBoolean('add_tests');
+        await additionalClaudeHandlers.onClaudeRefactor(ctx, code, goal || undefined, preserveBehavior || undefined, addTests || undefined);
+      }
+    }],
+    ['claude-learn', {
+      execute: async (ctx: InteractionContext) => {
+        const topic = ctx.getString('topic', true)!;
+        const level = ctx.getString('level');
+        const includeExercises = ctx.getBoolean('include_exercises');
+        const stepByStep = ctx.getBoolean('step_by_step');
+        await additionalClaudeHandlers.onClaudeLearn(ctx, topic, level || undefined, includeExercises || undefined, stepByStep || undefined);
+      }
+    }],
+    // Advanced Settings Commands
+    ['claude-settings', {
+      execute: async (ctx: InteractionContext) => {
+        const action = ctx.getString('action', true)!;
+        const value = ctx.getString('value');
+        await advancedSettingsHandlers.onClaudeSettings(ctx, action, value || undefined);
+      }
+    }],
+    ['output-settings', {
+      execute: async (ctx: InteractionContext) => {
+        const action = ctx.getString('action', true)!;
+        const value = ctx.getString('value');
+        await advancedSettingsHandlers.onOutputSettings(ctx, action, value || undefined);
+      }
+    }],
+    ['quick-model', {
+      execute: async (ctx: InteractionContext) => {
+        const model = ctx.getString('model', true)!;
+        await advancedSettingsHandlers.onQuickModel(ctx, model);
+      }
     }]
   ]);
   
