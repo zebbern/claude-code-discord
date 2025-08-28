@@ -12,11 +12,11 @@ import {
 import { ShellManager } from "./shell/index.ts";
 import { getGitInfo } from "./git/index.ts";
 
-import { createClaudeHandlers, claudeCommands, cleanSessionId, createClaudeSender, expandableContent, type DiscordSender } from "./claude/index.ts";
+import { createClaudeHandlers, claudeCommands, cleanSessionId, createClaudeSender, expandableContent, type DiscordSender, ClaudeMessage, enhancedClaudeCommands, createEnhancedClaudeHandlers, ClaudeSessionManager } from "./claude/index.ts";
 import { createGitHandlers, gitCommands, WorktreeBotManager } from "./git/index.ts";
 import { createShellHandlers, shellCommands } from "./shell/index.ts";
 import { createUtilsHandlers, utilsCommands } from "./util/index.ts";
-import { ClaudeMessage } from "./claude/types.ts";
+import { systemCommands, createSystemHandlers } from "./system/index.ts";
 import { helpCommand, createHelpHandlers } from "./help/index.ts";
 import { ProcessCrashHandler, setupGlobalErrorHandlers, ProcessHealthMonitor } from "./process/index.ts";
 import { handlePaginationInteraction, cleanupPaginationStates, formatShellOutput, formatGitOutput, formatError, createFormattedEmbed } from "./discord/index.ts";
