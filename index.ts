@@ -1303,6 +1303,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       ...additionalClaudeCommands,
       ...advancedSettingsCommands,
       ...unifiedSettingsCommands,
+      agentCommand,
       ...gitCommands,
       ...shellCommands,
       ...utilsCommands,
