@@ -863,6 +863,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       ...gitCommands,
       ...shellCommands,
       ...utilsCommands,
+      helpCommand,
     ],
     cleanSessionId
   };
