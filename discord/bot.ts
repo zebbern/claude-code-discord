@@ -83,7 +83,8 @@ export async function createDiscordBot(
   config: BotConfig, 
   handlers: CommandHandlers,
   buttonHandlers: ButtonHandlers,
-  dependencies: BotDependencies
+  dependencies: BotDependencies,
+  crashHandler?: any
 ) {
   const { discordToken, applicationId, workDir, repoName, branchName, categoryName } = config;
   const actualCategoryName = categoryName || repoName;
