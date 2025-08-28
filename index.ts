@@ -130,6 +130,9 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // Setup global error handlers
   setupGlobalErrorHandlers(crashHandler);
   
+  // Create Claude session manager
+  const claudeSessionManager = new ClaudeSessionManager();
+  
   // Set up crash handler dependencies
   crashHandler.setManagers(shellManager, worktreeBotManager);
   
@@ -138,6 +141,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
     try {
       crashHandler.cleanup();
       cleanupPaginationStates();
+      claudeSessionManager.cleanup(); // Clean up old Claude sessions
     } catch (error) {
       console.error('Error during periodic cleanup:', error);
     }
