@@ -300,29 +300,27 @@ export async function createClaudeCodeBot(config: BotConfig) {
         const command = ctx.getString('command', true)!;
         try {
           const result = await gitHandlers.onGit(ctx, command);
+          const formatted = formatGitOutput(command, result);
           
-          // Check if the result contains an error
-          const isError = result.startsWith('Execution error:') || result.startsWith('Error:') || result.includes('fatal:') || result.includes('error:');
-          
-          await ctx.editReply({
-            embeds: [{
-              color: isError ? 0xff0000 : 0x00ff00,
-              title: isError ? 'Git Command Error' : 'Git Command Result',
-              description: `\`git ${command}\``,
-              fields: [{ name: isError ? 'Error Details' : 'Output', value: `\`\`\`\n${result.substring(0, 4000)}\n\`\`\``, inline: false }],
-              timestamp: true
-            }]
-          });
+          const { embed } = createFormattedEmbed(
+            formatted.isError ? '❌ Git Command Error' : '✅ Git Command Result',
+            formatted.formatted,
+            formatted.isError ? 0xff0000 : 0x00ff00
+          );
+
+          await ctx.editReply({ embeds: [embed] });
         } catch (error) {
-          await ctx.editReply({
-            embeds: [{
-              color: 0xff0000,
-              title: 'Git Command Error',
-              description: `\`git ${command}\``,
-              fields: [{ name: 'Error', value: `\`\`\`\n${error instanceof Error ? error.message : String(error)}\n\`\`\``, inline: false }],
-              timestamp: true
-            }]
-          });
+          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), `git ${command}`);
+          const { embed } = createFormattedEmbed(
+            '❌ Git Command Exception',
+            errorFormatted.formatted,
+            0xff0000
+          );
+
+          await ctx.editReply({ embeds: [embed] });
+          
+          // Report crash for monitoring
+          await crashHandler.reportCrash('main', error instanceof Error ? error : new Error(String(error)), 'git', `Command: ${command}`);
         }
       }
     }],
