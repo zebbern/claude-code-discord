@@ -301,6 +301,17 @@ export async function createClaudeCodeBot(config: BotConfig) {
     updateSettings: updateUnifiedSettings,
     crashHandler
   });
+
+  const agentHandlers = createAgentHandlers({
+    workDir,
+    crashHandler,
+    sendClaudeMessages: async (messages) => {
+      if (claudeSender) {
+        await claudeSender(messages);
+      }
+    },
+    sessionManager: claudeSessionManager
+  });
   
   // Command handlers implementation
   const handlers: CommandHandlers = new Map([
