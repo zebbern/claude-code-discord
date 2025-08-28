@@ -117,6 +117,23 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // Create worktree bot manager
   const worktreeBotManager = new WorktreeBotManager();
   
+  // Create crash handler and health monitor
+  const crashHandler = new ProcessCrashHandler({
+    maxRetries: 3,
+    retryDelay: 5000,
+    enableAutoRestart: true,
+    logCrashes: true,
+    notifyOnCrash: true
+  });
+  
+  const healthMonitor = new ProcessHealthMonitor(crashHandler);
+  
+  // Setup global error handlers
+  setupGlobalErrorHandlers(crashHandler);
+  
+  // Set up crash handler dependencies
+  crashHandler.setManagers(shellManager, worktreeBotManager);
+  
   // Manage bot settings (set default values)
   const botSettings = {
     mentionEnabled: !!defaultMentionUserId,  // Turn on if user ID is specified
