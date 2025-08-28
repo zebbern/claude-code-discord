@@ -114,78 +114,10 @@ export const advancedSettingsCommands = [
         .setDescription('New value for the setting')
         .setRequired(false)),
 
-  new SlashCommandBuilder()
-    .setName('session-settings')
-    .setDescription('Configure Claude Code session management')
-    .addStringOption(option =>
-      option.setName('action')
-        .setDescription('Session setting to configure')
-        .setRequired(true)
-        .addChoices(
-          { name: 'show', value: 'show' },
-          { name: 'toggle-auto-save', value: 'toggle-auto-save' },
-          { name: 'set-timeout', value: 'set-timeout' },
-          { name: 'set-max-sessions', value: 'set-max-sessions' },
-          { name: 'cleanup-old-sessions', value: 'cleanup-old-sessions' }
-        ))
-    .addIntegerOption(option =>
-      option.setName('value')
-        .setDescription('New value for the setting')
-        .setRequired(false)),
-
-  new SlashCommandBuilder()
-    .setName('monitoring-settings')
-    .setDescription('Configure system monitoring defaults')
-    .addStringOption(option =>
-      option.setName('action')
-        .setDescription('Monitoring setting to configure')
-        .setRequired(true)
-        .addChoices(
-          { name: 'show', value: 'show' },
-          { name: 'set-process-limit', value: 'set-process-limit' },
-          { name: 'set-log-lines', value: 'set-log-lines' },
-          { name: 'toggle-warnings', value: 'toggle-warnings' }
-        ))
-    .addIntegerOption(option =>
-      option.setName('value')
-        .setDescription('New value for the setting')
-        .setRequired(false)),
-
-  new SlashCommandBuilder()
-    .setName('developer-settings')
-    .setDescription('Configure developer and debugging options')
-    .addStringOption(option =>
-      option.setName('action')
-        .setDescription('Developer setting to configure')
-        .setRequired(true)
-        .addChoices(
-          { name: 'show', value: 'show' },
-          { name: 'toggle-debug', value: 'toggle-debug' },
-          { name: 'toggle-verbose-errors', value: 'toggle-verbose-errors' },
-          { name: 'toggle-performance-metrics', value: 'toggle-performance-metrics' },
-          { name: 'export-settings', value: 'export-settings' },
-          { name: 'reset-all', value: 'reset-all' }
-        )),
-
-  new SlashCommandBuilder()
-    .setName('profile-settings')
-    .setDescription('Manage user profiles and preferences')
-    .addStringOption(option =>
-      option.setName('action')
-        .setDescription('Profile action to perform')
-        .setRequired(true)
-        .addChoices(
-          { name: 'show', value: 'show' },
-          { name: 'create-profile', value: 'create-profile' },
-          { name: 'load-profile', value: 'load-profile' },
-          { name: 'save-profile', value: 'save-profile' },
-          { name: 'delete-profile', value: 'delete-profile' },
-          { name: 'list-profiles', value: 'list-profiles' }
-        ))
-    .addStringOption(option =>
-      option.setName('profile_name')
-        .setDescription('Profile name')
-        .setRequired(false)),
+  // NOTE: Removed non-implemented advanced settings commands:
+  // - session-settings, monitoring-settings, developer-settings, profile-settings
+  // These commands were defined but had no handlers implemented
+  // Their functionality is now available through the unified settings system
 
   new SlashCommandBuilder()
     .setName('quick-model')
