@@ -910,36 +910,6 @@ export async function createClaudeCodeBot(config: BotConfig) {
         });
       }
     }],
-    ['settings', {
-      execute: async (ctx: InteractionContext) => {
-        await ctx.deferReply();
-        const action = ctx.getString('action', true)!;
-        const value = ctx.getString('value');
-        const result = utilsHandlers.onSettings(ctx, action, value || undefined);
-        
-        if (!result.success) {
-          await ctx.editReply({
-            embeds: [{
-              color: 0xff0000,
-              title: 'Settings Error',
-              description: result.message,
-              timestamp: true
-            }]
-          });
-        } else {
-          await ctx.editReply({
-            embeds: [{
-              color: 0x00ff00,
-              title: 'Settings',
-              fields: [
-                { name: 'Mentions', value: result.mentionEnabled ? `Enabled (<@${result.mentionUserId}>)` : 'Disabled', inline: true }
-              ],
-              timestamp: true
-            }]
-          });
-        }
-      }
-    }],
     ['pwd', {
       execute: async (ctx: InteractionContext) => {
         await ctx.deferReply();
