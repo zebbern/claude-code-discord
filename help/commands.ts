@@ -1,12 +1,13 @@
 import { SlashCommandBuilder } from "npm:discord.js@14.14.1";
 
+// Fixed help command without choices to avoid Discord's 25-choice limit
 export const helpCommand = new SlashCommandBuilder()
   .setName('help')
   .setDescription('Display detailed help for all available commands')
   .addStringOption(option =>
     option
       .setName('command')
-      .setDescription('Command name for detailed help (e.g., claude, system-info, processes)')
+      .setDescription('Command name for detailed help (type: claude, system-info, processes, etc.)')
       .setRequired(false)
   );
 
@@ -602,7 +603,7 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
           });
         } else {
           // Command not found - show available commands
-          const availableCommands = Object.keys(COMMAND_HELP).sort().join('`, `');
+          const availableCommands = Object.keys(COMMAND_HELP).sort().join(', ');
           await ctx.reply({
             embeds: [{
               color: 0xff6600,
@@ -611,12 +612,12 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
               fields: [
                 { 
                   name: "📋 Available Commands", 
-                  value: `\`${availableCommands}\``, 
+                  value: availableCommands, 
                   inline: false 
                 },
                 { 
-                  name: "💡 Tip", 
-                  value: 'Use `/help command:[name]` for detailed help on specific commands', 
+                  name: "💡 Example", 
+                  value: 'Try `/help command: claude-enhanced` for detailed help', 
                   inline: false 
                 }
               ],
