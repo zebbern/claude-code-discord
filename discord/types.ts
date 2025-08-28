@@ -31,6 +31,7 @@ export interface InteractionContext {
   update(content: MessageContent): Promise<void>;
   getString(name: string, required?: boolean): string | null;
   getInteger(name: string, required?: boolean): number | null;
+  getBoolean(name: string, required?: boolean): boolean | null;
 }
 
 export interface BotConfig {
