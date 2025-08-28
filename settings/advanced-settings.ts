@@ -200,3 +200,4 @@ export const advancedSettingsCommands = [
             value: key
           }))
         ))
+];
