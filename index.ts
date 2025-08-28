@@ -1251,7 +1251,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
     }]
   ]);
   
-  bot = await createDiscordBot(config, handlers, buttonHandlers, dependencies);
+  bot = await createDiscordBot(config, handlers, buttonHandlers, dependencies, crashHandler);
   
   // Create Discord sender for Claude messages
   const discordSender: DiscordSender = {
