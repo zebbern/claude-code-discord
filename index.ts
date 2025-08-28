@@ -1137,9 +1137,11 @@ export async function createClaudeCodeBot(config: BotConfig) {
   const dependencies: BotDependencies = {
     commands: [
       ...claudeCommands,
+      ...enhancedClaudeCommands,
       ...gitCommands,
       ...shellCommands,
       ...utilsCommands,
+      ...systemCommands,
       helpCommand,
     ],
     cleanSessionId,
