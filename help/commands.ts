@@ -325,6 +325,103 @@ export const COMMAND_HELP = {
       "Cancels any running Claude Code sessions",
       "Use with caution - requires manual restart"
     ]
+  },
+  "claude-enhanced": {
+    title: "🚀 Enhanced Claude Code Integration",
+    description: "Send prompts to Claude Code with advanced options and context",
+    usage: "/claude-enhanced prompt: [message] model: [model] template: [template] ...",
+    examples: [
+      "/claude-enhanced prompt: Debug this error include_system_info: true",
+      "/claude-enhanced prompt: Optimize this code template: optimize model: claude-3-5-sonnet-20241022",
+      "/claude-enhanced prompt: Help with this file context_files: src/main.ts,README.md include_git_context: true"
+    ],
+    parameters: [
+      { name: "prompt", description: "Your message or question for Claude", required: true },
+      { name: "model", description: "Claude model to use (see /claude-models)", required: false },
+      { name: "template", description: "Predefined template (debug, explain, optimize, etc.)", required: false },
+      { name: "include_system_info", description: "Include system information in context", required: false },
+      { name: "include_git_context", description: "Include git repository context", required: false },
+      { name: "context_files", description: "Comma-separated list of files to include", required: false },
+      { name: "session_id", description: "Resume a previous conversation", required: false }
+    ],
+    notes: [
+      "Provides more context and options than regular /claude command",
+      "Templates help with common tasks like debugging and optimization",
+      "System and git context can provide valuable information to Claude",
+      "Context files are automatically truncated if too large"
+    ]
+  },
+  "claude-models": {
+    title: "🤖 Available Claude Models",
+    description: "List all available Claude models and their capabilities",
+    usage: "/claude-models",
+    examples: ["/claude-models"],
+    parameters: [],
+    notes: [
+      "Shows model names, descriptions, and context windows",
+      "Indicates recommended models for general use",
+      "Use model IDs with /claude-enhanced command"
+    ]
+  },
+  "claude-sessions": {
+    title: "📋 Claude Session Management",
+    description: "Manage and view Claude Code conversation sessions",
+    usage: "/claude-sessions action: [action] session_id: [optional]",
+    examples: [
+      "/claude-sessions action: list",
+      "/claude-sessions action: info session_id: session_123...",
+      "/claude-sessions action: delete session_id: session_123...",
+      "/claude-sessions action: cleanup"
+    ],
+    parameters: [
+      { name: "action", description: "Action to perform (list, info, delete, cleanup)", required: true },
+      { name: "session_id", description: "Session ID for info/delete actions", required: false }
+    ],
+    notes: [
+      "list: Shows all active sessions with stats",
+      "info: Detailed information about a specific session",
+      "delete: Remove a specific session",
+      "cleanup: Remove old sessions (>24 hours)"
+    ]
+  },
+  "claude-templates": {
+    title: "📝 Claude Code Templates",
+    description: "Use predefined templates for common Claude Code tasks",
+    usage: "/claude-templates template: [template] content: [your content]",
+    examples: [
+      "/claude-templates template: debug content: Error: Cannot read property 'x' of undefined",
+      "/claude-templates template: explain content: const result = array.reduce((acc, item) => ...)",
+      "/claude-templates template: optimize content: for(let i=0; i<items.length; i++) {...}"
+    ],
+    parameters: [
+      { name: "template", description: "Template type (debug, explain, optimize, test, refactor, etc.)", required: true },
+      { name: "content", description: "Your code or content to apply the template to", required: true }
+    ],
+    notes: [
+      "Templates provide structured prompts for specific tasks",
+      "Shows the combined prompt that you can copy and use",
+      "Available templates: debug, explain, optimize, test, refactor, document, security, convert"
+    ]
+  },
+  "claude-context": {
+    title: "📋 Claude Context Preview",
+    description: "Preview what context information would be sent to Claude",
+    usage: "/claude-context include_system_info: [true/false] include_git_context: [true/false] ...",
+    examples: [
+      "/claude-context include_system_info: true",
+      "/claude-context include_git_context: true context_files: package.json,src/main.ts",
+      "/claude-context include_system_info: true include_git_context: true"
+    ],
+    parameters: [
+      { name: "include_system_info", description: "Preview system information", required: false },
+      { name: "include_git_context", description: "Preview git context", required: false },
+      { name: "context_files", description: "Preview specific files", required: false }
+    ],
+    notes: [
+      "Shows exactly what context would be included",
+      "Helps you understand what information Claude will receive",
+      "Useful for debugging context issues"
+    ]
   }
 };
 
