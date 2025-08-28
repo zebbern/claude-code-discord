@@ -422,6 +422,173 @@ export const COMMAND_HELP = {
       "Helps you understand what information Claude will receive",
       "Useful for debugging context issues"
     ]
+  },
+  "system-info": {
+    title: "🖥️ System Information",
+    description: "Display comprehensive system information including OS, CPU, and memory",
+    usage: "/system-info",
+    examples: ["/system-info"],
+    parameters: [],
+    notes: [
+      "Shows operating system details and architecture",
+      "Displays CPU information and specifications", 
+      "Includes memory usage and kernel version",
+      "Useful for debugging environment-specific issues"
+    ]
+  },
+  "processes": {
+    title: "⚙️ Running Processes",
+    description: "List currently running processes on the system",
+    usage: "/processes filter: [optional] limit: [number]",
+    examples: [
+      "/processes",
+      "/processes filter: node limit: 10",
+      "/processes filter: python",
+      "/processes limit: 50"
+    ],
+    parameters: [
+      { name: "filter", description: "Filter processes by name", required: false },
+      { name: "limit", description: "Maximum number of processes to show (default: 20)", required: false }
+    ],
+    notes: [
+      "Shows process ID, CPU usage, memory usage, and command",
+      "Filter helps find specific applications or services",
+      "Limited output to prevent overwhelming Discord messages"
+    ]
+  },
+  "system-resources": {
+    title: "📊 System Resources",
+    description: "Display current system resource usage (CPU, Memory, Load)",
+    usage: "/system-resources",
+    examples: ["/system-resources"],
+    parameters: [],
+    notes: [
+      "Shows real-time memory usage and availability",
+      "Displays CPU usage and load averages",
+      "Includes system uptime and load statistics",
+      "Useful for monitoring system performance"
+    ]
+  },
+  "network-info": {
+    title: "🌐 Network Information", 
+    description: "Display network interfaces, connections, and routing information",
+    usage: "/network-info",
+    examples: ["/network-info"],
+    parameters: [],
+    notes: [
+      "Shows all network interfaces and their IP addresses",
+      "Lists active network connections and listening ports",
+      "Displays routing table information",
+      "Fallback to ifconfig if ip command is not available"
+    ]
+  },
+  "disk-usage": {
+    title: "💽 Disk Space Usage",
+    description: "Show disk space usage for all mounted drives and filesystems",
+    usage: "/disk-usage",
+    examples: ["/disk-usage"],
+    parameters: [],
+    notes: [
+      "Shows used and available space for each filesystem",
+      "Displays usage percentages and mount points",
+      "Helps identify storage issues and capacity planning",
+      "Human-readable format (GB, MB, etc.)"
+    ]
+  },
+  "env-vars": {
+    title: "🔧 Environment Variables",
+    description: "List environment variables with optional filtering",
+    usage: "/env-vars filter: [optional]",
+    examples: [
+      "/env-vars",
+      "/env-vars filter: PATH",
+      "/env-vars filter: NODE",
+      "/env-vars filter: DISCORD"
+    ],
+    parameters: [
+      { name: "filter", description: "Filter by variable name (case insensitive)", required: false }
+    ],
+    notes: [
+      "Sensitive values (passwords, tokens, keys) are masked for security",
+      "Filter helps find specific environment variables",
+      "Useful for debugging configuration issues",
+      "Shows all environment variables if no filter specified"
+    ]
+  },
+  "system-logs": {
+    title: "📋 System Logs",
+    description: "Display recent system logs with optional service filtering",
+    usage: "/system-logs lines: [number] service: [service name]",
+    examples: [
+      "/system-logs",
+      "/system-logs lines: 100",
+      "/system-logs service: nginx lines: 50",
+      "/system-logs service: docker"
+    ],
+    parameters: [
+      { name: "lines", description: "Number of lines to show (default: 50)", required: false },
+      { name: "service", description: "Specific service to filter logs", required: false }
+    ],
+    notes: [
+      "Uses journalctl for systemd systems",
+      "Falls back to dmesg if journalctl is not available",
+      "Service filtering shows logs for specific systemd services",
+      "Timestamps included for log correlation"
+    ]
+  },
+  "port-scan": {
+    title: "🔍 Port Scanner",
+    description: "Check which ports are open and listening on a host",
+    usage: "/port-scan host: [hostname] ports: [port range]",
+    examples: [
+      "/port-scan",
+      "/port-scan host: localhost ports: 80,443",
+      "/port-scan ports: 8000-9000",
+      "/port-scan host: example.com ports: 22,80,443"
+    ],
+    parameters: [
+      { name: "host", description: "Host to scan (default: localhost)", required: false },
+      { name: "ports", description: "Specific ports (80,443) or range (8000-9000)", required: false }
+    ],
+    notes: [
+      "Shows listening ports and associated services",
+      "Supports individual ports (80,443) or ranges (8000-9000)",
+      "Uses ss or netstat for port information",
+      "Helpful for debugging connectivity issues"
+    ]
+  },
+  "service-status": {
+    title: "🔧 Service Status",
+    description: "Check the status of system services using systemctl",
+    usage: "/service-status service: [service name]",
+    examples: [
+      "/service-status",
+      "/service-status service: nginx",
+      "/service-status service: docker",
+      "/service-status service: ssh"
+    ],
+    parameters: [
+      { name: "service", description: "Specific service name to check", required: false }
+    ],
+    notes: [
+      "Shows all services if no service specified",
+      "Displays service state (active, inactive, failed)",
+      "Includes service uptime and recent status changes",
+      "Works with systemd-based systems"
+    ]
+  },
+  "uptime": {
+    title: "⏰ System Uptime",
+    description: "Display system uptime, boot time, and load averages",
+    usage: "/uptime",
+    examples: ["/uptime"],
+    parameters: [],
+    notes: [
+      "Shows how long the system has been running",
+      "Displays system boot time and date",
+      "Includes current load averages (1, 5, 15 minutes)",
+      "Useful for monitoring system stability"
+    ]
   }
 };
 
