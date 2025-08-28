@@ -13,6 +13,8 @@ import { ShellManager } from "./shell/index.ts";
 import { getGitInfo } from "./git/index.ts";
 
 import { createClaudeHandlers, claudeCommands, cleanSessionId, createClaudeSender, expandableContent, type DiscordSender, ClaudeMessage, enhancedClaudeCommands, createEnhancedClaudeHandlers, ClaudeSessionManager } from "./claude/index.ts";
+import { additionalClaudeCommands, createAdditionalClaudeHandlers } from "./claude/additional-index.ts";
+import { advancedSettingsCommands, createAdvancedSettingsHandlers, DEFAULT_SETTINGS, type AdvancedBotSettings } from "./settings/index.ts";
 import { createGitHandlers, gitCommands, WorktreeBotManager } from "./git/index.ts";
 import { createShellHandlers, shellCommands } from "./shell/index.ts";
 import { createUtilsHandlers, utilsCommands } from "./util/index.ts";
