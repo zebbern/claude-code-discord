@@ -845,7 +845,7 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
               },
               {
                 name: "🚀 Enhanced Claude Features",
-                value: "`/claude-models` - List available models\n`/claude-sessions` - Manage sessions\n`/claude-templates` - Use predefined templates\n`/claude-context` - Preview context",
+                value: "`/claude-models` - List available models\n`/claude-sessions` - Manage sessions\n`/claude-context` - Preview context",
                 inline: false
               },
               {
