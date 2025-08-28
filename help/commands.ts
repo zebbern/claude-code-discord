@@ -5,42 +5,8 @@ export const helpCommand = new SlashCommandBuilder()
   .setDescription('Display detailed help for all available commands')
   .addStringOption(option =>
     option.setName('command')
-      .setDescription('Get detailed help for a specific command')
-      .setRequired(false)
-      .addChoices(
-        { name: 'claude', value: 'claude' },
-        { name: 'continue', value: 'continue' },
-        { name: 'claude-cancel', value: 'claude-cancel' },
-        { name: 'git', value: 'git' },
-        { name: 'worktree', value: 'worktree' },
-        { name: 'worktree-list', value: 'worktree-list' },
-        { name: 'worktree-remove', value: 'worktree-remove' },
-        { name: 'worktree-bots', value: 'worktree-bots' },
-        { name: 'worktree-kill', value: 'worktree-kill' },
-        { name: 'shell', value: 'shell' },
-        { name: 'shell-input', value: 'shell-input' },
-        { name: 'shell-list', value: 'shell-list' },
-        { name: 'shell-kill', value: 'shell-kill' },
-        { name: 'status', value: 'status' },
-        { name: 'settings', value: 'settings' },
-        { name: 'pwd', value: 'pwd' },
-        { name: 'shutdown', value: 'shutdown' },
-        { name: 'claude-enhanced', value: 'claude-enhanced' },
-        { name: 'claude-models', value: 'claude-models' },
-        { name: 'claude-sessions', value: 'claude-sessions' },
-        { name: 'claude-templates', value: 'claude-templates' },
-        { name: 'claude-context', value: 'claude-context' },
-        { name: 'system-info', value: 'system-info' },
-        { name: 'processes', value: 'processes' },
-        { name: 'system-resources', value: 'system-resources' },
-        { name: 'network-info', value: 'network-info' },
-        { name: 'disk-usage', value: 'disk-usage' },
-        { name: 'env-vars', value: 'env-vars' },
-        { name: 'system-logs', value: 'system-logs' },
-        { name: 'port-scan', value: 'port-scan' },
-        { name: 'service-status', value: 'service-status' },
-        { name: 'uptime', value: 'uptime' }
-      ));
+      .setDescription('Command name for detailed help (e.g., claude, system-info, processes)')
+      .setRequired(false));
 
 export interface HelpHandlerDeps {
   workDir: string;
