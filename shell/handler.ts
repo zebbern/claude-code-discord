@@ -225,7 +225,7 @@ export class ShellManager {
   killAllProcesses(): void {
     for (const [id, process] of this.runningProcesses) {
       try {
-        process.child.kill("SIGTERM");
+        killProcessCrossPlatform(process.child, "SIGTERM");
       } catch (error) {
         console.error(`Failed to kill process ${id}:`, error);
       }
