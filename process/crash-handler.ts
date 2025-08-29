@@ -280,8 +280,31 @@ export function setupGlobalErrorHandlers(crashHandler: ProcessCrashHandler) {
   };
 
   try {
+    // Cross-platform signal handling
+    const platform = Deno.build.os;
+    
+    // SIGINT (Ctrl+C) is supported on all platforms
     Deno.addSignalListener("SIGINT", () => handleSignal("SIGINT"));
-    Deno.addSignalListener("SIGTERM", () => handleSignal("SIGTERM"));
+    
+    if (platform === "windows") {
+      // Windows-specific signals
+      try {
+        Deno.addSignalListener("SIGBREAK", () => handleSignal("SIGBREAK"));
+      } catch (winError) {
+        console.warn('Could not register SIGBREAK handler:', winError);
+      }
+      
+      // Note: SIGTERM is not supported on Windows
+      console.log('Signal handlers registered for Windows (SIGINT, SIGBREAK)');
+    } else {
+      // Unix-like systems (Linux, macOS)
+      try {
+        Deno.addSignalListener("SIGTERM", () => handleSignal("SIGTERM"));
+        console.log('Signal handlers registered for Unix (SIGINT, SIGTERM)');
+      } catch (unixError) {
+        console.warn('Could not register SIGTERM handler:', unixError);
+      }
+    }
   } catch (error) {
     console.warn('Could not register signal handlers:', error);
   }
