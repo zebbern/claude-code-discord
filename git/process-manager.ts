@@ -135,8 +135,8 @@ export class WorktreeBotManager {
     
     for (const [path, botInfo] of this.spawnedBots.entries()) {
       try {
-        botInfo.process.kill("SIGTERM");
-        console.log(`Sent SIGTERM to worktree bot: ${path}`);
+        killProcessCrossPlatform(botInfo.process, "SIGTERM");
+        console.log(`Sent termination signal to worktree bot: ${path}`);
       } catch (error) {
         console.error(`Failed to kill worktree bot ${path}:`, error);
       }
