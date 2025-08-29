@@ -1,12 +1,15 @@
 import type { ShellProcess, ShellExecutionResult, ShellInputResult, ShellKillResult } from "./types.ts";
+import { detectPlatform, getShellCommand } from "../util/platform.ts";
 
 export class ShellManager {
   private runningProcesses = new Map<number, ShellProcess>();
   private processIdCounter = 0;
   private workDir: string;
+  private platform: string;
 
   constructor(workDir: string) {
     this.workDir = workDir;
+    this.platform = detectPlatform();
   }
 
   // deno-lint-ignore no-explicit-any
@@ -17,16 +20,39 @@ export class ShellManager {
     const completeCallbacks: ((code: number, output: string) => void)[] = [];
     const errorCallbacks: ((error: Error) => void)[] = [];
 
-    // Handle Python3 buffering issues by adding -u flag for unbuffered output
+    // Cross-platform command handling
     let modifiedCommand = command;
-    if (command.trim().startsWith('python3') && !command.includes('-u')) {
-      modifiedCommand = command.replace(/^python3\s*/, 'python3 -u ');
-    } else if (command.trim() === 'python3') {
-      modifiedCommand = 'python3 -u';
+    
+    if (this.platform === 'windows') {
+      // Handle Windows-specific command modifications
+      if (command.trim().startsWith('python3')) {
+        // On Windows, python3 is often just 'python'
+        modifiedCommand = command.replace(/^python3/, 'python');
+        if (!modifiedCommand.includes('-u')) {
+          modifiedCommand = modifiedCommand.replace(/^python\s*/, 'python -u ');
+        }
+      }
+      // Handle other Windows-specific cases
+      if (command.includes('ls ')) {
+        modifiedCommand = command.replace(/\bls\b/g, 'dir');
+      }
+      if (command.includes('cat ')) {
+        modifiedCommand = command.replace(/\bcat\b/g, 'type');
+      }
+    } else {
+      // Handle Python3 buffering issues by adding -u flag for unbuffered output (Unix-like systems)
+      if (command.trim().startsWith('python3') && !command.includes('-u')) {
+        modifiedCommand = command.replace(/^python3\s*/, 'python3 -u ');
+      } else if (command.trim() === 'python3') {
+        modifiedCommand = 'python3 -u';
+      }
     }
 
-    const proc = new Deno.Command("bash", {
-      args: ["-c", modifiedCommand],
+    // Get platform-appropriate shell command
+    const shellCmd = getShellCommand();
+    
+    const proc = new Deno.Command(shellCmd[0], {
+      args: [...shellCmd.slice(1), modifiedCommand],
       cwd: this.workDir,
       stdin: "piped",
       stdout: "piped",
