@@ -1,6 +1,35 @@
 import type { ShellProcess, ShellExecutionResult, ShellInputResult, ShellKillResult } from "./types.ts";
 import { detectPlatform, getShellCommand } from "../util/platform.ts";
 
+/**
+ * Cross-platform process termination
+ */
+function killProcessCrossPlatform(childProcess: Deno.ChildProcess, signal: "SIGTERM" | "SIGKILL" = "SIGTERM"): void {
+  const platform = detectPlatform();
+  
+  try {
+    if (platform === "windows") {
+      // On Windows, use SIGINT or SIGKILL (SIGTERM not supported)
+      if (signal === "SIGTERM") {
+        childProcess.kill("SIGINT"); // Windows equivalent of graceful shutdown
+      } else {
+        childProcess.kill("SIGKILL"); // Force kill works on Windows
+      }
+    } else {
+      // Unix-like systems support both SIGTERM and SIGKILL
+      childProcess.kill(signal);
+    }
+  } catch (error) {
+    console.error(`Failed to kill process with ${signal}:`, error);
+    // Fallback: try SIGKILL on any platform
+    try {
+      childProcess.kill("SIGKILL");
+    } catch (fallbackError) {
+      console.error('Failed to force kill process:', fallbackError);
+    }
+  }
+}
+
 export class ShellManager {
   private runningProcesses = new Map<number, ShellProcess>();
   private processIdCounter = 0;
