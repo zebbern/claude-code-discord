@@ -8,6 +8,9 @@ import {
   isCommandAvailable 
 } from "../util/platform.ts";
 
+// Re-export system commands from commands.ts
+export { systemCommands } from "./commands.ts";
+
 export interface SystemHandlerDeps {
   workDir: string;
   crashHandler: any;
