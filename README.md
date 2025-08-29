@@ -43,7 +43,7 @@
 
 <h2 id="pre">Quick Start</h2>
 
-- **[Install Deno Can Be Done Via Website Or Commands Under:](https://deno.com/)**
+- **Install Deno Can Be Done Via [Denos Website](https://deno.com/) Or Commands Under:**
 ```C
 # Linux/MacOS
 curl -fsSL https://deno.land/install.sh | sh
