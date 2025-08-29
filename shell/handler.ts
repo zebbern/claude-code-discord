@@ -205,10 +205,10 @@ export class ShellManager {
     }
 
     try {
-      process.child.kill("SIGTERM");
+      killProcessCrossPlatform(process.child, "SIGTERM");
 
       const timeout = setTimeout(() => {
-        process.child.kill("SIGKILL");
+        killProcessCrossPlatform(process.child, "SIGKILL");
       }, 5000);
 
       await process.child.status;
