@@ -70,10 +70,10 @@ export APPLICATION_ID="your-discord-app-id"
 **Now Run the discord Bot**
 ```bash
 # Run the bot directly (requires execution permissions)
-./index.ts --category myproject --user-id 123456789012345678
+./index.ts --category myproject --user-id Your_Discord_User_ID_Here
 
 # Or Run with Deno
-deno run --allow-all index.ts --category myproject --user-id 123456789012345678
+deno run --allow-all index.ts --category myproject --user-id Your_Discord_User_ID_Here
 ```
 **You can run without `--user-id Your_Discord_User_ID_Here` if you dont want to be notified when claude finishes**
 <img width="250" height="250" alt="image" src="https://github.com/user-attachments/assets/2fea008b-76b7-48d8-9a87-8214cc7a24ad" />
