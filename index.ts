@@ -1755,8 +1755,31 @@ export async function createClaudeCodeBot(config: BotConfig) {
     }
   };
   
-  Deno.addSignalListener("SIGINT", () => handleSignal("SIGINT"));
-  Deno.addSignalListener("SIGTERM", () => handleSignal("SIGTERM"));
+  // Cross-platform signal handling
+  const platform = Deno.build.os;
+  
+  try {
+    // SIGINT (Ctrl+C) works on all platforms
+    Deno.addSignalListener("SIGINT", () => handleSignal("SIGINT"));
+    
+    if (platform === "windows") {
+      // Windows-specific signals
+      try {
+        Deno.addSignalListener("SIGBREAK", () => handleSignal("SIGBREAK"));
+      } catch (winError) {
+        console.warn('Could not register SIGBREAK handler:', winError.message);
+      }
+    } else {
+      // Unix-like systems
+      try {
+        Deno.addSignalListener("SIGTERM", () => handleSignal("SIGTERM"));
+      } catch (unixError) {
+        console.warn('Could not register SIGTERM handler:', unixError.message);
+      }
+    }
+  } catch (error) {
+    console.warn('Signal handler registration error:', error.message);
+  }
   
   return bot;
 }
