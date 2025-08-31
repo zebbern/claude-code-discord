@@ -68,6 +68,8 @@ export DISCORD_TOKEN="your-discord-bot-token"
 export APPLICATION_ID="your-discord-app-id"
 ```
 **Now Run the discord Bot**
+> If you get `not a git directory` just run 
+> <kbd>git add .</kbd>
 ```bash
 # Run the bot directly (requires execution permissions)
 ./index.ts --category myproject --user-id Your_Discord_User_ID_Here
@@ -77,6 +79,8 @@ deno run --allow-all index.ts --category myproject --user-id Your_Discord_User_I
 ```
 **You can run without `--user-id Your_Discord_User_ID_Here` if you dont want to be notified when claude finishes**
 <img width="250" height="250" alt="image" src="https://github.com/user-attachments/assets/2fea008b-76b7-48d8-9a87-8214cc7a24ad" />
+
+
 
 
 <h1 id="setup">Setup Discord Bot</h1>
