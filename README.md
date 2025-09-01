@@ -36,7 +36,6 @@
 
 **Tutorial If you dont know or have them follow these first then come back:**
 - **[How To Setup Discord Bot?](#setup)**
-- **[How To Use](#)**
 
 ---
 
