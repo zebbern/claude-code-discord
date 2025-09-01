@@ -64,18 +64,33 @@ claude /login
 ```
 **Required environment variables**
 ```
+# Linux
 export DISCORD_TOKEN="your-discord-bot-token"
 export APPLICATION_ID="your-discord-app-id"
+
+# Windows Terminal 
+set DISCORD_TOKEN=your-discord-bot-token
+set APPLICATION_ID=your-discord-app-id
+
+# Windows Powershell
+$env:DISCORD_TOKEN = "your-discord-bot-token"
+$env:APPLICATION_ID = "your-discord-app-id"
 ```
 **Now Run the discord Bot**
 > If you get `not a git directory` just run 
 > <kbd>git add .</kbd>
 ```bash
-# Run the bot directly (requires execution permissions)
+# Option 1: Just run the bot
+deno run --allow-all index.ts
+
+# Option 2: Run the bot with extra terminal output (For Dev)
+deno run --allow-all index.ts --watch
+
+# Option 3: Run the bot and get pings when claude is done
 ./index.ts --category myproject --user-id Your_Discord_User_ID_Here
 
-# Or Run with Deno
-deno run --allow-all index.ts --category myproject --user-id Your_Discord_User_ID_Here
+# Can also be ran like this: 
+deno run --allow-all index.ts --category yourproject --user-id Your_Discord_User_ID_Here
 ```
 **You can run without `--user-id Your_Discord_User_ID_Here` if you dont want to be notified when claude finishes**
 <img width="250" height="250" alt="image" src="https://github.com/user-attachments/assets/2fea008b-76b7-48d8-9a87-8214cc7a24ad" />
