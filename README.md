@@ -2,9 +2,6 @@
 
 # claude-code-discord
 
-<img width="350" height="350" alt="image" src="https://github.com/user-attachments/assets/e8091420-d271-48a4-8e55-279f2093d3ae" />
-
-
 <kbd>
 
 | Advantage                                   | Details                                                                                     | Status |
@@ -38,6 +35,10 @@
 - **[How To Setup Discord Bot?](#setup)**
 
 ---
+
+### Preview: 
+<img width="350" height="350" alt="image" src="https://github.com/user-attachments/assets/e8091420-d271-48a4-8e55-279f2093d3ae" />
+
 
 
 <h2 id="pre">Quick Start</h2>
