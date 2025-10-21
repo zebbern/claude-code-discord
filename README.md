@@ -78,7 +78,7 @@ $env:APPLICATION_ID = "your-discord-app-id"
 ```
 **Now Run the discord Bot**
 > If you get `not a git directory` just run 
-> <kbd>git add .</kbd>
+> <kbd>git init</kbd> or <kbd>git add .</kbd>
 ```bash
 # Option 1: Just run the bot
 deno run --allow-all index.ts
