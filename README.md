@@ -12,10 +12,10 @@
 | Immediate, shareable feedback               | Execute `/git`, `/shell`, or `/claude` and get outputs directly in-channel                  | ✅     |
 | Reduced context switching                   | Keep actions, logs, and discussion together — less switching between terminal and chat      | ✅     |
 | Role-based access control                   | Restrict destructive commands (`/shell`, `/git`, worktree ops) to specific Discord roles    | ✅     |
-| Non-developer friendly                      | PMs, QA, and stakeholders can trigger checks and view results without repo access          | ✅     |
-| Automatable touchpoint                      | Integrate with CI/webhooks to triage issues and run fixes from chat                        | ✅     |
+| Non-developer friendly                      | PMs, QA, and stakeholders can trigger checks and view results without repo access           | ✅     |
+| Automatable touchpoint                      | Integrate with CI/webhooks to triage issues and run fixes from chat                         | ✅     |
 | Local hosting & security                    | Keep keys and code on your infra while exposing a controlled interface through Discord      | ✅     |
-| Audit trail & accountability                | Channel history provides an easy-to-search record of who ran what and when                 | ✅     |
+| Audit trail & accountability                | Channel history provides an easy-to-search record of who ran what and when                  | ✅     |
 
 </kbd>
 
