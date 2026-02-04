@@ -1767,18 +1767,21 @@ export async function createClaudeCodeBot(config: BotConfig) {
       try {
         Deno.addSignalListener("SIGBREAK", () => handleSignal("SIGBREAK"));
       } catch (winError) {
-        console.warn('Could not register SIGBREAK handler:', winError.message);
+        const message = winError instanceof Error ? winError.message : String(winError);
+        console.warn('Could not register SIGBREAK handler:', message);
       }
     } else {
       // Unix-like systems
       try {
         Deno.addSignalListener("SIGTERM", () => handleSignal("SIGTERM"));
       } catch (unixError) {
-        console.warn('Could not register SIGTERM handler:', unixError.message);
+        const message = unixError instanceof Error ? unixError.message : String(unixError);
+        console.warn('Could not register SIGTERM handler:', message);
       }
     }
   } catch (error) {
-    console.warn('Signal handler registration error:', error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn('Signal handler registration error:', message);
   }
   
   return bot;

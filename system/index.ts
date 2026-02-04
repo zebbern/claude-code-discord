@@ -40,7 +40,8 @@ ${systemInfoOutput}`;
 
         return { data: systemInfo };
       } catch (error) {
-        throw new Error(`Failed to get system info: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to get system info: ${message}`);
       }
     },
 
@@ -90,7 +91,8 @@ ${systemInfoOutput}`;
 
         return { data: processInfo };
       } catch (error) {
-        throw new Error(`Failed to list processes: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to list processes: ${message}`);
       }
     },
 
@@ -129,7 +131,8 @@ ${systemInfoOutput}`;
 
         return { data: resourceInfo };
       } catch (error) {
-        throw new Error(`Failed to get system resources: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to get system resources: ${message}`);
       }
     },
 
@@ -154,7 +157,8 @@ ${systemInfoOutput}`;
 
         return { data: networkInfo };
       } catch (error) {
-        throw new Error(`Failed to get network info: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to get network info: ${message}`);
       }
     },
 
@@ -165,7 +169,8 @@ ${systemInfoOutput}`;
         const diskInfo = `Disk Usage - ${getPlatformDisplayName()}\n\n${diskOutput}`;
         return { data: diskInfo };
       } catch (error) {
-        throw new Error(`Failed to get disk usage: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to get disk usage: ${message}`);
       }
     },
 
@@ -198,7 +203,8 @@ ${systemInfoOutput}`;
 
         return { data: envInfo };
       } catch (error) {
-        throw new Error(`Failed to get environment variables: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to get environment variables: ${message}`);
       }
     },
 
@@ -238,7 +244,8 @@ ${systemInfoOutput}`;
 
         return { data: logInfo };
       } catch (error) {
-        throw new Error(`Failed to get system logs: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to get system logs: ${message}`);
       }
     },
 
@@ -262,7 +269,8 @@ ${systemInfoOutput}`;
 
         return { data: portInfo };
       } catch (error) {
-        throw new Error(`Failed to scan ports: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to scan ports: ${message}`);
       }
     },
 
@@ -288,7 +296,8 @@ ${systemInfoOutput}`;
 
         return { data: serviceInfo };
       } catch (error) {
-        throw new Error(`Failed to get service status: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to get service status: ${message}`);
       }
     },
 
@@ -299,7 +308,8 @@ ${systemInfoOutput}`;
         const uptimeInfo = `System Uptime - ${getPlatformDisplayName()}\n\n${uptimeOutput}`;
         return { data: uptimeInfo };
       } catch (error) {
-        throw new Error(`Failed to get uptime: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to get uptime: ${message}`);
       }
     }
   };

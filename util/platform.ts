@@ -113,7 +113,8 @@ export async function executeSystemCommand(command: string[]): Promise<string> {
       return `Command failed (exit code ${code}): ${errorOutput}`;
     }
   } catch (error) {
-    return `Execution error: ${error.message}`;
+    const message = error instanceof Error ? error.message : String(error);
+    return `Execution error: ${message}`;
   }
 }
 

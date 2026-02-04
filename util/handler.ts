@@ -1,15 +1,15 @@
 import type { SettingsResult, PwdResult } from "./types.ts";
+import type { BotSettings, BotSettingsUpdater } from "../types/shared.ts";
 
 export interface UtilsHandlerDeps {
   workDir: string;
   repoName: string;
   branchName: string;
   actualCategoryName: string;
-  botSettings: {
-    mentionEnabled: boolean;
-    mentionUserId: string | null;
-  };
-  updateBotSettings: (settings: { mentionEnabled: boolean; mentionUserId: string | null }) => void;
+  /** Bot mention settings */
+  botSettings: BotSettings;
+  /** Callback to persist settings changes */
+  updateBotSettings: BotSettingsUpdater;
 }
 
 export function createUtilsHandlers(deps: UtilsHandlerDeps) {

@@ -1,34 +1,6 @@
 // Worktree bot process management
-import { detectPlatform } from "../util/platform.ts";
-
-/**
- * Cross-platform process termination for git processes
- */
-function killProcessCrossPlatform(childProcess: Deno.ChildProcess, signal: "SIGTERM" | "SIGKILL" = "SIGTERM"): void {
-  const platform = detectPlatform();
-  
-  try {
-    if (platform === "windows") {
-      // On Windows, use SIGINT or SIGKILL (SIGTERM not supported)
-      if (signal === "SIGTERM") {
-        childProcess.kill("SIGINT"); // Windows equivalent of graceful shutdown
-      } else {
-        childProcess.kill("SIGKILL"); // Force kill works on Windows
-      }
-    } else {
-      // Unix-like systems support both SIGTERM and SIGKILL
-      childProcess.kill(signal);
-    }
-  } catch (error) {
-    console.error(`Failed to kill git process with ${signal}:`, error);
-    // Fallback: try SIGKILL
-    try {
-      childProcess.kill("SIGKILL");
-    } catch (fallbackError) {
-      console.error('Failed to force kill git process:', fallbackError);
-    }
-  }
-}
+import { killProcessCrossPlatform } from "../util/process.ts";
+import type { BotSettings } from "../types/shared.ts";
 
 export interface WorktreeBotProcess {
   process: Deno.ChildProcess;
@@ -48,10 +20,8 @@ export class WorktreeBotManager {
     actualCategoryName: string;
     discordToken: string;
     applicationId: string;
-    botSettings: {
-      mentionEnabled: boolean;
-      mentionUserId: string | null;
-    };
+    /** Bot mention settings to propagate to spawned bot */
+    botSettings: BotSettings;
   }): Promise<void> {
     const { fullPath, branch, actualCategoryName, discordToken, applicationId, botSettings } = config;
     

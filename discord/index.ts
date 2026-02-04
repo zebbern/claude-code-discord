@@ -29,6 +29,8 @@ export type {
   EmbedData,
   ComponentData
 } from "./types.ts";
+// Re-export shared types for convenience
+export type { BotSettings, BotSettingsUpdater } from "../types/shared.ts";
 export type {
   PaginationOptions,
   PaginatedContent,

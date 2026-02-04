@@ -1,4 +1,4 @@
-import { query as claudeQuery, type SDKMessage } from "npm:@anthropic-ai/claude-code@latest";
+import { query as claudeQuery, type SDKMessage } from "@anthropic-ai/claude-code";
 
 // Clean session ID (remove unwanted characters)
 export function cleanSessionId(sessionId: string): string {

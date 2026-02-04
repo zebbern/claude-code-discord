@@ -1,4 +1,5 @@
-// Discord module no longer imports types from parent modules
+// Discord module types
+import type { BotSettings } from "../types/shared.ts";
 
 export interface EmbedData {
   color?: number;
@@ -75,8 +76,6 @@ export interface SlashCommand {
 export interface BotDependencies {
   commands: SlashCommand[];
   cleanSessionId?: (sessionId: string) => string;
-  botSettings?: {
-    mentionEnabled: boolean;
-    mentionUserId: string | null;
-  };
+  /** Optional bot settings for mention functionality */
+  botSettings?: BotSettings;
 }
