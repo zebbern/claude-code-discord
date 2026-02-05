@@ -16,7 +16,11 @@ export async function getGitInfo(workDir: string = Deno.cwd()): Promise<GitInfo>
     try {
       const { stdout: remoteUrl } = await exec("git config --get remote.origin.url", { cwd: workDir });
       if (remoteUrl) {
-        const match = remoteUrl.match(/\/([^\/]+?)(\.git)?$/);
+        // Match repo name from various URL formats:
+        // - https://github.com/user/repo.git
+        // - git@github.com:user/repo.git
+        // - https://github.com/user/repo
+        const match = remoteUrl.match(/[\/:]([^\/:\s]+?)(\.git)?\s*$/);
         if (match) {
           repoName = match[1];
         }
@@ -24,6 +28,9 @@ export async function getGitInfo(workDir: string = Deno.cwd()): Promise<GitInfo>
     } catch {
       // Use directory name if remote URL cannot be obtained
     }
+    
+    // Always strip .git suffix if present
+    repoName = repoName.replace(/\.git$/, '');
     
     return { repo: repoName, branch: branchName };
   } catch (error) {
