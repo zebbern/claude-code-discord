@@ -110,23 +110,37 @@ export async function captureScreenshot(outputDir: string = Deno.cwd()): Promise
   try {
     switch (env.platform) {
       case "windows": {
-        // PowerShell screenshot command
-        const psCommand = `
-          Add-Type -AssemblyName System.Windows.Forms,System.Drawing
-          $screens = [System.Windows.Forms.Screen]::AllScreens
-          $top = ($screens | ForEach-Object {$_.Bounds.Top} | Measure-Object -Minimum).Minimum
-          $left = ($screens | ForEach-Object {$_.Bounds.Left} | Measure-Object -Minimum).Minimum
-          $width = ($screens | ForEach-Object {$_.Bounds.Right} | Measure-Object -Maximum).Maximum - $left
-          $height = ($screens | ForEach-Object {$_.Bounds.Bottom} | Measure-Object -Maximum).Maximum - $top
-          $bitmap = New-Object System.Drawing.Bitmap($width, $height)
-          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-          $graphics.CopyFromScreen($left, $top, 0, 0, [System.Drawing.Size]::new($width, $height))
-          $bitmap.Save('${filePath.replace(/\\/g, "\\\\")}')
-          $graphics.Dispose()
-          $bitmap.Dispose()
-        `.trim().replace(/\n/g, "; ");
+        // Create a temporary PowerShell script file
+        const scriptPath = join(outputDir, `capture-${timestamp}.ps1`);
+        const escapedFilePath = filePath.replace(/\\/g, "\\\\");
         
-        await exec(`powershell -NoProfile -Command "${psCommand}"`);
+        const psScript = `
+Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+try {
+    $screen = [System.Windows.Forms.Screen]::PrimaryScreen
+    $bitmap = New-Object System.Drawing.Bitmap($screen.Bounds.Width, $screen.Bounds.Height)
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    $graphics.CopyFromScreen($screen.Bounds.Location, [System.Drawing.Point]::Empty, $screen.Bounds.Size)
+    $bitmap.Save("${escapedFilePath}")
+    $graphics.Dispose()
+    $bitmap.Dispose()
+    exit 0
+} catch {
+    Write-Error $_.Exception.Message
+    exit 1
+}
+`.trim();
+        
+        // Write script to file
+        await Deno.writeTextFile(scriptPath, psScript);
+        
+        try {
+          // Execute script
+          await exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`);
+        } finally {
+          // Clean up script file
+          try { await Deno.remove(scriptPath); } catch { /* ignore */ }
+        }
         break;
       }
       
@@ -180,20 +194,25 @@ export async function captureScreenshot(outputDir: string = Deno.cwd()): Promise
     } else {
       return {
         success: false,
-        error: "Screenshot file was not created",
+        error: "Screenshot file was not created - the capture command may have failed silently",
       };
     }
   } catch (error) {
+    // Extract just the core error message, avoiding command details
+    const fullError = error instanceof Error ? error.message : String(error);
+    // Try to extract just the meaningful part of the error
+    const cleanError = fullError.includes("error:") 
+      ? fullError.split("error:").pop()?.trim() || "Capture command failed"
+      : fullError.length > 200 
+        ? "Screenshot capture failed - check if you have display access"
+        : fullError;
+    
     return {
       success: false,
-      error: `Screenshot capture failed: ${error instanceof Error ? error.message : String(error)}`,
+      error: `Screenshot capture failed: ${cleanError}`,
     };
   }
 }
-
-/**
- * Clean up screenshot file after upload
- */
 export async function cleanupScreenshot(filePath: string): Promise<void> {
   try {
     await Deno.remove(filePath);

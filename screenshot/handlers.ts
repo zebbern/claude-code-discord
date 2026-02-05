@@ -50,8 +50,12 @@ export function createScreenshotHandlers(deps: ScreenshotHandlerDeps) {
       const result = await captureScreenshot(workDir);
       
       if (!result.success || !result.filePath) {
+        // Truncate error message to stay under Discord's 2000 char limit
+        const errorMsg = result.error || "Unknown error occurred.";
+        const truncatedError = errorMsg.length > 500 ? errorMsg.substring(0, 500) + "..." : errorMsg;
+        
         await ctx.editReply({
-          content: `❌ **Screenshot Failed**\n\n${result.error || "Unknown error occurred."}`,
+          content: `❌ **Screenshot Failed**\n\n${truncatedError}`,
         });
         return;
       }
@@ -72,8 +76,12 @@ export function createScreenshotHandlers(deps: ScreenshotHandlerDeps) {
           await cleanupScreenshot(result.filePath!);
         }, 5000);
       } catch (error) {
+        // Truncate error message for Discord
+        const errMessage = error instanceof Error ? error.message : "Could not upload screenshot.";
+        const truncatedErr = errMessage.length > 500 ? errMessage.substring(0, 500) + "..." : errMessage;
+        
         await ctx.editReply({
-          content: `❌ **Upload Failed**\n\n${error instanceof Error ? error.message : "Could not upload screenshot."}`,
+          content: `❌ **Upload Failed**\n\n${truncatedErr}`,
         });
         
         // Clean up on error
