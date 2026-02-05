@@ -20,10 +20,9 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
               embeds: [{
                 color: 0x0099ff,
                 title: '🤖 Claude Code Settings',
+                description: 'Note: Only model and context options are supported by Claude Code CLI',
                 fields: [
                   { name: 'Default Model', value: `\`${settings.defaultModel}\`\n${CLAUDE_MODELS[settings.defaultModel as keyof typeof CLAUDE_MODELS]?.name || 'Unknown'}`, inline: true },
-                  { name: 'Temperature', value: settings.defaultTemperature.toString(), inline: true },
-                  { name: 'Max Tokens', value: settings.defaultMaxTokens.toString(), inline: true },
                   { name: 'Auto System Info', value: settings.autoIncludeSystemInfo ? 'Enabled' : 'Disabled', inline: true },
                   { name: 'Auto Git Context', value: settings.autoIncludeGitContext ? 'Enabled' : 'Disabled', inline: true },
                   { name: 'System Prompt', value: settings.defaultSystemPrompt || 'Not set', inline: false }
@@ -72,70 +71,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             });
             break;
 
-          case 'set-temperature':
-            if (!value) {
-              await ctx.reply({
-                content: 'Please provide a temperature value between 0.0 and 2.0',
-                ephemeral: true
-              });
-              return;
-            }
-            
-            const temp = parseFloat(value);
-            if (isNaN(temp) || temp < 0 || temp > 2) {
-              await ctx.reply({
-                content: 'Temperature must be a number between 0.0 and 2.0',
-                ephemeral: true
-              });
-              return;
-            }
-            
-            updateSettings({ defaultTemperature: temp });
-            await ctx.reply({
-              embeds: [{
-                color: 0x00ff00,
-                title: '✅ Temperature Updated',
-                description: `Default temperature set to ${temp}`,
-                fields: [
-                  { name: 'Effect', value: temp < 0.5 ? 'More focused and deterministic' : 
-                                          temp > 1.5 ? 'More creative and varied' : 
-                                          'Balanced creativity and focus', inline: false }
-                ],
-                timestamp: true
-              }],
-              ephemeral: true
-            });
-            break;
-
-          case 'set-max-tokens':
-            if (!value) {
-              await ctx.reply({
-                content: 'Please provide a max tokens value between 1 and 8192',
-                ephemeral: true
-              });
-              return;
-            }
-            
-            const maxTokens = parseInt(value);
-            if (isNaN(maxTokens) || maxTokens < 1 || maxTokens > 8192) {
-              await ctx.reply({
-                content: 'Max tokens must be between 1 and 8192',
-                ephemeral: true
-              });
-              return;
-            }
-            
-            updateSettings({ defaultMaxTokens: maxTokens });
-            await ctx.reply({
-              embeds: [{
-                color: 0x00ff00,
-                title: '✅ Max Tokens Updated',
-                description: `Default max tokens set to ${maxTokens}`,
-                timestamp: true
-              }],
-              ephemeral: true
-            });
-            break;
+          // NOTE: set-temperature and set-max-tokens removed - NOT supported by Claude Code CLI
 
           case 'set-system-prompt':
             if (!value) {
@@ -195,8 +131,6 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             const { DEFAULT_SETTINGS } = await import("./advanced-settings.ts");
             updateSettings({
               defaultModel: DEFAULT_SETTINGS.defaultModel,
-              defaultTemperature: DEFAULT_SETTINGS.defaultTemperature,
-              defaultMaxTokens: DEFAULT_SETTINGS.defaultMaxTokens,
               defaultSystemPrompt: DEFAULT_SETTINGS.defaultSystemPrompt,
               autoIncludeSystemInfo: DEFAULT_SETTINGS.autoIncludeSystemInfo,
               autoIncludeGitContext: DEFAULT_SETTINGS.autoIncludeGitContext

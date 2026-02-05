@@ -221,7 +221,6 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           {
             workDir,
             model: settings.defaultModel,
-            temperature: settings.defaultTemperature,
             includeSystemInfo: false,
             includeGitContext: false
           },
@@ -277,7 +276,6 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           {
             workDir,
             model: settings.defaultModel,
-            temperature: settings.defaultTemperature,
             includeSystemInfo: settings.autoIncludeSystemInfo,
             includeGitContext: settings.autoIncludeGitContext,
             contextFiles: contextFilesList
@@ -334,7 +332,6 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           {
             workDir,
             model: settings.defaultModel,
-            temperature: settings.defaultTemperature,
             includeSystemInfo: false,
             includeGitContext: settings.autoIncludeGitContext
           },
@@ -402,7 +399,6 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           {
             workDir,
             model: settings.defaultModel,
-            temperature: settings.defaultTemperature,
             includeSystemInfo: false,
             includeGitContext: settings.autoIncludeGitContext,
             contextFiles
@@ -455,7 +451,6 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           {
             workDir,
             model: settings.defaultModel,
-            temperature: settings.defaultTemperature,
             includeSystemInfo: settings.autoIncludeSystemInfo,
             includeGitContext: settings.autoIncludeGitContext
           },
@@ -516,7 +511,6 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           {
             workDir,
             model: settings.defaultModel,
-            temperature: settings.defaultTemperature,
             includeSystemInfo: false,
             includeGitContext: settings.autoIncludeGitContext
           },
@@ -573,7 +567,6 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           {
             workDir,
             model: settings.defaultModel,
-            temperature: 0.8, // Slightly higher temperature for teaching
             includeSystemInfo: false,
             includeGitContext: false
           },

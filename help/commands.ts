@@ -709,21 +709,22 @@ export const COMMAND_HELP = {
   "claude-settings": {
     title: "⚙️ Claude Code Settings",
     description: "Manage Claude Code specific settings and preferences",
-    usage: "/claude-settings action: [show/set-model/set-temperature/toggle-auto-system-info/etc] value: [optional]",
+    usage: "/claude-settings action: [show/set-model/toggle-auto-system-info/toggle-auto-git-context/set-system-prompt] value: [optional]",
     examples: [
       "/claude-settings action: show",
       "/claude-settings action: set-model value: claude-sonnet-4",
-      "/claude-settings action: set-temperature value: 0.8",
-      "/claude-settings action: toggle-auto-git-context"
+      "/claude-settings action: toggle-auto-git-context",
+      "/claude-settings action: set-system-prompt value: You are a helpful coding assistant"
     ],
     parameters: [
       { name: "action", description: "Setting action to perform", required: true },
       { name: "value", description: "New value for the setting", required: false }
     ],
     notes: [
-      "Configure default model, temperature, and context options",
+      "Configure default model and context options",
       "Enable/disable automatic system info and git context",
-      "Set custom system prompts for specialized tasks"
+      "Set custom system prompts for specialized tasks",
+      "Note: Only model and context options are supported by Claude Code CLI"
     ]
   },
   "output-settings": {

@@ -2,15 +2,15 @@ import { SlashCommandBuilder } from "npm:discord.js@14.14.1";
 import { CLAUDE_MODELS } from "../claude/enhanced-client.ts";
 
 // Advanced bot settings configuration
+// NOTE: Temperature and maxTokens are NOT supported by Claude Code CLI
+// Only model selection, system prompts, and context options are supported
 export interface AdvancedBotSettings {
   // Notification settings
   mentionEnabled: boolean;
   mentionUserId: string | null;
   
-  // Claude Code settings
+  // Claude Code settings (only features supported by CLI)
   defaultModel: string;
-  defaultTemperature: number;
-  defaultMaxTokens: number;
   defaultSystemPrompt: string | null;
   autoIncludeSystemInfo: boolean;
   autoIncludeGitContext: boolean;
@@ -42,10 +42,8 @@ export const DEFAULT_SETTINGS: AdvancedBotSettings = {
   mentionEnabled: false,
   mentionUserId: null,
   
-  // Claude Code
+  // Claude Code (only CLI-supported options)
   defaultModel: 'claude-sonnet-4',
-  defaultTemperature: 0.7,
-  defaultMaxTokens: 4096,
   defaultSystemPrompt: null,
   autoIncludeSystemInfo: false,
   autoIncludeGitContext: true,
@@ -83,8 +81,6 @@ export const advancedSettingsCommands = [
         .addChoices(
           { name: 'show', value: 'show' },
           { name: 'set-model', value: 'set-model' },
-          { name: 'set-temperature', value: 'set-temperature' },
-          { name: 'set-max-tokens', value: 'set-max-tokens' },
           { name: 'set-system-prompt', value: 'set-system-prompt' },
           { name: 'toggle-auto-system-info', value: 'toggle-auto-system-info' },
           { name: 'toggle-auto-git-context', value: 'toggle-auto-git-context' },

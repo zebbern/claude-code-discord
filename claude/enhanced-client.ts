@@ -1,12 +1,13 @@
-import { sendToClaudeCode } from "./client.ts";
+import { sendToClaudeCode, type ClaudeModelOptions } from "./client.ts";
 import type { ClaudeMessage } from "./types.ts";
+import { recordAPIUsage } from "../util/usage-tracker.ts";
 
 // Enhanced Claude Code client with additional features
+// NOTE: Temperature and maxTokens are NOT supported by Claude Code CLI
+// Only model selection, system prompts, and context options are supported
 export interface EnhancedClaudeOptions {
   workDir: string;
   model?: string;
-  temperature?: number;
-  maxTokens?: number;
   systemPrompt?: string;
   contextFiles?: string[];
   includeGitContext?: boolean;
@@ -99,10 +100,15 @@ export async function enhancedClaudeQuery(
 ) {
   let enhancedPrompt = prompt;
 
+  // Add system prompt if provided
+  if (options.systemPrompt) {
+    enhancedPrompt = `<system-instructions>\n${options.systemPrompt}\n</system-instructions>\n\n${prompt}`;
+  }
+
   // Add system context if requested
   if (options.includeSystemInfo) {
     const systemInfo = await getSystemContext(options.workDir);
-    enhancedPrompt = `${systemInfo}\n\n${prompt}`;
+    enhancedPrompt = `${systemInfo}\n\n${enhancedPrompt}`;
   }
 
   // Add Git context if requested
@@ -121,15 +127,34 @@ export async function enhancedClaudeQuery(
     }
   }
 
-  return sendToClaudeCode(
+  // Build model options - only model is supported by Claude Code CLI
+  const modelOptions: ClaudeModelOptions = {};
+  if (options.model) {
+    modelOptions.model = options.model;
+    console.log(`Enhanced Claude: Using model ${options.model}`);
+  }
+
+  const result = await sendToClaudeCode(
     options.workDir,
     enhancedPrompt,
     controller,
     sessionId,
     onChunk,
     onStreamJson,
-    continueMode
+    continueMode,
+    modelOptions
   );
+  
+  // Record API usage for tracking
+  await recordAPIUsage(
+    result.modelUsed || options.model || 'default',
+    result.cost,
+    result.duration,
+    'enhanced',
+    result.sessionId
+  );
+  
+  return result;
 }
 
 // Get system context for Claude

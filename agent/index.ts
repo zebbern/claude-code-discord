@@ -1,14 +1,18 @@
 // Agent command implementation
 import { SlashCommandBuilder } from "npm:discord.js@14.14.1";
+import { 
+  getAgentSessionsManager,
+  type AgentSessionData 
+} from "../util/persistence.ts";
 
 // Agent types and interfaces
+// NOTE: Temperature and maxTokens are NOT supported by Claude Code CLI
+// These agents use model and systemPrompt (which ARE supported)
 export interface AgentConfig {
   name: string;
   description: string;
   model: string;
   systemPrompt: string;
-  temperature: number;
-  maxTokens: number;
   capabilities: string[];
   riskLevel: 'low' | 'medium' | 'high';
 }
@@ -24,14 +28,13 @@ export interface AgentSession {
 }
 
 // Predefined agent configurations
+// NOTE: These agents use model and systemPrompt which ARE supported by Claude Code CLI
 export const PREDEFINED_AGENTS: Record<string, AgentConfig> = {
   'code-reviewer': {
     name: 'Code Reviewer',
     description: 'Specialized in code review and quality analysis',
     model: 'claude-sonnet-4',
     systemPrompt: 'You are an expert code reviewer. Focus on code quality, security, performance, and best practices. Provide detailed feedback with specific suggestions for improvement.',
-    temperature: 0.3,
-    maxTokens: 4096,
     capabilities: ['code-review', 'security-analysis', 'performance-optimization'],
     riskLevel: 'low'
   },
@@ -40,8 +43,6 @@ export const PREDEFINED_AGENTS: Record<string, AgentConfig> = {
     description: 'Focused on system design and architecture decisions',
     model: 'claude-sonnet-4',
     systemPrompt: 'You are a senior software architect. Help design scalable, maintainable systems. Focus on architectural patterns, design principles, and technology choices.',
-    temperature: 0.5,
-    maxTokens: 4096,
     capabilities: ['system-design', 'architecture-review', 'technology-selection'],
     riskLevel: 'low'
   },
@@ -50,8 +51,6 @@ export const PREDEFINED_AGENTS: Record<string, AgentConfig> = {
     description: 'Expert at finding and fixing bugs',
     model: 'claude-sonnet-4',
     systemPrompt: 'You are a debugging expert. Help identify root causes of issues, suggest debugging strategies, and provide step-by-step solutions.',
-    temperature: 0.2,
-    maxTokens: 4096,
     capabilities: ['bug-analysis', 'debugging', 'troubleshooting'],
     riskLevel: 'medium'
   },
@@ -60,8 +59,6 @@ export const PREDEFINED_AGENTS: Record<string, AgentConfig> = {
     description: 'Specialized in security analysis and vulnerability assessment',
     model: 'claude-sonnet-4',
     systemPrompt: 'You are a cybersecurity expert. Focus on identifying security vulnerabilities, suggesting secure coding practices, and analyzing potential threats.',
-    temperature: 0.1,
-    maxTokens: 4096,
     capabilities: ['security-analysis', 'vulnerability-assessment', 'threat-modeling'],
     riskLevel: 'medium'
   },
@@ -70,8 +67,6 @@ export const PREDEFINED_AGENTS: Record<string, AgentConfig> = {
     description: 'Expert in performance optimization and profiling',
     model: 'claude-sonnet-4',
     systemPrompt: 'You are a performance optimization expert. Help identify bottlenecks, suggest optimizations, and improve system performance.',
-    temperature: 0.3,
-    maxTokens: 4096,
     capabilities: ['performance-analysis', 'optimization', 'profiling'],
     riskLevel: 'medium'
   },
@@ -80,8 +75,6 @@ export const PREDEFINED_AGENTS: Record<string, AgentConfig> = {
     description: 'Specialized in deployment, CI/CD, and infrastructure',
     model: 'claude-sonnet-4',
     systemPrompt: 'You are a DevOps engineer. Help with deployment strategies, CI/CD pipelines, infrastructure as code, and operational best practices.',
-    temperature: 0.4,
-    maxTokens: 4096,
     capabilities: ['deployment', 'ci-cd', 'infrastructure', 'monitoring'],
     riskLevel: 'high'
   },
@@ -90,8 +83,6 @@ export const PREDEFINED_AGENTS: Record<string, AgentConfig> = {
     description: 'General-purpose development assistant',
     model: 'claude-sonnet-4',
     systemPrompt: 'You are a helpful development assistant. Provide clear, accurate, and practical help with programming tasks, answer questions, and offer suggestions.',
-    temperature: 0.7,
-    maxTokens: 4096,
     capabilities: ['general-help', 'coding', 'explanation', 'guidance'],
     riskLevel: 'low'
   }
@@ -144,9 +135,53 @@ export interface AgentHandlerDeps {
   sessionManager: any;
 }
 
-// In-memory storage for agent sessions (in production, would be persisted)
+// Persistence manager for agent sessions
+const agentSessionsManager = getAgentSessionsManager();
+
+// In-memory cache backed by persistence
 let agentSessions: AgentSession[] = [];
 let currentUserAgent: Record<string, string> = {}; // userId -> agentName
+let persistenceInitialized = false;
+
+// Initialize persistence and load data
+async function ensureAgentPersistence(): Promise<void> {
+  if (persistenceInitialized) return;
+  
+  try {
+    const savedSessions = await agentSessionsManager.load([]);
+    agentSessions = savedSessions.map(s => ({
+      id: s.id,
+      agentName: s.agentType,
+      startTime: new Date(s.startTime),
+      messageCount: s.messageCount,
+      totalCost: 0,
+      lastActivity: new Date(s.lastActivity),
+      status: 'active' as const
+    }));
+    
+    // Rebuild currentUserAgent from active sessions
+    // Note: This is a simplification - in production you'd store user->agent mapping too
+    
+    persistenceInitialized = true;
+    console.log(`Agent Persistence: Loaded ${agentSessions.length} sessions`);
+  } catch (error) {
+    console.error('Agent Persistence: Failed to initialize:', error);
+    persistenceInitialized = true;
+  }
+}
+
+// Save agent sessions to persistence
+async function saveAgentSessions(): Promise<void> {
+  const persistenceSessions: AgentSessionData[] = agentSessions.map(s => ({
+    id: s.id,
+    agentType: s.agentName,
+    startTime: s.startTime.toISOString(),
+    lastActivity: s.lastActivity.toISOString(),
+    messageCount: s.messageCount,
+    context: undefined
+  }));
+  await agentSessionsManager.save(persistenceSessions);
+}
 
 export function createAgentHandlers(deps: AgentHandlerDeps) {
   const { workDir, crashHandler, sendClaudeMessages, sessionManager } = deps;
@@ -264,6 +299,8 @@ async function listAgents(ctx: any) {
 }
 
 async function startAgentSession(ctx: any, agentName: string) {
+  await ensureAgentPersistence();
+  
   const agent = PREDEFINED_AGENTS[agentName];
   if (!agent) {
     await ctx.editReply({
@@ -291,6 +328,7 @@ async function startAgentSession(ctx: any, agentName: string) {
   };
 
   agentSessions.push(session);
+  await saveAgentSessions(); // Persist changes
 
   const riskColor = agent.riskLevel === 'high' ? 0xff6600 : agent.riskLevel === 'medium' ? 0xffaa00 : 0x00ff00;
 
@@ -306,6 +344,7 @@ async function startAgentSession(ctx: any, agentName: string) {
         { name: 'Capabilities', value: agent.capabilities.join(', '), inline: false },
         { name: 'Usage', value: 'Use `/agent action:chat message:[your message]` to chat with this agent', inline: false }
       ],
+      footer: { text: '💾 Session saved to disk' },
       timestamp: true
     }]
   });
@@ -319,6 +358,8 @@ async function chatWithAgent(
   includeSystemInfo?: boolean,
   deps?: AgentHandlerDeps
 ) {
+  await ensureAgentPersistence();
+  
   const userId = ctx.user.id;
   const activeAgentName = agentName || currentUserAgent[userId];
 
@@ -368,33 +409,110 @@ async function chatWithAgent(
       fields: [
         { name: 'Agent', value: agent.name, inline: true },
         { name: 'Model', value: agent.model, inline: true },
-        { name: 'Temperature', value: agent.temperature.toString(), inline: true },
+        { name: 'Risk Level', value: agent.riskLevel, inline: true },
         { name: 'Message Preview', value: `\`${message.substring(0, 200)}${message.length > 200 ? '...' : ''}\``, inline: false }
       ],
       timestamp: true
     }]
   });
 
-  // Here would be the actual Claude API call with agent configuration
-  // For now, we'll simulate the response
-  setTimeout(async () => {
+  // Call Claude Code with agent-specific configuration
+  try {
+    const { enhancedClaudeQuery } = await import("../claude/enhanced-client.ts");
+    const { convertToClaudeMessages } = await import("../claude/message-converter.ts");
+    
+    const controller = new AbortController();
+    const startTime = Date.now();
+    
+    // Parse context files if provided
+    const contextFilesList = contextFiles ? 
+      contextFiles.split(',').map(f => f.trim()).filter(f => f.length > 0) : 
+      undefined;
+
+    const result = await enhancedClaudeQuery(
+      enhancedPrompt,
+      {
+        workDir: deps?.workDir || Deno.cwd(),
+        model: agent.model,
+        systemPrompt: agent.systemPrompt,
+        includeSystemInfo: !!includeSystemInfo,
+        includeGitContext: false,
+        contextFiles: contextFilesList
+      },
+      controller,
+      undefined, // sessionId
+      undefined, // messages
+      async (jsonData) => {
+        // Stream responses to Discord
+        const claudeMessages = convertToClaudeMessages(jsonData);
+        if (claudeMessages.length > 0 && deps?.sendClaudeMessages) {
+          await deps.sendClaudeMessages(claudeMessages);
+        }
+      },
+      false // allowToolUse
+    );
+
+    const duration = Date.now() - startTime;
+    
+    // Update agent session stats
+    const session = agentSessions.find(s => 
+      s.agentName === activeAgentName && s.status === 'active'
+    );
+    if (session) {
+      session.messageCount++;
+      session.totalCost += result.cost || 0;
+      session.lastActivity = new Date();
+      await saveAgentSessions(); // Persist session updates
+    }
+
     await ctx.editReply({
       embeds: [{
         color: 0x00ff00,
-        title: `🤖 ${agent.name} Response`,
-        description: `[Agent would respond here using ${agent.model} with specialized prompting for ${agent.capabilities.join(', ')}]`,
+        title: `🤖 ${agent.name} - Task Complete`,
+        description: 'Agent has finished processing your request.',
         fields: [
           { name: 'Status', value: 'Completed ✅', inline: true },
-          { name: 'Tokens Used', value: 'Est. 150 tokens', inline: true },
-          { name: 'Note', value: 'This is a placeholder response. Full integration would call Claude with agent-specific configuration.', inline: false }
+          { name: 'Duration', value: `${(duration / 1000).toFixed(1)}s`, inline: true },
+          { name: 'Cost', value: result.cost ? `$${result.cost.toFixed(4)}` : 'N/A', inline: true },
+          { name: 'Model Used', value: result.modelUsed || agent.model, inline: true },
+          { name: 'Session', value: result.sessionId ? `\`${result.sessionId.substring(0, 12)}\`` : 'N/A', inline: true }
+        ],
+        footer: { text: '💾 Session stats saved' },
+        timestamp: true
+      }]
+    });
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    await ctx.editReply({
+      embeds: [{
+        color: 0xff0000,
+        title: `❌ ${agent.name} - Error`,
+        description: 'An error occurred while processing your request.',
+        fields: [
+          { name: 'Error', value: errorMessage.substring(0, 1000), inline: false },
+          { name: 'Agent', value: agent.name, inline: true },
+          { name: 'Risk Level', value: agent.riskLevel.toUpperCase(), inline: true }
         ],
         timestamp: true
       }]
     });
-  }, 2000);
+
+    // Report to crash handler if available
+    if (deps?.crashHandler) {
+      await deps.crashHandler.reportCrash(
+        'agent',
+        error instanceof Error ? error : new Error(errorMessage),
+        `agent-${activeAgentName}`
+      );
+    }
+  }
 }
 
 async function showAgentStatus(ctx: any) {
+  await ensureAgentPersistence();
+  
   const userId = ctx.user.id;
   const activeAgent = currentUserAgent[userId];
   const activeSessions = agentSessions.filter(s => s.status === 'active');
@@ -420,6 +538,7 @@ async function showAgentStatus(ctx: any) {
           inline: true
         }
       ],
+      footer: { text: '💾 Sessions persisted to disk' },
       timestamp: true
     }]
   });
@@ -448,9 +567,7 @@ async function showAgentInfo(ctx: any, agentName: string) {
       description: agent.description,
       fields: [
         { name: 'Model', value: agent.model, inline: true },
-        { name: 'Temperature', value: agent.temperature.toString(), inline: true },
         { name: 'Risk Level', value: agent.riskLevel.toUpperCase(), inline: true },
-        { name: 'Max Tokens', value: agent.maxTokens.toString(), inline: true },
         { name: 'Capabilities', value: agent.capabilities.join(', '), inline: false },
         { name: 'System Prompt Preview', value: `\`${agent.systemPrompt.substring(0, 200)}...\``, inline: false }
       ],
@@ -492,6 +609,8 @@ async function switchAgent(ctx: any, agentName: string) {
 }
 
 async function endAgentSession(ctx: any) {
+  await ensureAgentPersistence();
+  
   const userId = ctx.user.id;
   const activeAgent = currentUserAgent[userId];
 
@@ -515,12 +634,15 @@ async function endAgentSession(ctx: any) {
       session.status = 'completed';
     }
   });
+  
+  await saveAgentSessions(); // Persist changes
 
   await ctx.editReply({
     embeds: [{
       color: 0x00ff00,
       title: '✅ Session Ended',
       description: `Agent session with ${PREDEFINED_AGENTS[activeAgent]?.name || activeAgent} has been ended.`,
+      footer: { text: '💾 Session status saved to disk' },
       timestamp: true
     }]
   });

@@ -10,6 +10,12 @@ export function cleanSessionId(sessionId: string): string {
     .trim();                         // Remove whitespace again
 }
 
+// Model options for Claude Code
+// NOTE: Only model selection is supported by the CLI
+export interface ClaudeModelOptions {
+  model?: string;
+}
+
 // Wrapper for Claude Code SDK query function
 export async function sendToClaudeCode(
   workDir: string,
@@ -19,7 +25,8 @@ export async function sendToClaudeCode(
   onChunk?: (text: string) => void,
   // deno-lint-ignore no-explicit-any
   onStreamJson?: (json: any) => void,
-  continueMode?: boolean
+  continueMode?: boolean,
+  modelOptions?: ClaudeModelOptions
 ): Promise<{
   response: string;
   sessionId?: string;
@@ -30,14 +37,17 @@ export async function sendToClaudeCode(
   const messages: SDKMessage[] = [];
   let fullResponse = "";
   let resultSessionId: string | undefined;
-  let modelUsed = "Default";
+  let modelUsed = modelOptions?.model || "Default";
   
   // Clean up session ID
   const cleanedSessionId = sessionId ? cleanSessionId(sessionId) : undefined;
   
   // Wrap with comprehensive error handling
-  const executeWithErrorHandling = async (useRetryModel = false) => {
+  const executeWithErrorHandling = async (overrideModel?: string) => {
     try {
+      // Determine which model to use
+      const modelToUse = overrideModel || modelOptions?.model;
+      
       const queryOptions = {
         prompt,
         abortController: controller,
@@ -48,11 +58,11 @@ export async function sendToClaudeCode(
           outputFormat: "stream-json",
           ...(continueMode && { continue: true }),
           ...(cleanedSessionId && !continueMode && { resume: cleanedSessionId }),
-          ...(useRetryModel && { model: "claude-sonnet-4-20250514" }),
+          ...(modelToUse && { model: modelToUse }),
         },
       };
       
-      console.log(`Claude Code: Running with ${useRetryModel ? 'Sonnet 4' : 'default model'}...`);
+      console.log(`Claude Code: Running with ${modelToUse || 'default'} model...`);
       if (continueMode) {
         console.log(`Continue mode: Reading latest conversation in directory`);
       } else if (cleanedSessionId) {
@@ -67,7 +77,7 @@ export async function sendToClaudeCode(
       for await (const message of iterator) {
         // Check AbortSignal to stop iteration
         if (controller.signal.aborted) {
-          console.log(`Claude Code${useRetryModel ? ' (Retry)' : ''}: Abort signal detected, stopping iteration`);
+          console.log(`Claude Code: Abort signal detected, stopping iteration`);
           break;
         }
         
@@ -104,7 +114,8 @@ export async function sendToClaudeCode(
         messages: currentMessages,
         response: currentResponse,
         sessionId: currentSessionId,
-        aborted: controller.signal.aborted
+        aborted: controller.signal.aborted,
+        modelUsed: modelToUse || "Default"
       };
     // deno-lint-ignore no-explicit-any
     } catch (error: any) {
@@ -112,29 +123,31 @@ export async function sendToClaudeCode(
       if (error.name === 'AbortError' || 
           controller.signal.aborted || 
           (error.message && error.message.includes('exited with code 143'))) {
-        console.log(`Claude Code${useRetryModel ? ' (Retry)' : ''}: Process terminated by abort signal`);
+        console.log(`Claude Code: Process terminated by abort signal`);
         return {
           messages: [],
           response: "",
           sessionId: undefined,
-          aborted: true
+          aborted: true,
+          modelUsed: "Default"
         };
       }
       throw error;
     }
   };
   
-  // First try with normal model
+  // First try with specified model (or default)
   try {
-    const result = await executeWithErrorHandling(false);
+    const result = await executeWithErrorHandling();
     
     if (result.aborted) {
-      return { response: "Request was cancelled", modelUsed };
+      return { response: "Request was cancelled", modelUsed: result.modelUsed };
     }
     
     messages.push(...result.messages);
     fullResponse = result.response;
     resultSessionId = result.sessionId;
+    modelUsed = result.modelUsed;
     
     // Get information from the last message
     const lastMessage = messages[messages.length - 1];
@@ -148,16 +161,15 @@ export async function sendToClaudeCode(
     };
   // deno-lint-ignore no-explicit-any
   } catch (error: any) {
-    // For exit code 1 errors, retry with Sonnet 4
+    // For exit code 1 errors (rate limit), retry with Sonnet 4
     if (error.message && (error.message.includes('exit code 1') || error.message.includes('exited with code 1'))) {
       console.log("Rate limit detected, retrying with Sonnet 4...");
-      modelUsed = "Claude Sonnet 4";
       
       try {
-        const retryResult = await executeWithErrorHandling(true);
+        const retryResult = await executeWithErrorHandling("claude-sonnet-4-20250514");
         
         if (retryResult.aborted) {
-          return { response: "Request was cancelled", modelUsed };
+          return { response: "Request was cancelled", modelUsed: retryResult.modelUsed };
         }
         
         // Get information from the last message
@@ -168,7 +180,7 @@ export async function sendToClaudeCode(
           sessionId: retryResult.sessionId,
           cost: 'total_cost_usd' in lastRetryMessage ? lastRetryMessage.total_cost_usd : undefined,
           duration: 'duration_ms' in lastRetryMessage ? lastRetryMessage.duration_ms : undefined,
-          modelUsed
+          modelUsed: retryResult.modelUsed
         };
       // deno-lint-ignore no-explicit-any
       } catch (retryError: any) {
@@ -176,7 +188,7 @@ export async function sendToClaudeCode(
         if (retryError.name === 'AbortError' || 
             controller.signal.aborted || 
             (retryError.message && retryError.message.includes('exited with code 143'))) {
-          return { response: "Request was cancelled", modelUsed };
+          return { response: "Request was cancelled", modelUsed: "Claude Sonnet 4" };
         }
         
         retryError.message += '\n\n⚠️ Both default model and Sonnet 4 encountered errors. Please wait a moment and try again.';

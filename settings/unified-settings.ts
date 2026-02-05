@@ -2,15 +2,14 @@ import { SlashCommandBuilder } from "npm:discord.js@14.14.1";
 import { CLAUDE_MODELS } from "../claude/enhanced-client.ts";
 
 // Unified settings interface combining all bot settings
+// NOTE: Temperature and maxTokens are NOT supported by Claude Code CLI
 export interface UnifiedBotSettings {
   // Basic bot settings (formerly /settings)
   mentionEnabled: boolean;
   mentionUserId: string | null;
   
-  // Claude Code settings (formerly /claude-settings)
+  // Claude Code settings (only CLI-supported options)
   defaultModel: string;
-  defaultTemperature: number;
-  defaultMaxTokens: number;
   defaultSystemPrompt: string | null;
   autoIncludeSystemInfo: boolean;
   autoIncludeGitContext: boolean;
@@ -53,10 +52,8 @@ export const UNIFIED_DEFAULT_SETTINGS: UnifiedBotSettings = {
   mentionEnabled: false,
   mentionUserId: null,
   
-  // Claude settings
+  // Claude settings (only CLI-supported options)
   defaultModel: 'claude-sonnet-4',
-  defaultTemperature: 0.7,
-  defaultMaxTokens: 4096,
   defaultSystemPrompt: null,
   autoIncludeSystemInfo: false,
   autoIncludeGitContext: true,
