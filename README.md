@@ -257,10 +257,10 @@ WORK_DIR=/path/to/project             # Working directory (default: current)
 ### Shell Management (4)
 - `/shell`, `/shell-input`, `/shell-list`, `/shell-kill`
 
-### System Monitoring (10)
+### System Monitoring (11)
 - `/system-info`, `/processes`, `/system-resources`, `/network-info`
 - `/disk-usage`, `/env-vars`, `/system-logs`, `/port-scan`
-- `/service-status`, `/uptime`
+- `/service-status`, `/uptime`, `/screenshot`
 
 ### Utilities (4)
 - `/status`, `/pwd`, `/shutdown`, `/help`
@@ -313,4 +313,12 @@ WORK_DIR=/path/to/project             # Working directory (default: current)
 - **Actions**: show, set-model, toggle-git-context, toggle-system-info, set-system-prompt, reset-defaults
 - **Supported options**: Model selection, Git context, System info, System prompts
 - *Note: Only features supported by Claude Code CLI are available*
+
+#### `/screenshot` Command ✨
+- **Capture full screen** - Take screenshots of the host machine's display
+- **Optional delay** - `/screenshot delay: 5` to wait before capturing
+- **Platform support** - Windows, macOS, and Linux (with GUI)
+- **DPI-aware** - Captures at actual screen resolution regardless of Windows scaling
+- **Auto-cleanup** - Temporary files are automatically removed
+- *Note: Not available in Docker containers or headless environments*
 
