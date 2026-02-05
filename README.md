@@ -43,32 +43,7 @@
 
 <h2 id="pre">Quick Start</h2>
 
-### Option 1: One-Command Setup (Recommended)
-
-**Linux/macOS:**
-```bash
-git clone https://github.com/zebbern/claude-code-discord.git
-cd claude-code-discord
-chmod +x setup.sh && ./setup.sh
-```
-
-**Windows PowerShell:**
-```powershell
-git clone https://github.com/zebbern/claude-code-discord.git
-cd claude-code-discord
-.\setup.ps1
-```
-
-The setup script will:
-- ✅ Install Deno (if needed)
-- ✅ Install Claude CLI (if needed)  
-- ✅ Create `.env` file with your tokens
-- ✅ Initialize git repository (if needed)
-- ✅ Offer to start the bot immediately
-
----
-
-### Option 2: Docker (Zero Dependencies)
+### Option 1: Docker (Recommended - Most Secure)
 
 **Quick Start:**
 ```bash
@@ -94,12 +69,38 @@ docker compose down
 docker compose build --no-cache && docker compose up -d
 ```
 
-**Features:**
-- ✅ Auto-installs all dependencies (Deno, Git)
-- ✅ Persistent data storage via Docker volumes
-- ✅ Auto-restart on crashes
-- ✅ Resource limits (2 CPU, 2GB RAM)
-- ✅ Non-root security mode
+**Why Docker?**
+- 🔒 **Isolated container** - No direct host system access
+- 🛡️ **Non-root security mode** - Runs as unprivileged user
+- 📦 **Zero dependencies** - Everything bundled in container
+- 🔄 **Auto-restart on crashes** - Built-in resilience
+- 💾 **Persistent storage** - Data survives restarts
+- ⚙️ **Resource limits** - 2 CPU, 2GB RAM max
+
+---
+
+### Option 2: One-Command Setup (Quick Start)
+
+**Linux/macOS:**
+```bash
+git clone https://github.com/zebbern/claude-code-discord.git
+cd claude-code-discord
+chmod +x setup.sh && ./setup.sh
+```
+
+**Windows PowerShell:**
+```powershell
+git clone https://github.com/zebbern/claude-code-discord.git
+cd claude-code-discord
+.\setup.ps1
+```
+
+The setup script will:
+- ✅ Install Deno (if needed)
+- ✅ Install Claude CLI (if needed)  
+- ✅ Create `.env` file with your tokens
+- ✅ Initialize git repository (if needed)
+- ✅ Offer to start the bot immediately
 
 ---
 
