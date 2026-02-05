@@ -29,7 +29,7 @@
 <kbd>APPLICATION_ID</kbd>
 
 - **[Quick Start](#pre)** 
-- **[Command List 48 Commands](#Command-list)** 
+- **[Command List 45+ Commands](#Command-list)** 
 
 **Tutorial If you dont know or have them follow these first then come back:**
 - **[How To Setup Discord Bot?](#setup)**
