@@ -151,7 +151,7 @@ deno run --allow-all index.ts --category yourproject --user-id Your_Discord_User
 
 
 ## Command List 
-> (48 Commands)
+> (45+ Commands)
 
 ### Core Claude (3)
 - `/claude`, `/continue`, `/claude-cancel`
@@ -163,13 +163,13 @@ deno run --allow-all index.ts --category yourproject --user-id Your_Discord_User
 - `/claude-explain`, `/claude-debug`, `/claude-optimize`, `/claude-review`
 - `/claude-generate`, `/claude-refactor`, `/claude-learn`
 
-### New Features (3)
-- `/todos` - Task management with API rate limits
+### Task Management (3)
+- `/todos` - Task management with priorities and persistence
 - `/mcp` - Model Context Protocol servers  
 - `/agent` - 7 specialized AI agents
 
 ### Settings (4)
-- `/settings` - Unified settings (NEW)
+- `/settings` - Unified settings management
 - `/claude-settings`, `/output-settings`, `/quick-model`
 
 ### Git Operations (6)
@@ -187,7 +187,7 @@ deno run --allow-all index.ts --category yourproject --user-id Your_Discord_User
 ### Utilities (4)
 - `/status`, `/pwd`, `/shutdown`, `/help`
 
-### Agent System (3)
+### Agent System
 - `/agent` with 7 specialized agents:
   - Code Reviewer, Software Architect, Debug Specialist
   - Security Analyst, Performance Engineer, DevOps Engineer, General Assistant
@@ -206,10 +206,9 @@ deno run --allow-all index.ts --category yourproject --user-id Your_Discord_User
 - `danger` - Unrestricted mode (high risk)
 
 #### `/todos` Command ✨
-- **Action types**: list, add, complete, generate, prioritize, rate-status
+- **Action types**: list, add, complete, generate, prioritize
 - **Priority levels**: low, medium, high, critical  
-- **Rate limit awareness** - Supports Anthropic API tiers including `exceeds_200k_tokens`
-- **Token estimation** - Calculates estimated token usage
+- **Persistence** - Todos are saved to disk and persist across restarts
 - **Auto-generation** - Generate todos from code files
 
 #### `/mcp` Command ✨ 
@@ -217,6 +216,7 @@ deno run --allow-all index.ts --category yourproject --user-id Your_Discord_User
 - **Server types**: local, http, websocket, ssh
 - **Actions**: list, add, remove, test, status
 - **Connection testing** - Verify MCP server connectivity
+- **Persistence** - Server configurations persist across restarts
 
 #### `/agent` Command ✨
 - **Specialized AI agents** for different development tasks:
@@ -230,4 +230,9 @@ deno run --allow-all index.ts --category yourproject --user-id Your_Discord_User
 - **Risk levels** - Low/Medium/High risk classification
 - **Session management** - Persistent agent conversations
 - **Context awareness** - Include system info and files
+
+#### `/claude-settings` Command ✨
+- **Actions**: show, set-model, toggle-git-context, toggle-system-info, set-system-prompt, reset-defaults
+- **Supported options**: Model selection, Git context, System info, System prompts
+- *Note: Only features supported by Claude Code CLI are available*
 
