@@ -137,6 +137,7 @@ deno task start
 # With environment variables
 export DISCORD_TOKEN="your-token"
 export APPLICATION_ID="your-app-id"
+
 deno run --allow-all index.ts
 
 # Development mode (hot reload)

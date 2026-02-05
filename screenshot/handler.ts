@@ -114,13 +114,48 @@ export async function captureScreenshot(outputDir: string = Deno.cwd()): Promise
         const scriptPath = join(outputDir, `capture-${timestamp}.ps1`);
         const escapedFilePath = filePath.replace(/\\/g, "\\\\");
         
+        // Use GetDeviceCaps to get actual screen resolution (ignoring DPI scaling)
         const psScript = `
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+
+# Enable DPI awareness for accurate screen capture
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class ScreenCapture {
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetDC(IntPtr hWnd);
+    
+    [DllImport("gdi32.dll")]
+    public static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+    
+    [DllImport("user32.dll")]
+    public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+    
+    public const int DESKTOPHORZRES = 118;
+    public const int DESKTOPVERTRES = 117;
+    
+    public static int[] GetScreenResolution() {
+        IntPtr hdc = GetDC(IntPtr.Zero);
+        int width = GetDeviceCaps(hdc, DESKTOPHORZRES);
+        int height = GetDeviceCaps(hdc, DESKTOPVERTRES);
+        ReleaseDC(IntPtr.Zero, hdc);
+        return new int[] { width, height };
+    }
+}
+"@
+
 try {
-    $screen = [System.Windows.Forms.Screen]::PrimaryScreen
-    $bitmap = New-Object System.Drawing.Bitmap($screen.Bounds.Width, $screen.Bounds.Height)
+    # Get actual screen resolution (not scaled)
+    $resolution = [ScreenCapture]::GetScreenResolution()
+    $width = $resolution[0]
+    $height = $resolution[1]
+    
+    # Create bitmap at actual resolution
+    $bitmap = New-Object System.Drawing.Bitmap($width, $height)
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-    $graphics.CopyFromScreen($screen.Bounds.Location, [System.Drawing.Point]::Empty, $screen.Bounds.Size)
+    $graphics.CopyFromScreen(0, 0, 0, 0, [System.Drawing.Size]::new($width, $height))
     $bitmap.Save("${escapedFilePath}")
     $graphics.Dispose()
     $bitmap.Dispose()
