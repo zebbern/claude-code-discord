@@ -6,6 +6,10 @@ FROM denoland/deno:latest
 # Set working directory
 WORKDIR /app
 
+# Install git (required for branch tracking features)
+USER root
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 # Create non-root user for security
 RUN groupadd -r claude && useradd -r -g claude claude
 
@@ -14,6 +18,9 @@ COPY . .
 
 # Remove lockfile if present (avoid version conflicts)
 RUN rm -f deno.lock
+
+# Initialize git repo in container (for non-git workspaces)
+RUN git init && git config user.email "bot@claude.local" && git config user.name "Claude Bot"
 
 # Pre-compile dependencies as root (before switching user)
 RUN deno cache --no-lock index.ts
