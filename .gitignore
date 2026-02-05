@@ -38,7 +38,10 @@ dist/
 dist
 
 # Environment files (comprehensive coverage)
-
+.env
+.env.local
+.env.*.local
+!.env.example
 *token.json*
 *credentials.json*
 

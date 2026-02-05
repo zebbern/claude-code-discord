@@ -356,19 +356,83 @@ function setupSignalHandlers(ctx: {
 }
 
 // ================================
+// .env Auto-Load
+// ================================
+
+/**
+ * Load environment variables from .env file if it exists.
+ * This enables zero-config startup when .env is present.
+ */
+async function loadEnvFile(): Promise<void> {
+  try {
+    const envPath = `${Deno.cwd()}/.env`;
+    const stat = await Deno.stat(envPath).catch(() => null);
+    
+    if (!stat?.isFile) return;
+    
+    const content = await Deno.readTextFile(envPath);
+    const lines = content.split('\n');
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      
+      // Skip comments and empty lines
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      
+      // Parse KEY=VALUE format
+      const eqIndex = trimmed.indexOf('=');
+      if (eqIndex === -1) continue;
+      
+      const key = trimmed.substring(0, eqIndex).trim();
+      let value = trimmed.substring(eqIndex + 1).trim();
+      
+      // Remove surrounding quotes if present
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      
+      // Only set if not already defined (env vars take precedence)
+      if (!Deno.env.get(key) && key && value) {
+        Deno.env.set(key, value);
+      }
+    }
+    
+    console.log('✓ Loaded configuration from .env file');
+  } catch (error) {
+    // Silently ignore .env loading errors
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Note: Could not load .env file: ${message}`);
+  }
+}
+
+// ================================
 // Main Execution
 // ================================
 
 if (import.meta.main) {
   try {
+    // Auto-load .env file (if present)
+    await loadEnvFile();
+    
     // Get environment variables and command line arguments
     const discordToken = Deno.env.get("DISCORD_TOKEN");
     const applicationId = Deno.env.get("APPLICATION_ID");
     const envCategoryName = Deno.env.get("CATEGORY_NAME");
-    const envMentionUserId = Deno.env.get("DEFAULT_MENTION_USER_ID");
+    const envMentionUserId = Deno.env.get("USER_ID") || Deno.env.get("DEFAULT_MENTION_USER_ID");
+    const envWorkDir = Deno.env.get("WORK_DIR");
     
     if (!discordToken || !applicationId) {
-      console.error("Error: DISCORD_TOKEN and APPLICATION_ID environment variables are required");
+      console.error("╔═══════════════════════════════════════════════════════════╗");
+      console.error("║  Error: Missing required configuration                    ║");
+      console.error("╠═══════════════════════════════════════════════════════════╣");
+      console.error("║  DISCORD_TOKEN and APPLICATION_ID are required.           ║");
+      console.error("║                                                           ║");
+      console.error("║  Options:                                                 ║");
+      console.error("║  1. Create a .env file with these variables               ║");
+      console.error("║  2. Set environment variables before running              ║");
+      console.error("║  3. Run setup script: ./setup.sh or .\\setup.ps1          ║");
+      console.error("╚═══════════════════════════════════════════════════════════╝");
       Deno.exit(1);
     }
     
@@ -376,6 +440,7 @@ if (import.meta.main) {
     const args = parseArgs(Deno.args);
     const categoryName = args.category || envCategoryName;
     const defaultMentionUserId = args.userId || envMentionUserId;
+    const workDir = envWorkDir || Deno.cwd();
     
     // Get Git information
     const gitInfo = await getGitInfo();
@@ -384,14 +449,14 @@ if (import.meta.main) {
     await createClaudeCodeBot({
       discordToken,
       applicationId,
-      workDir: Deno.cwd(),
+      workDir,
       repoName: gitInfo.repo,
       branchName: gitInfo.branch,
       categoryName,
       defaultMentionUserId,
     });
     
-    console.log("Bot has started. Press Ctrl+C to stop.");
+    console.log("✓ Bot has started. Press Ctrl+C to stop.");
   } catch (error) {
     console.error("Failed to start bot:", error);
     Deno.exit(1);

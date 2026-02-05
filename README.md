@@ -43,56 +43,89 @@
 
 <h2 id="pre">Quick Start</h2>
 
-- **Install Deno Can Be Done Via [Denos Website](https://deno.com/) Or Commands Under:**
-```C
+### Option 1: One-Command Setup (Recommended)
+
+**Linux/macOS:**
+```bash
+git clone https://github.com/zebbern/claude-code-discord.git
+cd claude-code-discord
+chmod +x setup.sh && ./setup.sh
+```
+
+**Windows PowerShell:**
+```powershell
+git clone https://github.com/zebbern/claude-code-discord.git
+cd claude-code-discord
+.\setup.ps1
+```
+
+The setup script will:
+- ✅ Install Deno (if needed)
+- ✅ Install Claude CLI (if needed)  
+- ✅ Create `.env` file with your tokens
+- ✅ Start the bot
+
+---
+
+### Option 2: Docker (Zero Dependencies)
+
+```bash
+git clone https://github.com/zebbern/claude-code-discord.git
+cd claude-code-discord
+cp .env.example .env
+# Edit .env with your tokens
+docker compose up -d
+```
+
+---
+
+### Option 3: Manual Setup
+
+**Install Deno via [Deno's Website](https://deno.com/) or:**
+```bash
 # Linux/MacOS
 curl -fsSL https://deno.land/install.sh | sh
 
-# Windows|Powershell
+# Windows PowerShell
 irm https://deno.land/install.ps1 | iex
 ```
 
-**Clone the project:**
-```
+**Clone and configure:**
+```bash
 git clone https://github.com/zebbern/claude-code-discord.git
 cd claude-code-discord
+cp .env.example .env
+# Edit .env with your DISCORD_TOKEN and APPLICATION_ID
 ```
-**Install claude `If you dont have it` and login:**
-```
+
+**Install Claude CLI and login:**
+```bash
 npm install -g @anthropic-ai/claude-code
 claude /login
 ```
-**Required environment variables**
-```
-# Linux
-export DISCORD_TOKEN="your-discord-bot-token"
-export APPLICATION_ID="your-discord-app-id"
 
-# Windows Terminal 
-set DISCORD_TOKEN=your-discord-bot-token
-set APPLICATION_ID=your-discord-app-id
-
-# Windows Powershell
-$env:DISCORD_TOKEN = "your-discord-bot-token"
-$env:APPLICATION_ID = "your-discord-app-id"
-```
-**Now Run the discord Bot**
-> If you get `not a git directory` just run 
-> <kbd>git init</kbd> or <kbd>git add .</kbd>
+**Run the bot:**
 ```bash
-# Option 1: Just run the bot
+# Using .env file (recommended)
+deno task start
+
+# With environment variables
+export DISCORD_TOKEN="your-token"
+export APPLICATION_ID="your-app-id"
 deno run --allow-all index.ts
 
-# Option 2: Run the bot with extra terminal output (For Dev)
-deno run --allow-all index.ts --watch
-
-# Option 3: Run the bot and get pings when claude is done
-./index.ts --category myproject --user-id Your_Discord_User_ID_Here
-
-# Can also be ran like this: 
-deno run --allow-all index.ts --category yourproject --user-id Your_Discord_User_ID_Here
+# Development mode (hot reload)
+deno task dev
 ```
-**You can run without `--user-id Your_Discord_User_ID_Here` if you dont want to be notified when claude finishes**
+
+**Optional flags:**
+```bash
+# Custom category and user mentions
+deno run --allow-all index.ts --category myproject --user-id YOUR_DISCORD_ID
+```
+
+> If you get `not a git directory`, run `git init` first.
+
 <img width="250" height="250" alt="image" src="https://github.com/user-attachments/assets/2fea008b-76b7-48d8-9a87-8214cc7a24ad" />
 
 

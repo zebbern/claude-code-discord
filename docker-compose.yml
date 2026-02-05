@@ -1,0 +1,61 @@
+# Claude Code Discord Bot - Docker Compose Configuration
+# Quick start: docker compose up -d
+
+services:
+  claude-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: claude-code-discord
+    restart: unless-stopped
+    
+    # Environment variables (use .env file or set here)
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - APPLICATION_ID=${APPLICATION_ID}
+      - WORK_DIR=${WORK_DIR:-/app/workspace}
+      - USER_ID=${USER_ID:-}
+      - CATEGORY_NAME=${CATEGORY_NAME:-claude-code}
+    
+    # Volume mounts for persistence and workspace access
+    volumes:
+      # Persist bot data (todos, sessions, etc.)
+      - bot-data:/app/.bot-data
+      # Optional: Mount your local workspace for Claude to work on
+      # Uncomment and modify path as needed:
+      # - /path/to/your/project:/app/workspace
+    
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Network mode
+    networks:
+      - claude-network
+
+# Named volumes for data persistence
+volumes:
+  bot-data:
+    driver: local
+
+# Network configuration
+networks:
+  claude-network:
+    driver: bridge
