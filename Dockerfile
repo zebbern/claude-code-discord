@@ -6,6 +6,9 @@ FROM denoland/deno:latest
 # Set working directory
 WORKDIR /app
 
+# Set environment variable to indicate Docker container
+ENV DOCKER_CONTAINER=true
+
 # Install git (required for branch tracking features)
 USER root
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*

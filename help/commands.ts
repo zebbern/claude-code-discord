@@ -563,6 +563,26 @@ export const COMMAND_HELP = {
       "Useful for monitoring system stability"
     ]
   },
+  "screenshot": {
+    title: "📸 Screenshot Capture",
+    description: "Capture and share a screenshot of the host machine's screen",
+    usage: "/screenshot delay: [optional seconds]",
+    examples: [
+      "/screenshot",
+      "/screenshot delay: 3",
+      "/screenshot delay: 5"
+    ],
+    parameters: [
+      { name: "delay", description: "Delay in seconds before capture (0-10)", required: false }
+    ],
+    notes: [
+      "Only works when bot runs locally (not in Docker)",
+      "Captures the entire screen of the host machine",
+      "Useful for seeing what Claude is working on",
+      "Not available in headless environments",
+      "Supports Windows, macOS, and Linux with GUI"
+    ]
+  },
   "claude-explain": {
     title: "🧠 Claude Code Explanation",
     description: "Ask Claude to explain code, concepts, or errors in detail",

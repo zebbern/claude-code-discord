@@ -25,6 +25,7 @@ import { utilsCommands, createUtilsHandlers } from "../util/index.ts";
 import { systemCommands, createSystemHandlers } from "../system/index.ts";
 import { helpCommand, createHelpHandlers } from "../help/index.ts";
 import { agentCommand, createAgentHandlers } from "../agent/index.ts";
+import { screenshotCommands, createScreenshotHandlers } from "../screenshot/index.ts";
 import { cleanSessionId, ClaudeSessionManager } from "../claude/index.ts";
 
 import type { ShellManager } from "../shell/index.ts";
@@ -127,6 +128,7 @@ export interface AllHandlers {
   system: ReturnType<typeof createSystemHandlers>;
   help: ReturnType<typeof createHelpHandlers>;
   agent: ReturnType<typeof createAgentHandlers>;
+  screenshot: ReturnType<typeof createScreenshotHandlers>;
 }
 
 /**
@@ -433,6 +435,10 @@ export function createAllHandlers(
     sessionManager: claudeSessionManager,
   });
 
+  const screenshotHandlers = createScreenshotHandlers({
+    workDir,
+  });
+
   return {
     claude: claudeHandlers,
     enhancedClaude: enhancedClaudeHandlers,
@@ -445,6 +451,7 @@ export function createAllHandlers(
     system: systemHandlers,
     help: helpHandlers,
     agent: agentHandlers,
+    screenshot: screenshotHandlers,
   };
 }
 
@@ -465,6 +472,7 @@ export function getAllCommands() {
     ...shellCommands,
     ...utilsCommands,
     ...systemCommands,
+    ...screenshotCommands,
     helpCommand,
   ];
 }

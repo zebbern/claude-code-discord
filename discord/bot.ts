@@ -72,6 +72,15 @@ function convertMessageContent(content: MessageContent): any {
     });
   }
   
+  // Handle file attachments
+  if (content.files && content.files.length > 0) {
+    payload.files = content.files.map(f => ({
+      attachment: f.path,
+      name: f.name || 'attachment',
+      description: f.description,
+    }));
+  }
+  
   return payload;
 }
 

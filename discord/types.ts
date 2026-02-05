@@ -18,10 +18,21 @@ export interface ComponentData {
   disabled?: boolean;
 }
 
+export interface FileAttachment {
+  /** File path or URL */
+  path: string;
+  /** Optional display name */
+  name?: string;
+  /** Optional description */
+  description?: string;
+}
+
 export interface MessageContent {
   content?: string;
   embeds?: EmbedData[];
   components?: Array<{ type: 'actionRow'; components: ComponentData[] }>;
+  /** File attachments to include */
+  files?: FileAttachment[];
 }
 
 export interface InteractionContext {

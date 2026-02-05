@@ -492,6 +492,27 @@ export function createSettingsCommandHandlers(
 }
 
 // ================================
+// Screenshot Command Handlers
+// ================================
+
+/**
+ * Create screenshot command handlers.
+ */
+function createScreenshotCommandHandlers(
+  handlers: AllHandlers
+): Map<string, { execute: (ctx: InteractionContext) => Promise<void> }> {
+  const { screenshot: screenshotHandlers } = handlers;
+
+  return new Map([
+    ['screenshot', {
+      execute: async (ctx: InteractionContext) => {
+        await screenshotHandlers.screenshot(ctx);
+      }
+    }]
+  ]);
+}
+
+// ================================
 // Master Command Handler Factory
 // ================================
 
@@ -517,6 +538,7 @@ export function createAllCommandHandlers(deps: CommandWrapperDeps): CommandHandl
   const paramSystemHandlers = createParameterizedSystemHandlers(handlers, crashHandler);
   const claudeHandlers = createClaudeCommandHandlers(handlers, messageHistory, getClaudeController);
   const settingsHandlers = createSettingsCommandHandlers(handlers);
+  const screenshotHandlers = createScreenshotCommandHandlers(handlers);
 
   // Create git/shell deps
   const gitShellDeps: GitShellHandlerDeps = {
@@ -538,6 +560,7 @@ export function createAllCommandHandlers(deps: CommandWrapperDeps): CommandHandl
     ...paramSystemHandlers,
     ...claudeHandlers,
     ...settingsHandlers,
+    ...screenshotHandlers,
     ...gitHandlers,
     ...shellHandlers,
     ...utilityHandlers,
