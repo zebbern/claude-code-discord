@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic-ai/filesystem-mcp",
+        "${workspaceFolder:-.}"
+      ],
+      "description": "Local filesystem access for reading and writing project files"
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic-ai/brave-search-mcp"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY:-}"
+      },
+      "description": "Web search via Brave Search API for research and lookups"
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic-ai/sequential-thinking-mcp"
+      ],
+      "description": "Enhanced reasoning for complex multi-step problems"
+    }
+  }
+}

@@ -426,6 +426,7 @@ export function createAllHandlers(
     settings: currentSettings.unified,
     updateSettings: settings.updateUnified,
     crashHandler,
+    workDir,
   });
 
   const agentHandlers = createAgentHandlers({

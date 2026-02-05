@@ -291,10 +291,25 @@ WORK_DIR=/path/to/project             # Working directory (default: current)
 
 #### `/mcp` Command ✨ 
 - **MCP server management** - Model Context Protocol integration
-- **Server types**: local, http, websocket, ssh
+- **Reads from `.mcp.json`** - Standard Claude Code configuration format
 - **Actions**: list, add, remove, test, status
-- **Connection testing** - Verify MCP server connectivity
-- **Persistence** - Server configurations persist across restarts
+- **Cross-platform** - Command testing works on Windows and Unix
+- **Add servers via Discord**:
+  ```
+  /mcp action:add server_name:filesystem command:npx -y @anthropic-ai/filesystem-mcp description:Local filesystem access
+  ```
+- **Or edit `.mcp.json` directly**:
+  ```json
+  {
+    "mcpServers": {
+      "filesystem": {
+        "command": "npx",
+        "args": ["-y", "@anthropic-ai/filesystem-mcp"],
+        "description": "Local filesystem access"
+      }
+    }
+  }
+  ```
 
 #### `/agent` Command ✨
 - **Specialized AI agents** for different development tasks:

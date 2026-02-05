@@ -269,22 +269,16 @@ export const mcpCommand = new SlashCommandBuilder()
       ))
   .addStringOption(option =>
     option.setName('server_name')
-      .setDescription('MCP server name')
+      .setDescription('MCP server name (e.g. "filesystem", "brave-search")')
       .setRequired(false))
   .addStringOption(option =>
-    option.setName('server_url')
-      .setDescription('MCP server URL or connection string')
+    option.setName('command')
+      .setDescription('Full command to run (e.g. "npx -y @anthropic-ai/filesystem-mcp")')
       .setRequired(false))
   .addStringOption(option =>
-    option.setName('server_type')
-      .setDescription('Type of MCP server')
-      .setRequired(false)
-      .addChoices(
-        { name: 'Local Process', value: 'local' },
-        { name: 'HTTP API', value: 'http' },
-        { name: 'WebSocket', value: 'websocket' },
-        { name: 'SSH Remote', value: 'ssh' }
-      ));
+    option.setName('description')
+      .setDescription('Server description')
+      .setRequired(false));
 
 export const unifiedSettingsCommands = [
   unifiedSettingsCommand,

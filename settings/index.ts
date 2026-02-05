@@ -29,5 +29,6 @@ export type {
 export type {
   UnifiedSettingsHandlerDeps,
   TodoItem,
-  MCPServerConfig
+  MCPJsonServerEntry,
+  MCPJsonConfig
 } from "./unified-handlers.ts";

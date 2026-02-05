@@ -460,9 +460,9 @@ export function createSettingsCommandHandlers(
       execute: async (ctx: InteractionContext) => {
         const action = ctx.getString('action', true)!;
         const serverName = ctx.getString('server_name');
-        const serverUrl = ctx.getString('server_url');
-        const serverType = ctx.getString('server_type');
-        await unifiedSettingsHandlers.onMCP(ctx, action, serverName || undefined, serverUrl || undefined, serverType || undefined);
+        const command = ctx.getString('command');
+        const description = ctx.getString('description');
+        await unifiedSettingsHandlers.onMCP(ctx, action, serverName || undefined, command || undefined, description || undefined);
       }
     }],
     ['agent', {

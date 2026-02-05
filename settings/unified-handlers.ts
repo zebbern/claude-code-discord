@@ -8,15 +8,27 @@ import {
 import { CLAUDE_MODELS } from "../claude/enhanced-client.ts";
 import { 
   getTodosManager, 
-  getMCPServersManager,
-  type TodoItem as PersistenceTodoItem,
-  type MCPServerConfig as PersistenceMCPConfig
+  type TodoItem as PersistenceTodoItem
 } from "../util/persistence.ts";
+import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
+
+// .mcp.json file format types (Claude Code standard format)
+export interface MCPJsonServerEntry {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  description?: string;
+}
+
+export interface MCPJsonConfig {
+  mcpServers: Record<string, MCPJsonServerEntry>;
+}
 
 export interface UnifiedSettingsHandlerDeps {
   settings: UnifiedBotSettings;
   updateSettings: (newSettings: Partial<UnifiedBotSettings>) => void;
   crashHandler: any;
+  workDir: string;
 }
 
 // Todo item interface (mapped from persistence)
@@ -31,23 +43,11 @@ export interface TodoItem {
   rateLimitTier?: string;
 }
 
-// MCP Server configuration (mapped from persistence)
-export interface MCPServerConfig {
-  name: string;
-  url: string;
-  type: 'local' | 'http' | 'websocket' | 'ssh';
-  enabled: boolean;
-  lastConnected?: Date;
-  status: 'connected' | 'disconnected' | 'error' | 'unknown';
-}
-
 // Persistence managers (initialized on first access)
 const todosManager = getTodosManager();
-const mcpServersManager = getMCPServersManager();
 
 // In-memory cache backed by persistence
 let todos: TodoItem[] = [];
-let mcpServers: MCPServerConfig[] = [];
 let persistenceInitialized = false;
 
 // Initialize persistence and load data
@@ -68,21 +68,10 @@ async function ensurePersistence(): Promise<void> {
       rateLimitTier: undefined
     }));
     
-    // Load MCP servers
-    const savedMCP = await mcpServersManager.load([]);
-    mcpServers = savedMCP.map(m => ({
-      name: m.name,
-      url: m.command,
-      type: 'local' as const,
-      enabled: m.enabled,
-      lastConnected: m.lastTested ? new Date(m.lastTested) : undefined,
-      status: m.lastStatus === 'online' ? 'connected' as const : 
-              m.lastStatus === 'offline' ? 'disconnected' as const :
-              m.lastStatus === 'error' ? 'error' as const : 'unknown' as const
-    }));
+    // NOTE: MCP servers are now read from .mcp.json on-demand, not loaded here
     
     persistenceInitialized = true;
-    console.log(`Persistence: Loaded ${todos.length} todos and ${mcpServers.length} MCP servers`);
+    console.log(`Persistence: Loaded ${todos.length} todos`);
   } catch (error) {
     console.error('Persistence: Failed to initialize:', error);
     persistenceInitialized = true; // Don't retry on error
@@ -102,23 +91,39 @@ async function saveTodos(): Promise<void> {
   await todosManager.save(persistenceTodos);
 }
 
-// Save MCP servers to persistence
-async function saveMCPServers(): Promise<void> {
-  const persistenceMCP: PersistenceMCPConfig[] = mcpServers.map(m => ({
-    name: m.name,
-    command: m.url,
-    enabled: m.enabled,
-    addedAt: new Date().toISOString(),
-    lastTested: m.lastConnected?.toISOString(),
-    lastStatus: m.status === 'connected' ? 'online' as const :
-                m.status === 'disconnected' ? 'offline' as const :
-                m.status === 'error' ? 'error' as const : undefined
-  }));
-  await mcpServersManager.save(persistenceMCP);
+// .mcp.json file operations
+const MCP_JSON_FILENAME = ".mcp.json";
+
+async function readMCPJsonConfig(workDir: string): Promise<MCPJsonConfig> {
+  const filePath = path.join(workDir, MCP_JSON_FILENAME);
+  try {
+    const content = await Deno.readTextFile(filePath);
+    return JSON.parse(content) as MCPJsonConfig;
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      // Return empty config if file doesn't exist
+      return { mcpServers: {} };
+    }
+    console.error(`Failed to read ${MCP_JSON_FILENAME}:`, error);
+    return { mcpServers: {} };
+  }
+}
+
+async function writeMCPJsonConfig(workDir: string, config: MCPJsonConfig): Promise<boolean> {
+  const filePath = path.join(workDir, MCP_JSON_FILENAME);
+  try {
+    const content = JSON.stringify(config, null, 2);
+    await Deno.writeTextFile(filePath, content);
+    console.log(`MCP: Saved ${Object.keys(config.mcpServers).length} server(s) to ${MCP_JSON_FILENAME}`);
+    return true;
+  } catch (error) {
+    console.error(`Failed to write ${MCP_JSON_FILENAME}:`, error);
+    return false;
+  }
 }
 
 export function createUnifiedSettingsHandlers(deps: UnifiedSettingsHandlerDeps) {
-  const { settings, updateSettings, crashHandler } = deps;
+  const { settings, updateSettings, crashHandler, workDir } = deps;
 
   return {
     async onUnifiedSettings(ctx: any, category: string, action?: string, value?: string) {
@@ -250,26 +255,26 @@ export function createUnifiedSettingsHandlers(deps: UnifiedSettingsHandlerDeps) 
       ctx: any,
       action: string,
       serverName?: string,
-      serverUrl?: string,
-      serverType?: string
+      command?: string,
+      description?: string
     ) {
       try {
         await ctx.deferReply();
 
         switch (action) {
           case 'list':
-            await listMCPServers(ctx);
+            await listMCPServers(ctx, workDir);
             break;
             
           case 'add':
-            if (!serverName || !serverUrl) {
+            if (!serverName || !command) {
               await ctx.editReply({
-                content: 'Server name and URL are required for adding MCP servers.',
+                content: 'Server name and command are required for adding MCP servers.',
                 ephemeral: true
               });
               return;
             }
-            await addMCPServer(ctx, serverName, serverUrl, serverType as any);
+            await addMCPServer(ctx, workDir, serverName, command, description);
             break;
             
           case 'remove':
@@ -280,7 +285,7 @@ export function createUnifiedSettingsHandlers(deps: UnifiedSettingsHandlerDeps) 
               });
               return;
             }
-            await removeMCPServer(ctx, serverName);
+            await removeMCPServer(ctx, workDir, serverName);
             break;
             
           case 'test':
@@ -291,11 +296,11 @@ export function createUnifiedSettingsHandlers(deps: UnifiedSettingsHandlerDeps) 
               });
               return;
             }
-            await testMCPConnection(ctx, serverName);
+            await testMCPConnection(ctx, workDir, serverName);
             break;
             
           case 'status':
-            await showMCPStatus(ctx);
+            await showMCPStatus(ctx, workDir);
             break;
             
           default:
@@ -831,68 +836,108 @@ async function showRateStatus(ctx: any, rateTier?: string) {
   });
 }
 
-// MCP management functions
-async function listMCPServers(ctx: any) {
-  await ensurePersistence();
+// MCP management functions (reads from .mcp.json)
+async function listMCPServers(ctx: any, workDir: string) {
+  const config = await readMCPJsonConfig(workDir);
+  const serverNames = Object.keys(config.mcpServers);
   
-  if (mcpServers.length === 0) {
+  if (serverNames.length === 0) {
     await ctx.editReply({
       embeds: [{
         color: 0xffaa00,
         title: '🔌 No MCP Servers',
-        description: 'No MCP servers configured. Use `/mcp action:add` to add your first server.',
+        description: `No MCP servers configured in \`.mcp.json\`.\n\nUse \`/mcp action:add\` to add your first server.`,
+        footer: { text: `📁 ${path.join(workDir, MCP_JSON_FILENAME)}` },
         timestamp: true
       }]
     });
     return;
   }
   
-  const serverList = mcpServers.map(server => {
-    const statusEmoji = server.status === 'connected' ? '🟢' : 
-                       server.status === 'error' ? '🔴' : 
-                       server.status === 'disconnected' ? '🟡' : '⚫';
-    return `${statusEmoji} **${server.name}** (${server.type})\n   \`${server.url}\``;
-  }).join('\n\n');
+  // Build server list with nice formatting
+  const fields = serverNames.map(name => {
+    const server = config.mcpServers[name];
+    const command = server.args?.length 
+      ? `\`${server.command} ${server.args.join(' ')}\``
+      : `\`${server.command}\``;
+    
+    let details = command;
+    if (server.description) {
+      details = `${server.description}\n${command}`;
+    }
+    if (server.env && Object.keys(server.env).length > 0) {
+      const envVars = Object.keys(server.env).join(', ');
+      details += `\n🔑 Env: \`${envVars}\``;
+    }
+    
+    return {
+      name: `🔌 ${name}`,
+      value: details,
+      inline: false
+    };
+  });
   
   await ctx.editReply({
     embeds: [{
       color: 0x0099ff,
       title: '🔌 MCP Servers',
-      description: serverList,
+      description: `Found **${serverNames.length}** server(s) configured in \`.mcp.json\``,
+      fields: fields.slice(0, 25), // Discord limit
       footer: {
-        text: `💾 ${mcpServers.length} server(s) persisted to disk`
+        text: `📁 ${path.join(workDir, MCP_JSON_FILENAME)}`
       },
       timestamp: true
     }]
   });
 }
 
-async function addMCPServer(ctx: any, name: string, url: string, type: 'local' | 'http' | 'websocket' | 'ssh' = 'http') {
-  await ensurePersistence();
+async function addMCPServer(ctx: any, workDir: string, name: string, commandOrUrl: string, description?: string) {
+  const config = await readMCPJsonConfig(workDir);
   
   // Check if server name already exists
-  if (mcpServers.find(s => s.name === name)) {
+  if (config.mcpServers[name]) {
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
         title: '❌ Server Exists',
-        description: `MCP server with name "${name}" already exists.`,
+        description: `MCP server with name "${name}" already exists in \`.mcp.json\`.`,
         timestamp: true
       }]
     });
     return;
   }
   
-  const server: MCPServerConfig = {
-    name,
-    url,
-    type,
-    enabled: true,
-    status: 'unknown'
+  // Parse command - support "npx -y @package" format
+  const parts = commandOrUrl.trim().split(/\s+/);
+  const command = parts[0];
+  const args = parts.slice(1);
+  
+  // Create the new server entry
+  const serverEntry: MCPJsonServerEntry = {
+    command,
+    ...(args.length > 0 && { args }),
+    ...(description && { description })
   };
   
-  mcpServers.push(server);
-  await saveMCPServers(); // Persist changes
+  // Add to config
+  config.mcpServers[name] = serverEntry;
+  
+  // Save to .mcp.json
+  const saved = await writeMCPJsonConfig(workDir, config);
+  
+  if (!saved) {
+    await ctx.editReply({
+      embeds: [{
+        color: 0xff0000,
+        title: '❌ Save Failed',
+        description: `Failed to save server to \`.mcp.json\`. Check file permissions.`,
+        timestamp: true
+      }]
+    });
+    return;
+  }
+  
+  const fullCommand = args.length > 0 ? `${command} ${args.join(' ')}` : command;
   
   await ctx.editReply({
     embeds: [{
@@ -900,11 +945,11 @@ async function addMCPServer(ctx: any, name: string, url: string, type: 'local' |
       title: '✅ MCP Server Added',
       fields: [
         { name: 'Server Name', value: name, inline: true },
-        { name: 'Type', value: type, inline: true },
-        { name: 'URL', value: `\`${url}\``, inline: false }
+        { name: 'Command', value: `\`${fullCommand}\``, inline: false },
+        ...(description ? [{ name: 'Description', value: description, inline: false }] : [])
       ],
       footer: {
-        text: '💾 Saved to disk | Use /mcp action:test to test the connection'
+        text: `📁 Saved to ${MCP_JSON_FILENAME}`
       },
       timestamp: true
     }]
@@ -1578,13 +1623,15 @@ async function prioritizeTodos(ctx: any, rateTier?: string) {
   });
 }
 
-// Remove an MCP server configuration
-async function removeMCPServer(ctx: any, serverName: string) {
-  await ensurePersistence();
+// Remove an MCP server configuration (from .mcp.json)
+async function removeMCPServer(ctx: any, workDir: string, serverName: string) {
+  const config = await readMCPJsonConfig(workDir);
+  const serverNames = Object.keys(config.mcpServers);
   
-  const serverIndex = mcpServers.findIndex(s => s.name.toLowerCase() === serverName.toLowerCase());
+  // Case-insensitive search for the server
+  const matchingName = serverNames.find(n => n.toLowerCase() === serverName.toLowerCase());
   
-  if (serverIndex === -1) {
+  if (!matchingName) {
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
@@ -1592,8 +1639,8 @@ async function removeMCPServer(ctx: any, serverName: string) {
         description: `No MCP server found with name: "${serverName}"`,
         fields: [{
           name: 'Available Servers',
-          value: mcpServers.length > 0 
-            ? mcpServers.map(s => `• ${s.name}`).join('\n')
+          value: serverNames.length > 0 
+            ? serverNames.map(s => `• ${s}`).join('\n')
             : 'No servers configured',
           inline: false
         }],
@@ -1603,31 +1650,51 @@ async function removeMCPServer(ctx: any, serverName: string) {
     return;
   }
 
-  const removedServer = mcpServers.splice(serverIndex, 1)[0];
-  await saveMCPServers(); // Persist changes
+  const removedServer = config.mcpServers[matchingName];
+  delete config.mcpServers[matchingName];
+  
+  const saved = await writeMCPJsonConfig(workDir, config);
+  
+  if (!saved) {
+    await ctx.editReply({
+      embeds: [{
+        color: 0xff0000,
+        title: '❌ Save Failed',
+        description: `Failed to save changes to \`.mcp.json\`.`,
+        timestamp: true
+      }]
+    });
+    return;
+  }
+
+  const fullCommand = removedServer.args?.length 
+    ? `${removedServer.command} ${removedServer.args.join(' ')}`
+    : removedServer.command;
 
   await ctx.editReply({
     embeds: [{
       color: 0x00ff00,
       title: '✅ MCP Server Removed',
-      description: `Successfully removed MCP server: **${removedServer.name}**`,
+      description: `Successfully removed MCP server: **${matchingName}**`,
       fields: [
-        { name: 'Type', value: removedServer.type, inline: true },
-        { name: 'URL', value: removedServer.url, inline: true }
+        { name: 'Command', value: `\`${fullCommand}\``, inline: false },
+        ...(removedServer.description ? [{ name: 'Description', value: removedServer.description, inline: false }] : [])
       ],
-      footer: { text: '💾 Changes saved to disk' },
+      footer: { text: `📁 Changes saved to ${MCP_JSON_FILENAME}` },
       timestamp: true
     }]
   });
 }
 
-// Test MCP server connection
-async function testMCPConnection(ctx: any, serverName: string) {
-  await ensurePersistence();
+// Test MCP server connection (from .mcp.json)
+async function testMCPConnection(ctx: any, workDir: string, serverName: string) {
+  const config = await readMCPJsonConfig(workDir);
+  const serverNames = Object.keys(config.mcpServers);
   
-  const server = mcpServers.find(s => s.name.toLowerCase() === serverName.toLowerCase());
+  // Case-insensitive search for the server
+  const matchingName = serverNames.find(n => n.toLowerCase() === serverName.toLowerCase());
   
-  if (!server) {
+  if (!matchingName) {
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
@@ -1639,116 +1706,123 @@ async function testMCPConnection(ctx: any, serverName: string) {
     return;
   }
 
-  // Test connection based on server type
-  let connectionSuccess = false;
-  let errorMessage = '';
+  const server = config.mcpServers[matchingName];
+  let testSuccess = false;
+  let testMessage = '';
 
   try {
-    if (server.type === 'http' || server.type === 'websocket') {
-      // Attempt HTTP/WebSocket connection test
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(server.url, {
-        method: 'HEAD',
-        signal: controller.signal
-      }).catch(() => null);
-      
-      clearTimeout(timeout);
-      connectionSuccess = response !== null && response.ok;
-      if (!connectionSuccess && response) {
-        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      }
-    } else if (server.type === 'local') {
-      // For local servers, check if the path exists
-      try {
-        const stat = await Deno.stat(server.url);
-        connectionSuccess = stat.isFile || stat.isDirectory;
-      } catch {
-        errorMessage = 'Local path not accessible';
-      }
+    // For MCP servers, we test by checking if the command exists
+    // Most MCP servers use npx which should be available
+    if (server.command === 'npx' || server.command === 'npm' || server.command === 'node') {
+      // Check if npx/npm/node is available
+      const cmd = new Deno.Command(server.command, {
+        args: ['--version'],
+        stdout: 'piped',
+        stderr: 'piped'
+      });
+      const { code } = await cmd.output();
+      testSuccess = code === 0;
+      testMessage = testSuccess 
+        ? `\`${server.command}\` is available and can run MCP servers`
+        : `\`${server.command}\` command failed`;
     } else {
-      // SSH and other types - basic URL validation
-      connectionSuccess = server.url.length > 0;
-      if (!connectionSuccess) {
-        errorMessage = 'Invalid server URL';
-      }
+      // For other commands, check if they exist in PATH
+      // Use 'where' on Windows, 'which' on Unix-like systems
+      const isWindows = Deno.build.os === 'windows';
+      const whichCmd = isWindows ? 'where' : 'which';
+      const cmd = new Deno.Command(whichCmd, {
+        args: [server.command],
+        stdout: 'piped',
+        stderr: 'piped'
+      });
+      const { code } = await cmd.output();
+      testSuccess = code === 0;
+      testMessage = testSuccess
+        ? `Command \`${server.command}\` found in PATH`
+        : `Command \`${server.command}\` not found in PATH`;
     }
   } catch (err) {
-    errorMessage = err instanceof Error ? err.message : 'Connection failed';
+    testMessage = err instanceof Error ? err.message : 'Test failed';
   }
 
-  // Update server status
-  server.status = connectionSuccess ? 'connected' : 'error';
-  if (connectionSuccess) {
-    server.lastConnected = new Date();
-  }
-  await saveMCPServers(); // Persist status changes
+  const fullCommand = server.args?.length 
+    ? `${server.command} ${server.args.join(' ')}`
+    : server.command;
 
   await ctx.editReply({
     embeds: [{
-      color: connectionSuccess ? 0x00ff00 : 0xff0000,
-      title: connectionSuccess ? '✅ Connection Successful' : '❌ Connection Failed',
-      description: connectionSuccess 
-        ? `Successfully connected to **${server.name}**`
-        : `Failed to connect to **${server.name}**`,
+      color: testSuccess ? 0x00ff00 : 0xff0000,
+      title: testSuccess ? '✅ Command Available' : '❌ Command Not Found',
+      description: testMessage,
       fields: [
-        { name: 'Server Type', value: server.type, inline: true },
-        { name: 'URL', value: server.url, inline: true },
-        { name: 'Status', value: server.status, inline: true },
-        ...(errorMessage ? [{ name: 'Error', value: errorMessage, inline: false }] : [])
+        { name: 'Server', value: matchingName, inline: true },
+        { name: 'Command', value: `\`${fullCommand}\``, inline: false },
+        ...(server.description ? [{ name: 'Description', value: server.description, inline: false }] : []),
+        ...(server.env ? [{ name: 'Environment', value: Object.keys(server.env).map(k => `\`${k}\``).join(', '), inline: false }] : [])
       ],
-      footer: { text: '💾 Status saved to disk' },
+      footer: { text: 'Note: This only tests if the command is available, not the MCP server itself' },
       timestamp: true
     }]
   });
 }
 
-// Show MCP server status overview
-async function showMCPStatus(ctx: any) {
-  await ensurePersistence();
+// Show MCP server status overview (from .mcp.json)
+async function showMCPStatus(ctx: any, workDir: string) {
+  const config = await readMCPJsonConfig(workDir);
+  const serverNames = Object.keys(config.mcpServers);
   
-  if (mcpServers.length === 0) {
+  if (serverNames.length === 0) {
     await ctx.editReply({
       embeds: [{
         color: 0xffaa00,
         title: '📊 MCP Status',
-        description: 'No MCP servers configured.\n\nUse `/mcp action:add name:[name] url:[url] type:[type]` to add a server.',
+        description: `No MCP servers configured in \`.mcp.json\`.\n\nUse \`/mcp action:add server_name:[name] command:[command]\` to add a server.`,
+        footer: { text: `📁 ${path.join(workDir, MCP_JSON_FILENAME)}` },
         timestamp: true
       }]
     });
     return;
   }
 
-  const connectedCount = mcpServers.filter(s => s.status === 'connected').length;
-  const errorCount = mcpServers.filter(s => s.status === 'error').length;
+  // Build detailed status view
+  const fields = serverNames.map(name => {
+    const server = config.mcpServers[name];
+    const fullCommand = server.args?.length 
+      ? `${server.command} ${server.args.join(' ')}`
+      : server.command;
+    
+    let info = `💻 \`${fullCommand}\``;
+    if (server.description) {
+      info = `${server.description}\n${info}`;
+    }
+    if (server.env && Object.keys(server.env).length > 0) {
+      const envKeys = Object.keys(server.env);
+      info += `\n🔑 ${envKeys.length} env var(s): \`${envKeys.join('\`, \`')}\``;
+    }
+    
+    return {
+      name: `🔌 ${name}`,
+      value: info,
+      inline: false
+    };
+  });
 
-  const serverList = mcpServers.map(s => {
-    const statusEmoji = {
-      'connected': '🟢',
-      'disconnected': '🟡',
-      'error': '🔴',
-      'unknown': '⚪'
-    }[s.status];
-    
-    const lastConnected = s.lastConnected 
-      ? formatDuration(Date.now() - s.lastConnected.getTime()) + ' ago'
-      : 'Never';
-    
-    return `${statusEmoji} **${s.name}** (${s.type})\n   └ ${s.enabled ? 'Enabled' : 'Disabled'} • Last: ${lastConnected}`;
-  }).join('\n\n');
+  // Count servers with env vars
+  const withEnvCount = serverNames.filter(name => {
+    const server = config.mcpServers[name];
+    return server.env && Object.keys(server.env).length > 0;
+  }).length;
 
   await ctx.editReply({
     embeds: [{
-      color: errorCount > 0 ? 0xff6600 : 0x00ff00,
+      color: 0x00ff00,
       title: '📊 MCP Server Status',
-      description: serverList,
+      description: `**${serverNames.length}** MCP server(s) configured`,
       fields: [
-        { name: 'Total Servers', value: mcpServers.length.toString(), inline: true },
-        { name: 'Connected', value: connectedCount.toString(), inline: true },
-        { name: 'Errors', value: errorCount.toString(), inline: true }
+        ...fields.slice(0, 20), // Discord field limit
+        { name: '📊 Summary', value: `Total: ${serverNames.length} | With Env Vars: ${withEnvCount}`, inline: false }
       ],
-      footer: { text: '💾 Persisted to disk' },
+      footer: { text: `📁 ${path.join(workDir, MCP_JSON_FILENAME)}` },
       timestamp: true
     }]
   });
