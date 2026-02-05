@@ -63,19 +63,43 @@ The setup script will:
 - ✅ Install Deno (if needed)
 - ✅ Install Claude CLI (if needed)  
 - ✅ Create `.env` file with your tokens
-- ✅ Start the bot
+- ✅ Initialize git repository (if needed)
+- ✅ Offer to start the bot immediately
 
 ---
 
 ### Option 2: Docker (Zero Dependencies)
 
+**Quick Start:**
 ```bash
 git clone https://github.com/zebbern/claude-code-discord.git
 cd claude-code-discord
 cp .env.example .env
-# Edit .env with your tokens
+# Edit .env with your DISCORD_TOKEN and APPLICATION_ID
 docker compose up -d
 ```
+
+**Docker Commands:**
+```bash
+# Start the bot
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop the bot
+docker compose down
+
+# Rebuild after updates
+docker compose build --no-cache && docker compose up -d
+```
+
+**Features:**
+- ✅ Auto-installs all dependencies (Deno, Git)
+- ✅ Persistent data storage via Docker volumes
+- ✅ Auto-restart on crashes
+- ✅ Resource limits (2 CPU, 2GB RAM)
+- ✅ Non-root security mode
 
 ---
 
@@ -125,6 +149,25 @@ deno run --allow-all index.ts --category myproject --user-id YOUR_DISCORD_ID
 ```
 
 > If you get `not a git directory`, run `git init` first.
+
+---
+
+### Configuration (.env file)
+
+The bot uses a `.env` file for configuration. Copy `.env.example` to `.env` and edit:
+
+```env
+# Required
+DISCORD_TOKEN=your_bot_token_here
+APPLICATION_ID=your_application_id_here
+
+# Optional
+USER_ID=your_discord_user_id          # Get mentioned when Claude finishes
+CATEGORY_NAME=claude-code             # Discord category for channels
+WORK_DIR=/path/to/project             # Working directory (default: current)
+```
+
+**Environment variables take precedence over `.env` file settings.**
 
 <img width="250" height="250" alt="image" src="https://github.com/user-attachments/assets/2fea008b-76b7-48d8-9a87-8214cc7a24ad" />
 
