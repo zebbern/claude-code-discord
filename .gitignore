@@ -1,5 +1,11 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# Bot runtime data (persistence files)
+.bot-data/
+
+# Plan files (development only)
+plan/
+
 # IDE and editors
 .idea/
 .vscode/
