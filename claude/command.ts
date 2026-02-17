@@ -88,21 +88,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       deps.setClaudeSessionId(result.sessionId);
       deps.setClaudeController(null);
       
-      // Send completion message with interactive buttons
-      if (result.sessionId) {
-        await sendClaudeMessages([{
-          type: 'system',
-          content: '',
-          metadata: {
-            subtype: 'completion',
-            session_id: result.sessionId,
-            model: result.modelUsed || 'Default',
-            total_cost_usd: result.cost,
-            duration_ms: result.duration,
-            cwd: workDir
-          }
-        }]);
-      }
+      // Completion message is already sent via SDK streaming (result type → message-converter.ts)
       
       return result;
     },
@@ -156,21 +142,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       deps.setClaudeSessionId(result.sessionId);
       deps.setClaudeController(null);
       
-      // Send completion message with interactive buttons
-      if (result.sessionId) {
-        await sendClaudeMessages([{
-          type: 'system',
-          content: '',
-          metadata: {
-            subtype: 'completion',
-            session_id: result.sessionId,
-            model: result.modelUsed || 'Default',
-            total_cost_usd: result.cost,
-            duration_ms: result.duration,
-            cwd: workDir
-          }
-        }]);
-      }
+      // Completion message is already sent via SDK streaming (result type → message-converter.ts)
       
       return result;
     },
