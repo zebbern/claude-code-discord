@@ -14,11 +14,17 @@ export interface UnifiedBotSettings {
   autoIncludeSystemInfo: boolean;
   autoIncludeGitContext: boolean;
   
-  // New: Thinking mode settings
-  thinkingMode: 'none' | 'think' | 'think-hard' | 'ultrathink';
+  // Thinking mode settings (native SDK thinking config)
+  thinkingMode: 'adaptive' | 'think' | 'think-hard' | 'ultrathink' | 'disabled';
   
-  // New: Mode settings
-  operationMode: 'normal' | 'plan' | 'auto-accept' | 'danger';
+  // Effort level (controls reasoning depth)
+  effortLevel: 'low' | 'medium' | 'high' | 'max';
+  
+  // Mode settings
+  operationMode: 'normal' | 'plan' | 'auto-accept' | 'danger' | 'dont-ask';
+  
+  // Budget settings
+  maxBudgetUsd: number | null;
   
   // Output settings
   codeHighlighting: boolean;
@@ -41,7 +47,7 @@ export interface UnifiedBotSettings {
   verboseErrorReporting: boolean;
   enablePerformanceMetrics: boolean;
   
-  // Proxy settings (new)
+  // Proxy settings
   proxyEnabled: boolean;
   proxyUrl: string | null;
   noProxyDomains: string[];
@@ -58,9 +64,17 @@ export const UNIFIED_DEFAULT_SETTINGS: UnifiedBotSettings = {
   autoIncludeSystemInfo: false,
   autoIncludeGitContext: true,
   
-  // New modes
-  thinkingMode: 'none',
+  // Thinking — adaptive is the default (Claude decides when to think)
+  thinkingMode: 'adaptive',
+  
+  // Effort — high is standard
+  effortLevel: 'high',
+  
+  // Operation mode
   operationMode: 'normal',
+  
+  // Budget
+  maxBudgetUsd: null,
   
   // Output
   codeHighlighting: true,
@@ -89,35 +103,64 @@ export const UNIFIED_DEFAULT_SETTINGS: UnifiedBotSettings = {
   noProxyDomains: ['localhost', '127.0.0.1', '::1']
 };
 
-// Thinking mode options — maps to MAX_THINKING_TOKENS env var for Claude Code CLI
+// Thinking mode options — maps to native SDK `thinking` option
+// The new SDK supports: adaptive (Opus 4.6+), enabled (with budget), disabled
 export const THINKING_MODES = {
-  'none': {
-    name: 'Default',
-    description: 'Default thinking behavior — Claude decides automatically',
-    budgetTokens: null as number | null
+  'adaptive': {
+    name: 'Adaptive (Default)',
+    description: 'Claude decides when and how much to think — best for Opus 4.6+',
+    thinking: { type: 'adaptive' as const }
   },
   'think': {
     name: 'Thinking Mode',
     description: 'Extended thinking with moderate budget (10K tokens)',
-    budgetTokens: 10000
+    thinking: { type: 'enabled' as const, budgetTokens: 10000 }
   },
   'think-hard': {
     name: 'Deep Thinking',
     description: 'Deep analysis and reasoning (50K tokens)',
-    budgetTokens: 50000
+    thinking: { type: 'enabled' as const, budgetTokens: 50000 }
   },
   'ultrathink': {
     name: 'Ultra Thinking',
     description: 'Maximum thinking depth (100K tokens)',
-    budgetTokens: 100000
+    thinking: { type: 'enabled' as const, budgetTokens: 100000 }
+  },
+  'disabled': {
+    name: 'No Thinking',
+    description: 'Disable extended thinking entirely',
+    thinking: { type: 'disabled' as const }
   }
 } as const;
 
-// Operation mode options — maps to SDK permissionMode / CLI --permission-mode
-// NOTE: The SDK 'default' permissionMode requires interactive permission prompts (canUseTool callback)
-// which needs streaming mode (AsyncIterable prompt). Since this Discord bot sends string prompts,
-// 'default' mode would hang indefinitely waiting for interactive input. All modes here are safe
-// for headless/Discord operation.
+// Effort level options — maps to native SDK `effort` option
+// Controls how much reasoning effort Claude puts into responses
+export const EFFORT_LEVELS = {
+  'low': {
+    name: 'Low Effort',
+    description: 'Minimal thinking, fastest responses'
+  },
+  'medium': {
+    name: 'Medium Effort',
+    description: 'Moderate thinking depth'
+  },
+  'high': {
+    name: 'High Effort',
+    description: 'Deep reasoning (default)'
+  },
+  'max': {
+    name: 'Maximum Effort',
+    description: 'Maximum effort — Opus 4.6 only'
+  }
+} as const;
+
+// Operation mode options — maps to SDK permissionMode
+// NOTE: In the new Claude Agent SDK (v0.2.45), there are 6 permission modes:
+//   default, acceptEdits, bypassPermissions, plan, delegate, dontAsk
+//
+// For Discord bots, 'dontAsk' is ideal — it auto-denies anything not pre-approved,
+// preventing the bot from hanging on interactive permission prompts.
+// 'default' mode would hang waiting for interactive canUseTool callbacks.
 export const OPERATION_MODES = {
   'normal': {
     name: 'Normal Mode',
@@ -136,6 +179,12 @@ export const OPERATION_MODES = {
     description: 'Automatically accepts file edits without confirmation',
     permissionMode: 'acceptEdits' as const,
     riskLevel: 'medium'
+  },
+  'dont-ask': {
+    name: "Don't Ask Mode",
+    description: "Denies any tool use that isn't pre-approved — ideal for Discord bots",
+    permissionMode: 'dontAsk' as const,
+    riskLevel: 'low'
   },
   'danger': {
     name: 'Bypass Permissions',

@@ -200,7 +200,9 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
     const opts = deps.getQueryOptions?.() || {};
     return {
       permissionMode: opts.permissionMode,
-      thinkingBudget: opts.thinkingBudget,
+      thinking: opts.thinking,
+      effort: opts.effort,
+      maxBudgetUsd: opts.maxBudgetUsd,
       extraEnv: opts.extraEnv,
     };
   }

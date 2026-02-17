@@ -431,7 +431,7 @@ async function chatWithAgent(
       contextFiles.split(',').map(f => f.trim()).filter(f => f.length > 0) : 
       undefined;
 
-    // Merge runtime settings (permissionMode, thinkingBudget, proxy, etc.)
+    // Merge runtime settings (permissionMode, thinking, effort, proxy, etc.)
     const runtimeOpts = deps?.getQueryOptions?.() || {};
 
     const result = await enhancedClaudeQuery(

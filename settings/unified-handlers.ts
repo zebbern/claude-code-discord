@@ -3,6 +3,7 @@ import {
   UNIFIED_DEFAULT_SETTINGS, 
   THINKING_MODES, 
   OPERATION_MODES, 
+  EFFORT_LEVELS,
   ANTHROPIC_RATE_LIMITS 
 } from "./unified-settings.ts";
 import { CLAUDE_MODELS, isValidModel, resolveModelId, type ModelInfo } from "../claude/enhanced-client.ts";
@@ -336,7 +337,7 @@ async function showAllSettings(ctx: any, settings: UnifiedBotSettings) {
     },
     {
       name: '⚙️ Mode Settings',
-      value: `Thinking: ${THINKING_MODES[settings.thinkingMode].name}\nOperation: ${OPERATION_MODES[settings.operationMode].name}`,
+      value: `Thinking: ${THINKING_MODES[settings.thinkingMode].name}\nOperation: ${OPERATION_MODES[settings.operationMode].name}\nEffort: ${EFFORT_LEVELS[settings.effortLevel].name}\nBudget: ${settings.maxBudgetUsd != null ? '$' + settings.maxBudgetUsd : 'No limit'}`,
       inline: true
     },
     {
@@ -437,15 +438,19 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       `• **${key}**: ${mode.name} - ${mode.description} (${mode.riskLevel} risk)`
     ).join('\n');
 
+    const effortOptions = Object.entries(EFFORT_LEVELS).map(([key, level]) =>
+      `• **${key}**: ${level.name} - ${level.description}`
+    ).join('\n');
+
     await ctx.editReply({
       embeds: [{
         color: 0x0099ff,
         title: '⚙️ Mode Settings',
-        description: 'Available actions: `set-thinking`, `set-operation`',
+        description: 'Available actions: `set-thinking`, `set-operation`, `set-effort`, `set-budget`',
         fields: [
           {
             name: 'Current Settings',
-            value: `Thinking Mode: **${settings.thinkingMode}** (${THINKING_MODES[settings.thinkingMode].name})\nOperation Mode: **${settings.operationMode}** (${OPERATION_MODES[settings.operationMode].name})`,
+            value: `Thinking Mode: **${settings.thinkingMode}** (${THINKING_MODES[settings.thinkingMode].name})\nOperation Mode: **${settings.operationMode}** (${OPERATION_MODES[settings.operationMode].name})\nEffort Level: **${settings.effortLevel}** (${EFFORT_LEVELS[settings.effortLevel].name})\nBudget Cap: ${settings.maxBudgetUsd != null ? `$${settings.maxBudgetUsd}` : 'No limit'}`,
             inline: false
           },
           {
@@ -456,6 +461,11 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
           {
             name: 'Operation Mode Options',
             value: operationOptions,
+            inline: false
+          },
+          {
+            name: 'Effort Level Options',
+            value: effortOptions,
             inline: false
           }
         ],
@@ -527,9 +537,78 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       });
       break;
       
+    case 'set-effort':
+      if (!value || !(value in EFFORT_LEVELS)) {
+        const options = Object.keys(EFFORT_LEVELS).join(', ');
+        await ctx.editReply({
+          content: `Invalid effort level. Available options: ${options}`,
+          ephemeral: true
+        });
+        return;
+      }
+      updateSettings({ effortLevel: value as keyof typeof EFFORT_LEVELS });
+      await ctx.editReply({
+        embeds: [{
+          color: 0x00ff00,
+          title: '✅ Effort Level Updated',
+          description: `Effort level set to: **${EFFORT_LEVELS[value as keyof typeof EFFORT_LEVELS].name}**`,
+          fields: [{
+            name: 'Description',
+            value: EFFORT_LEVELS[value as keyof typeof EFFORT_LEVELS].description,
+            inline: false
+          }],
+          timestamp: true
+        }]
+      });
+      break;
+
+    case 'set-budget':
+      if (!value) {
+        await ctx.editReply({
+          content: `Provide a budget in USD (e.g. \`0.50\`) or \`none\` to remove the limit.`,
+          ephemeral: true
+        });
+        return;
+      }
+      if (value === 'none' || value === 'null' || value === '0') {
+        updateSettings({ maxBudgetUsd: null });
+        await ctx.editReply({
+          embeds: [{
+            color: 0x00ff00,
+            title: '✅ Budget Limit Removed',
+            description: 'No budget limit is set. Queries will run until completion.',
+            timestamp: true
+          }]
+        });
+      } else {
+        const budget = parseFloat(value);
+        if (isNaN(budget) || budget <= 0) {
+          await ctx.editReply({
+            content: `Invalid budget. Provide a positive number (e.g. \`0.50\`) or \`none\`.`,
+            ephemeral: true
+          });
+          return;
+        }
+        updateSettings({ maxBudgetUsd: budget });
+        await ctx.editReply({
+          embeds: [{
+            color: 0x00ff00,
+            title: '✅ Budget Limit Set',
+            description: `Maximum budget per query: **$${budget.toFixed(2)}**`,
+            fields: [{
+              name: 'Note',
+              value: 'Queries will stop if this budget is exceeded.',
+              inline: false
+            }],
+            timestamp: true
+          }]
+        });
+      }
+      break;
+
     default:
       await ctx.editReply({
-        content: `Unknown mode action: ${action}. Available: set-thinking, set-operation`,
+        content: `Unknown mode action: ${action}. Available: set-thinking, set-operation, set-effort, set-budget`,
         ephemeral: true
       });
   }
@@ -1396,7 +1475,9 @@ async function handleResetSettings(ctx: any, settings: UnifiedBotSettings, updat
     case 'modes':
       updateSettings({
         thinkingMode: defaultSettings.thinkingMode,
-        operationMode: defaultSettings.operationMode
+        operationMode: defaultSettings.operationMode,
+        effortLevel: defaultSettings.effortLevel,
+        maxBudgetUsd: defaultSettings.maxBudgetUsd
       });
       await ctx.editReply({
         embeds: [{

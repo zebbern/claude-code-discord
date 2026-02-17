@@ -1,4 +1,4 @@
-import { query as claudeQuery, type SDKMessage } from "@anthropic-ai/claude-code";
+import { query as claudeQuery, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 
 // Clean session ID (remove unwanted characters)
 export function cleanSessionId(sessionId: string): string {
@@ -11,18 +11,31 @@ export function cleanSessionId(sessionId: string): string {
 }
 
 // Valid SDK permission modes (maps to CLI --permission-mode)
-export type SDKPermissionMode = 'default' | 'plan' | 'acceptEdits' | 'bypassPermissions';
+// New SDK (claude-agent-sdk) supports 6 modes:
+//   default, acceptEdits, bypassPermissions, plan, delegate, dontAsk
+export type SDKPermissionMode = 'default' | 'plan' | 'acceptEdits' | 'bypassPermissions' | 'delegate' | 'dontAsk';
 
-// Full query options for Claude Code SDK
+// Thinking configuration — native SDK option (replaces MAX_THINKING_TOKENS env var hack)
+export type ThinkingConfig =
+  | { type: 'adaptive' }                     // Claude decides (Opus 4.6+, default)
+  | { type: 'enabled'; budgetTokens: number } // Fixed budget (older models)
+  | { type: 'disabled' };                    // No thinking
+
+// Effort level — controls reasoning depth
+export type EffortLevel = 'low' | 'medium' | 'high' | 'max';
+
+// Full query options for Claude Agent SDK
 export interface ClaudeModelOptions {
   model?: string;
-  /** SDK permissionMode: 'default' | 'plan' | 'acceptEdits' | 'bypassPermissions' */
+  /** SDK permissionMode: controls what Claude can do */
   permissionMode?: SDKPermissionMode;
-  /** MAX_THINKING_TOKENS env var value — controls thinking budget. null = default behavior */
-  thinkingBudget?: number | null;
-  /** Custom system prompt (replaces default) */
-  systemPrompt?: string;
-  /** Append to default system prompt */
+  /** Native thinking configuration — replaces old MAX_THINKING_TOKENS env var */
+  thinking?: ThinkingConfig;
+  /** Effort level — controls reasoning depth (low/medium/high/max) */
+  effort?: EffortLevel;
+  /** Maximum budget in USD — query stops if exceeded */
+  maxBudgetUsd?: number;
+  /** Append to Claude Code's default system prompt */
   appendSystemPrompt?: string;
   /** Max turns for the conversation */
   maxTurns?: number;
@@ -64,42 +77,56 @@ export async function sendToClaudeCode(
       // Determine which model to use
       const modelToUse = overrideModel || modelOptions?.model;
       
-      // Determine permission mode (defaults to bypassPermissions for backward compat)
-      const permMode = modelOptions?.permissionMode || "bypassPermissions";
+      // Determine permission mode (defaults to dontAsk for Discord — denies anything not pre-approved)
+      const permMode = modelOptions?.permissionMode || "dontAsk";
       
       // Build environment variables for the subprocess
       const envVars: Record<string, string> = {
         ...Object.fromEntries(Object.entries(Deno.env.toObject())),
       };
       
-      // Apply thinking budget via MAX_THINKING_TOKENS env var
-      if (modelOptions?.thinkingBudget != null && modelOptions.thinkingBudget > 0) {
-        envVars.MAX_THINKING_TOKENS = String(modelOptions.thinkingBudget);
-      }
-      
       // Apply extra env vars (proxy settings, etc.)
       if (modelOptions?.extraEnv) {
         Object.assign(envVars, modelOptions.extraEnv);
       }
+
+      // Build system prompt — use Claude Code preset with optional append
+      const systemPromptConfig = modelOptions?.appendSystemPrompt
+        ? { type: 'preset' as const, preset: 'claude_code' as const, append: modelOptions.appendSystemPrompt }
+        : { type: 'preset' as const, preset: 'claude_code' as const };
 
       const queryOptions = {
         prompt,
         abortController: controller,
         options: {
           cwd: workDir,
-          permissionMode: permMode as "bypassPermissions" | "default" | "plan" | "acceptEdits",
+          permissionMode: permMode,
+          // Use Claude Code's system prompt + optional append
+          systemPrompt: systemPromptConfig,
+          // Load project CLAUDE.md files
+          settingSources: ['project' as const],
+          // Native thinking config (replaces MAX_THINKING_TOKENS env var hack)
+          ...(modelOptions?.thinking && { thinking: modelOptions.thinking }),
+          // Effort level
+          ...(modelOptions?.effort && { effort: modelOptions.effort }),
+          // Budget cap
+          ...(modelOptions?.maxBudgetUsd && { maxBudgetUsd: modelOptions.maxBudgetUsd }),
+          // Guard for bypassPermissions
+          ...(permMode === 'bypassPermissions' && { allowDangerouslySkipPermissions: true }),
           ...(continueMode && { continue: true }),
           ...(cleanedSessionId && !continueMode && { resume: cleanedSessionId }),
           ...(modelToUse && { model: modelToUse }),
-          ...(modelOptions?.systemPrompt && { customSystemPrompt: modelOptions.systemPrompt }),
-          ...(modelOptions?.appendSystemPrompt && { appendSystemPrompt: modelOptions.appendSystemPrompt }),
           ...(modelOptions?.maxTurns && { maxTurns: modelOptions.maxTurns }),
           ...(modelOptions?.fallbackModel && { fallbackModel: modelOptions.fallbackModel }),
           env: envVars,
         },
       };
       
-      console.log(`Claude Code: Running with ${modelToUse || 'default'} model, permission=${permMode}${modelOptions?.thinkingBudget ? `, thinking=${modelOptions.thinkingBudget}` : ''}...`);
+      const thinkingLabel = modelOptions?.thinking
+        ? `, thinking=${modelOptions.thinking.type}${modelOptions.thinking.type === 'enabled' ? `(${modelOptions.thinking.budgetTokens})` : ''}`
+        : '';
+      const effortLabel = modelOptions?.effort ? `, effort=${modelOptions.effort}` : '';
+      console.log(`Claude Agent SDK: Running with ${modelToUse || 'default'} model, permission=${permMode}${thinkingLabel}${effortLabel}...`);
       if (continueMode) {
         console.log(`Continue mode: Reading latest conversation in directory`);
       } else if (cleanedSessionId) {

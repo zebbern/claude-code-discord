@@ -1,10 +1,10 @@
-import { sendToClaudeCode, type ClaudeModelOptions, type SDKPermissionMode } from "./client.ts";
+import { sendToClaudeCode, type ClaudeModelOptions, type SDKPermissionMode, type ThinkingConfig, type EffortLevel } from "./client.ts";
 import type { ClaudeMessage } from "./types.ts";
 import { recordAPIUsage } from "../util/usage-tracker.ts";
 import { startModelRefresh, stopModelRefresh, fetchModels } from "./model-fetcher.ts";
 
 // Enhanced Claude Code client with additional features
-// Maps user-facing settings to actual Claude Code SDK parameters
+// Maps user-facing settings to actual Claude Agent SDK parameters
 export interface EnhancedClaudeOptions {
   workDir: string;
   model?: string;
@@ -14,8 +14,12 @@ export interface EnhancedClaudeOptions {
   includeSystemInfo?: boolean;
   /** SDK permissionMode — controls what Claude can do */
   permissionMode?: SDKPermissionMode;
-  /** Thinking budget in tokens (controls MAX_THINKING_TOKENS env var) */
-  thinkingBudget?: number | null;
+  /** Native thinking configuration (adaptive/enabled/disabled) */
+  thinking?: ThinkingConfig;
+  /** Effort level — controls reasoning depth */
+  effort?: EffortLevel;
+  /** Maximum budget in USD */
+  maxBudgetUsd?: number;
   /** Extra env vars for proxy or other settings */
   extraEnv?: Record<string, string>;
 }
@@ -140,14 +144,19 @@ export async function enhancedClaudeQuery(
   if (options.permissionMode) {
     modelOptions.permissionMode = options.permissionMode;
   }
-  if (options.thinkingBudget != null) {
-    modelOptions.thinkingBudget = options.thinkingBudget;
+  if (options.thinking) {
+    modelOptions.thinking = options.thinking;
+  }
+  if (options.effort) {
+    modelOptions.effort = options.effort;
+  }
+  if (options.maxBudgetUsd) {
+    modelOptions.maxBudgetUsd = options.maxBudgetUsd;
   }
   if (options.extraEnv) {
     modelOptions.extraEnv = options.extraEnv;
   }
-  // System prompt is already prepended to the prompt above,
-  // but we can also set it as SDK systemPrompt for better integration
+  // System prompt appended via SDK preset
   if (options.systemPrompt) {
     modelOptions.appendSystemPrompt = options.systemPrompt;
   }

@@ -19,6 +19,7 @@ export {
   UNIFIED_DEFAULT_SETTINGS,
   THINKING_MODES,
   OPERATION_MODES,
+  EFFORT_LEVELS,
   ANTHROPIC_RATE_LIMITS
 } from "./unified-settings.ts";
 export { createUnifiedSettingsHandlers } from "./unified-handlers.ts";

@@ -28,7 +28,7 @@
   },
   "imports": {
     "discord.js": "npm:discord.js@14.14.1",
-    "@anthropic-ai/claude-code": "npm:@anthropic-ai/claude-code@1.0.95"
+    "@anthropic-ai/claude-agent-sdk": "npm:@anthropic-ai/claude-agent-sdk@0.2.45"
   },
   "permissions": {
     "allow-all": true

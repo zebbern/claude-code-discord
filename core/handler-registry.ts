@@ -28,7 +28,7 @@ import { agentCommand, createAgentHandlers } from "../agent/index.ts";
 import { screenshotCommands, createScreenshotHandlers } from "../screenshot/index.ts";
 import { cleanSessionId, ClaudeSessionManager } from "../claude/index.ts";
 import type { ClaudeModelOptions } from "../claude/index.ts";
-import { THINKING_MODES, OPERATION_MODES } from "../settings/index.ts";
+import { THINKING_MODES, OPERATION_MODES, EFFORT_LEVELS } from "../settings/index.ts";
 
 import type { ShellManager } from "../shell/index.ts";
 import type { WorktreeBotManager } from "../git/index.ts";
@@ -388,10 +388,20 @@ export function createAllHandlers(
       opts.permissionMode = opMode.permissionMode;
     }
     
-    // Thinking mode → MAX_THINKING_TOKENS env var
+    // Thinking mode → native SDK thinking config
     const thinkMode = THINKING_MODES[s.thinkingMode];
-    if (thinkMode && thinkMode.budgetTokens != null) {
-      opts.thinkingBudget = thinkMode.budgetTokens;
+    if (thinkMode) {
+      opts.thinking = thinkMode.thinking;
+    }
+    
+    // Effort level → native SDK effort option
+    if (s.effortLevel) {
+      opts.effort = s.effortLevel;
+    }
+    
+    // Budget cap
+    if (s.maxBudgetUsd != null) {
+      opts.maxBudgetUsd = s.maxBudgetUsd;
     }
     
     // System prompt
