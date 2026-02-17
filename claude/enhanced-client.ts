@@ -1,4 +1,4 @@
-import { sendToClaudeCode, type ClaudeModelOptions, type SDKPermissionMode, type ThinkingConfig, type EffortLevel } from "./client.ts";
+import { sendToClaudeCode, type ClaudeModelOptions, type SDKPermissionMode, type ThinkingConfig, type EffortLevel, type SDKAgentDefinition, type SDKModelInfo } from "./client.ts";
 import type { ClaudeMessage } from "./types.ts";
 import { recordAPIUsage } from "../util/usage-tracker.ts";
 import { startModelRefresh, stopModelRefresh, fetchModels } from "./model-fetcher.ts";
@@ -22,6 +22,10 @@ export interface EnhancedClaudeOptions {
   maxBudgetUsd?: number;
   /** Extra env vars for proxy or other settings */
   extraEnv?: Record<string, string>;
+  /** Native SDK agent name for the main thread */
+  agent?: string;
+  /** Custom subagent definitions */
+  agents?: Record<string, SDKAgentDefinition>;
 }
 
 export interface ClaudeSession {
@@ -156,8 +160,15 @@ export async function enhancedClaudeQuery(
   if (options.extraEnv) {
     modelOptions.extraEnv = options.extraEnv;
   }
-  // System prompt appended via SDK preset
-  if (options.systemPrompt) {
+  // Native SDK agent support
+  if (options.agent) {
+    modelOptions.agent = options.agent;
+  }
+  if (options.agents) {
+    modelOptions.agents = options.agents;
+  }
+  // System prompt: skip appendSystemPrompt when using native agent (SDK handles it via AgentDefinition.prompt)
+  if (options.systemPrompt && !options.agent) {
     modelOptions.appendSystemPrompt = options.systemPrompt;
   }
 
@@ -475,6 +486,51 @@ export async function refreshModels(): Promise<Record<string, ModelInfo>> {
     CLAUDE_MODELS = fetched;
   }
   return CLAUDE_MODELS;
+}
+
+/**
+ * Update models from SDK's supportedModels() response.
+ * Merges SDK model info with our richer ModelInfo structure.
+ * Call after first successful query to get definitive model list.
+ */
+export function updateModelsFromSDK(sdkModels: SDKModelInfo[]): void {
+  if (!sdkModels || sdkModels.length === 0) return;
+
+  let updated = 0;
+  for (const sdkModel of sdkModels) {
+    const id = sdkModel.value;
+    if (!id) continue;
+
+    // Update existing entry with SDK display name/description
+    if (CLAUDE_MODELS[id]) {
+      CLAUDE_MODELS[id].name = sdkModel.displayName || CLAUDE_MODELS[id].name;
+      if (sdkModel.description) {
+        CLAUDE_MODELS[id].description = sdkModel.description;
+      }
+      updated++;
+    } else {
+      // Add new model discovered via SDK
+      const tier = id.includes('opus') ? 'flagship' as const
+        : id.includes('haiku') ? 'fast' as const
+        : id.includes('sonnet') ? 'balanced' as const
+        : 'balanced' as const;
+
+      CLAUDE_MODELS[id] = {
+        name: sdkModel.displayName || id,
+        description: sdkModel.description || `${sdkModel.displayName || id} (discovered via SDK)`,
+        contextWindow: 200_000,
+        recommended: false,
+        supportsThinking: id.includes('opus') || (id.includes('sonnet') && !id.startsWith('claude-3-5-')),
+        tier,
+        deprecated: id.startsWith('claude-3-') && !id.startsWith('claude-3-5-'),
+      };
+      updated++;
+    }
+  }
+
+  if (updated > 0) {
+    console.log(`[Models] Merged ${updated} models from SDK supportedModels()`);
+  }
 }
 
 // Quick prompt templates for common tasks

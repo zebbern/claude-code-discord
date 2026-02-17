@@ -4,7 +4,7 @@ import {
   getAgentSessionsManager,
   type AgentSessionData 
 } from "../util/persistence.ts";
-import type { ClaudeModelOptions } from "../claude/index.ts";
+import type { ClaudeModelOptions, SDKAgentDefinition } from "../claude/index.ts";
 
 // Agent types and interfaces
 // NOTE: Temperature and maxTokens are NOT supported by Claude Code CLI
@@ -88,6 +88,31 @@ export const PREDEFINED_AGENTS: Record<string, AgentConfig> = {
     riskLevel: 'low'
   }
 };
+
+/**
+ * Convert PREDEFINED_AGENTS to SDK AgentDefinition format.
+ * The SDK expects: { description, prompt, model?, tools?, disallowedTools?, maxTurns? }
+ * Our AgentConfig has: { name, description, model, systemPrompt, capabilities, riskLevel }
+ */
+export function buildSDKAgents(): Record<string, SDKAgentDefinition> {
+  const sdkAgents: Record<string, SDKAgentDefinition> = {};
+  
+  for (const [key, agent] of Object.entries(PREDEFINED_AGENTS)) {
+    sdkAgents[key] = {
+      description: agent.description,
+      prompt: agent.systemPrompt,
+      // SDK accepts 'sonnet' | 'opus' | 'haiku' | 'inherit' — our models already use these values
+      model: (agent.model as 'sonnet' | 'opus' | 'haiku' | 'inherit') || 'inherit',
+    };
+  }
+  
+  return sdkAgents;
+}
+
+/**
+ * Pre-built SDK agents record (cached at module load for performance).
+ */
+export const SDK_AGENTS = buildSDKAgents();
 
 // Agent command definition
 export const agentCommand = new SlashCommandBuilder()
@@ -390,8 +415,9 @@ async function chatWithAgent(
     return;
   }
 
-  // Build the enhanced prompt with agent's system prompt
-  let enhancedPrompt = `${agent.systemPrompt}\n\nUser Query: ${message}`;
+  // Build the prompt — just the user's message with optional context
+  // Agent's system prompt is handled natively by SDK via agents option
+  let enhancedPrompt = message;
 
   // Add context if requested
   if (includeSystemInfo) {
@@ -438,8 +464,9 @@ async function chatWithAgent(
       enhancedPrompt,
       {
         workDir: deps?.workDir || Deno.cwd(),
-        model: agent.model,
-        systemPrompt: agent.systemPrompt,
+        // Use native SDK agent support — SDK applies agent's systemPrompt + model automatically
+        agent: activeAgentName,
+        agents: SDK_AGENTS,
         includeSystemInfo: !!includeSystemInfo,
         includeGitContext: false,
         contextFiles: contextFilesList,

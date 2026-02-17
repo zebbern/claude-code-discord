@@ -1,7 +1,7 @@
 // Claude Code integration exports
 export { claudeCommands, createClaudeHandlers } from "./command.ts";
 export { cleanSessionId, sendToClaudeCode } from "./client.ts";
-export type { ClaudeModelOptions, SDKPermissionMode, ThinkingConfig, EffortLevel } from "./client.ts";
+export type { ClaudeModelOptions, SDKPermissionMode, ThinkingConfig, EffortLevel, SDKAgentDefinition, SDKModelInfo } from "./client.ts";
 export { createClaudeSender, expandableContent } from "./discord-sender.ts";
 export { convertToClaudeMessages } from "./message-converter.ts";
 export { 
@@ -15,6 +15,7 @@ export {
   CLAUDE_TEMPLATES,
   initModels,
   refreshModels,
+  updateModelsFromSDK,
   resolveModelId,
   isValidModel
 } from "./enhanced-client.ts";

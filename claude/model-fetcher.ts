@@ -207,20 +207,29 @@ function buildModelsFromAPI(apiModels: AnthropicModelEntry[]): Record<string, Mo
 /**
  * Parse model IDs from the installed Claude CLI binary.
  * Looks for patterns like "claude-xxx-yyy-YYYYMMDD" in cli.js.
- * This works without an API key — just needs Claude Code installed.
+ * Checks both the old package (@anthropic-ai/claude-code) and
+ * the new SDK package (@anthropic-ai/claude-agent-sdk).
  */
 async function parseModelsFromCLI(): Promise<string[] | null> {
   try {
-    // Common install paths for Claude Code CLI
-    const possiblePaths = [
-      // npm global (Windows)
-      `${Deno.env.get("APPDATA")}/npm/node_modules/@anthropic-ai/claude-code/cli.js`,
-      // npm global (Unix)
-      `/usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js`,
-      `/usr/lib/node_modules/@anthropic-ai/claude-code/cli.js`,
-      // User-specific npm (Unix)
-      `${Deno.env.get("HOME")}/.npm-global/lib/node_modules/@anthropic-ai/claude-code/cli.js`,
+    // Common install paths for Claude CLI (both old and new package names)
+    const packageNames = [
+      '@anthropic-ai/claude-code',
+      '@anthropic-ai/claude-agent-sdk',
     ];
+    const possiblePaths: string[] = [];
+    
+    for (const pkg of packageNames) {
+      // npm global (Windows)
+      const appData = Deno.env.get("APPDATA");
+      if (appData) possiblePaths.push(`${appData}/npm/node_modules/${pkg}/cli.js`);
+      // npm global (Unix)
+      possiblePaths.push(`/usr/local/lib/node_modules/${pkg}/cli.js`);
+      possiblePaths.push(`/usr/lib/node_modules/${pkg}/cli.js`);
+      // User-specific npm (Unix)
+      const home = Deno.env.get("HOME");
+      if (home) possiblePaths.push(`${home}/.npm-global/lib/node_modules/${pkg}/cli.js`);
+    }
 
     let cliContent: string | null = null;
 
@@ -250,13 +259,23 @@ async function parseModelsFromCLI(): Promise<string[] | null> {
         
         if (claudePath) {
           // Claude is a JS script — the actual CLI is in the same package
-          // Resolve to the package's cli.js
-          const possibleCliJs = claudePath.replace(/[/\\]claude(\.cmd|\.ps1)?$/i, '') + 
-            '/node_modules/@anthropic-ai/claude-code/cli.js';
+          // Resolve to the package's cli.js (check both old and new package names)
+          const basePath = claudePath.replace(/[/\\]claude(\.cmd|\.ps1)?$/i, '');
+          const possibleCliJsPaths = [
+            `${basePath}/node_modules/@anthropic-ai/claude-code/cli.js`,
+            `${basePath}/node_modules/@anthropic-ai/claude-agent-sdk/cli.js`,
+          ];
           
-          try {
-            cliContent = await Deno.readTextFile(possibleCliJs);
-          } catch {
+          for (const possibleCliJs of possibleCliJsPaths) {
+            try {
+              cliContent = await Deno.readTextFile(possibleCliJs);
+              break;
+            } catch {
+              // Try next path
+            }
+          }
+          
+          if (!cliContent) {
             // The claude binary might itself contain model references
             try {
               cliContent = await Deno.readTextFile(claudePath);

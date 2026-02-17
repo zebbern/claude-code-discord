@@ -1,4 +1,6 @@
-import { query as claudeQuery, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgentDefinition, type ModelInfo as SDKModelInfo } from "@anthropic-ai/claude-agent-sdk";
+
+export type { SDKAgentDefinition, SDKModelInfo };
 
 // Clean session ID (remove unwanted characters)
 export function cleanSessionId(sessionId: string): string {
@@ -43,6 +45,10 @@ export interface ClaudeModelOptions {
   fallbackModel?: string;
   /** Extra environment variables for the Claude subprocess (proxy, etc.) */
   extraEnv?: Record<string, string>;
+  /** Native SDK agent name for the main thread (must be defined in agents) */
+  agent?: string;
+  /** Custom subagent definitions — Record<name, AgentDefinition> */
+  agents?: Record<string, SDKAgentDefinition>;
 }
 
 // Wrapper for Claude Code SDK query function
@@ -118,6 +124,9 @@ export async function sendToClaudeCode(
           ...(modelToUse && { model: modelToUse }),
           ...(modelOptions?.maxTurns && { maxTurns: modelOptions.maxTurns }),
           ...(modelOptions?.fallbackModel && { fallbackModel: modelOptions.fallbackModel }),
+          // Native SDK agent support
+          ...(modelOptions?.agents && { agents: modelOptions.agents }),
+          ...(modelOptions?.agent && { agent: modelOptions.agent }),
           env: envVars,
         },
       };
