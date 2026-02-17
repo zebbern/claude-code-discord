@@ -446,11 +446,16 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       embeds: [{
         color: 0x0099ff,
         title: '⚙️ Mode Settings',
-        description: 'Available actions: `set-thinking`, `set-operation`, `set-effort`, `set-budget`',
+        description: 'Available actions: `set-thinking`, `set-operation`, `set-effort`, `set-budget`, `toggle-1m`, `toggle-checkpoint`, `toggle-sandbox`',
         fields: [
           {
             name: 'Current Settings',
             value: `Thinking Mode: **${settings.thinkingMode}** (${THINKING_MODES[settings.thinkingMode].name})\nOperation Mode: **${settings.operationMode}** (${OPERATION_MODES[settings.operationMode].name})\nEffort Level: **${settings.effortLevel}** (${EFFORT_LEVELS[settings.effortLevel].name})\nBudget Cap: ${settings.maxBudgetUsd != null ? `$${settings.maxBudgetUsd}` : 'No limit'}`,
+            inline: false
+          },
+          {
+            name: 'Advanced Features',
+            value: `1M Context Beta: ${settings.enable1MContext ? '✅ Enabled' : '❌ Disabled'}\nFile Checkpointing: ${settings.enableFileCheckpointing ? '✅ Enabled' : '❌ Disabled'}\nSandbox Mode: ${settings.enableSandbox ? '✅ Enabled' : '❌ Disabled'}`,
             inline: false
           },
           {
@@ -606,9 +611,57 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       }
       break;
 
+    case 'toggle-1m': {
+      const newVal = !settings.enable1MContext;
+      updateSettings({ enable1MContext: newVal });
+      await ctx.editReply({
+        embeds: [{
+          color: newVal ? 0x00ff00 : 0xff6600,
+          title: newVal ? '✅ 1M Context Beta Enabled' : '⚠️ 1M Context Beta Disabled',
+          description: newVal
+            ? 'Extended context window (up to 1M tokens) is now active. This uses the `context-1m-2025-08-07` beta.'
+            : '1M context beta has been disabled. Standard context window will be used.',
+          timestamp: true
+        }]
+      });
+      break;
+    }
+
+    case 'toggle-checkpoint': {
+      const newVal = !settings.enableFileCheckpointing;
+      updateSettings({ enableFileCheckpointing: newVal });
+      await ctx.editReply({
+        embeds: [{
+          color: newVal ? 0x00ff00 : 0xff6600,
+          title: newVal ? '✅ File Checkpointing Enabled' : '⚠️ File Checkpointing Disabled',
+          description: newVal
+            ? 'File checkpointing is now active. Claude will create restore points for file changes, allowing rollback via `rewindFiles()`.'
+            : 'File checkpointing has been disabled.',
+          timestamp: true
+        }]
+      });
+      break;
+    }
+
+    case 'toggle-sandbox': {
+      const newVal = !settings.enableSandbox;
+      updateSettings({ enableSandbox: newVal });
+      await ctx.editReply({
+        embeds: [{
+          color: newVal ? 0x00ff00 : 0xff6600,
+          title: newVal ? '✅ Sandbox Mode Enabled' : '⚠️ Sandbox Mode Disabled',
+          description: newVal
+            ? 'Sandbox mode is now active. Commands will run in an isolated environment with restricted filesystem and network access.'
+            : 'Sandbox mode has been disabled. Commands will run with normal system access.',
+          timestamp: true
+        }]
+      });
+      break;
+    }
+
     default:
       await ctx.editReply({
-        content: `Unknown mode action: ${action}. Available: set-thinking, set-operation, set-effort, set-budget`,
+        content: `Unknown mode action: ${action}. Available: set-thinking, set-operation, set-effort, set-budget, toggle-1m, toggle-checkpoint, toggle-sandbox`,
         ephemeral: true
       });
   }
@@ -1477,7 +1530,10 @@ async function handleResetSettings(ctx: any, settings: UnifiedBotSettings, updat
         thinkingMode: defaultSettings.thinkingMode,
         operationMode: defaultSettings.operationMode,
         effortLevel: defaultSettings.effortLevel,
-        maxBudgetUsd: defaultSettings.maxBudgetUsd
+        maxBudgetUsd: defaultSettings.maxBudgetUsd,
+        enable1MContext: defaultSettings.enable1MContext,
+        enableFileCheckpointing: defaultSettings.enableFileCheckpointing,
+        enableSandbox: defaultSettings.enableSandbox
       });
       await ctx.editReply({
         embeds: [{

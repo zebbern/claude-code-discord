@@ -1,4 +1,4 @@
-import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgentDefinition, type ModelInfo as SDKModelInfo } from "@anthropic-ai/claude-agent-sdk";
+import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgentDefinition, type ModelInfo as SDKModelInfo, type SdkBeta } from "@anthropic-ai/claude-agent-sdk";
 
 export type { SDKAgentDefinition, SDKModelInfo };
 
@@ -66,6 +66,12 @@ export interface ClaudeModelOptions {
   agent?: string;
   /** Custom subagent definitions — Record<name, AgentDefinition> */
   agents?: Record<string, SDKAgentDefinition>;
+  /** Enable beta features (e.g. 1M context window) */
+  betas?: SdkBeta[];
+  /** Enable file checkpointing for undo/rewind */
+  enableFileCheckpointing?: boolean;
+  /** Sandbox settings for safer command execution */
+  sandbox?: { enabled: boolean; autoAllowBashIfSandboxed?: boolean };
 }
 
 // Wrapper for Claude Code SDK query function
@@ -146,6 +152,10 @@ export async function sendToClaudeCode(
           // Native SDK agent support
           ...(modelOptions?.agents && { agents: modelOptions.agents }),
           ...(modelOptions?.agent && { agent: modelOptions.agent }),
+          // Advanced features: betas, file checkpointing, sandbox
+          ...(modelOptions?.betas && modelOptions.betas.length > 0 && { betas: modelOptions.betas }),
+          ...(modelOptions?.enableFileCheckpointing && { enableFileCheckpointing: true }),
+          ...(modelOptions?.sandbox && { sandbox: modelOptions.sandbox }),
           env: envVars,
         },
       };

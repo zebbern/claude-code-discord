@@ -26,6 +26,14 @@ export interface UnifiedBotSettings {
   // Budget settings
   maxBudgetUsd: number | null;
   
+  // Advanced SDK features
+  /** Enable 1M token context window (Sonnet 4/4.5 only) */
+  enable1MContext: boolean;
+  /** Enable file checkpointing for undo/rewind support */
+  enableFileCheckpointing: boolean;
+  /** Enable sandbox mode for safer command execution */
+  enableSandbox: boolean;
+  
   // Output settings
   codeHighlighting: boolean;
   autoPageLongOutput: boolean;
@@ -75,6 +83,11 @@ export const UNIFIED_DEFAULT_SETTINGS: UnifiedBotSettings = {
   
   // Budget
   maxBudgetUsd: null,
+  
+  // Advanced SDK features
+  enable1MContext: false,
+  enableFileCheckpointing: false,
+  enableSandbox: false,
   
   // Output
   codeHighlighting: true,

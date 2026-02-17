@@ -420,6 +420,17 @@ export function createAllHandlers(
       }
     }
     
+    // Advanced features
+    if (s.enable1MContext) {
+      opts.betas = ['context-1m-2025-08-07'];
+    }
+    if (s.enableFileCheckpointing) {
+      opts.enableFileCheckpointing = true;
+    }
+    if (s.enableSandbox) {
+      opts.sandbox = { enabled: true, autoAllowBashIfSandboxed: true };
+    }
+    
     return opts;
   }
 
