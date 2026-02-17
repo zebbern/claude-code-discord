@@ -69,7 +69,7 @@ export const UNIFIED_DEFAULT_SETTINGS: UnifiedBotSettings = {
   mentionUserId: null,
   
   // Claude settings (only CLI-supported options)
-  defaultModel: 'claude-sonnet-4',
+  defaultModel: '',
   defaultSystemPrompt: null,
   autoIncludeSystemInfo: false,
   autoIncludeGitContext: true,

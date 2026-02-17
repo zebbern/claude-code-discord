@@ -43,7 +43,7 @@ export const DEFAULT_SETTINGS: AdvancedBotSettings = {
   mentionUserId: null,
   
   // Claude Code (only CLI-supported options)
-  defaultModel: 'claude-sonnet-4',
+  defaultModel: '',
   defaultSystemPrompt: null,
   autoIncludeSystemInfo: false,
   autoIncludeGitContext: true,
