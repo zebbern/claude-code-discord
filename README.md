@@ -210,13 +210,26 @@ Environment variables take precedence over `.env` file settings.
 > + | bot
 > + | applications.commands
 > ```
-> - Under <kbd>Bot Permissions</kbd> select:
+> - Under <kbd>Bot Permissions</kbd> select **all** of the following:
+>
+> | Permission | Why It's Needed |
+> |---|---|
+> | **Manage Channels** | Creates categories and text channels on startup (one per branch) |
+> | **View Channels** | Finds existing categories/channels to avoid duplicates |
+> | **Send Messages** | Sends embeds, streaming output, completion messages, and startup notification |
+> | **Embed Links** | All bot output uses rich embeds (code, status, completions, errors) |
+> | **Attach Files** | File attachment support in message payloads |
+> | **Read Message History** | Reads channel to find its own messages |
+> | **Use External Emojis** | Emoji formatting in status and completion embeds |
+> | **Use Application Commands** | All 45+ slash commands |
+>
+> **Quick setup** — use this pre-built invite URL (replace `YOUR_APP_ID`):
 > ```
-> + | Send Messages
-> + | Use Slash Commands
-> + | Read Message History
-> + | Embed Links
+> https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot+applications.commands&permissions=412317248576
 > ```
+>
+> **Gateway Intents:** Only the **Guilds** intent is used — no privileged intents (Message Content, Members, Presence) are required. No toggles needed in the Developer Portal.
+>
 > Copy the generated URL and open it in your browser
 > Select your Discord server and authorize the bot
 > <img width="800" height="500" alt="oauth2" src="https://github.com/user-attachments/assets/3e1fe004-1ae5-4078-b1a4-882a11bc68cd" />
