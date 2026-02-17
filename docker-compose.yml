@@ -13,6 +13,7 @@ services:
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - APPLICATION_ID=${APPLICATION_ID}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - WORK_DIR=${WORK_DIR:-/app/workspace}
       - USER_ID=${USER_ID:-}
       - CATEGORY_NAME=${CATEGORY_NAME:-claude-code}

@@ -9,9 +9,16 @@ WORKDIR /app
 # Set environment variable to indicate Docker container
 ENV DOCKER_CONTAINER=true
 
-# Install git (required for branch tracking features)
+# Install git and Node.js (required for Claude CLI and branch tracking)
 USER root
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y git curl && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Claude CLI globally
+RUN npm install -g @anthropic-ai/claude-code
 
 # Create non-root user for security
 RUN groupadd -r claude && useradd -r -g claude claude
