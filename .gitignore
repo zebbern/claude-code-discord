@@ -9,7 +9,10 @@ plan/
 # IDE and editors
 .idea/
 .vscode/
-.github/
+
+# GitHub (keep workflows and templates)
+.github/*
+!.github/workflows/
 
 # Dependencies
 node_modules/
