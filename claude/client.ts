@@ -161,12 +161,12 @@ export async function sendToClaudeCode(
     };
   // deno-lint-ignore no-explicit-any
   } catch (error: any) {
-    // For exit code 1 errors (rate limit), retry with Sonnet 4
+    // For exit code 1 errors (rate limit), retry with Haiku (cheaper/faster fallback)
     if (error.message && (error.message.includes('exit code 1') || error.message.includes('exited with code 1'))) {
-      console.log("Rate limit detected, retrying with Sonnet 4...");
+      console.log("Rate limit detected, retrying with Haiku (fast fallback)...");
       
       try {
-        const retryResult = await executeWithErrorHandling("claude-sonnet-4-20250514");
+        const retryResult = await executeWithErrorHandling("haiku");
         
         if (retryResult.aborted) {
           return { response: "Request was cancelled", modelUsed: retryResult.modelUsed };
@@ -184,14 +184,14 @@ export async function sendToClaudeCode(
         };
       // deno-lint-ignore no-explicit-any
       } catch (retryError: any) {
-        // If Sonnet 4 also fails
+        // If Haiku fallback also fails
         if (retryError.name === 'AbortError' || 
             controller.signal.aborted || 
             (retryError.message && retryError.message.includes('exited with code 143'))) {
-          return { response: "Request was cancelled", modelUsed: "Claude Sonnet 4" };
+          return { response: "Request was cancelled", modelUsed: "Claude Haiku (fallback)" };
         }
         
-        retryError.message += '\n\n⚠️ Both default model and Sonnet 4 encountered errors. Please wait a moment and try again.';
+        retryError.message += '\n\n⚠️ Both default model and Haiku fallback encountered errors. Please wait a moment and try again.';
         throw retryError;
       }
     }

@@ -22,6 +22,7 @@ import { getGitInfo } from "./git/index.ts";
 import { createClaudeSender, expandableContent, type DiscordSender, type ClaudeMessage } from "./claude/index.ts";
 import { claudeCommands, enhancedClaudeCommands } from "./claude/index.ts";
 import { additionalClaudeCommands } from "./claude/additional-index.ts";
+import { initModels } from "./claude/enhanced-client.ts";
 import { advancedSettingsCommands, DEFAULT_SETTINGS, unifiedSettingsCommands, UNIFIED_DEFAULT_SETTINGS } from "./settings/index.ts";
 import { gitCommands } from "./git/index.ts";
 import { shellCommands } from "./shell/index.ts";
@@ -96,6 +97,9 @@ export async function createClaudeCodeBot(config: BotConfig) {
   
   const { shellManager, worktreeBotManager, crashHandler, healthMonitor, claudeSessionManager } = managers;
   
+  // Initialize dynamic model fetching (uses ANTHROPIC_API_KEY if available)
+  initModels();
+
   // Setup periodic cleanup tasks
   const cleanupInterval = setupPeriodicCleanup(managers, 3600000, [cleanupPaginationStates]);
   

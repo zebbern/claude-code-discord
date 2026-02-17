@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "npm:discord.js@14.14.1";
-import { CLAUDE_MODELS, CLAUDE_TEMPLATES } from "./enhanced-client.ts";
+import { CLAUDE_MODELS, CLAUDE_TEMPLATES, type ModelInfo } from "./enhanced-client.ts";
 
 export const enhancedClaudeCommands = [
   new SlashCommandBuilder()
@@ -211,17 +211,33 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
     },
 
     async onClaudeModels(ctx: any) {
-      const modelsList = Object.entries(CLAUDE_MODELS).map(([key, model]) => {
+      // Group models by tier
+      const tiers = { flagship: '🏆 Flagship', balanced: '⚡ Balanced', fast: '🚀 Fast', legacy: '📦 Legacy' };
+      const grouped: Record<string, string[]> = { flagship: [], balanced: [], fast: [], legacy: [] };
+      
+      for (const [key, model] of Object.entries(CLAUDE_MODELS)) {
         const recommended = model.recommended ? ' ⭐' : '';
-        return `**${model.name}${recommended}**\n${model.description}\nContext: ${model.contextWindow.toLocaleString()} tokens\nID: \`${key}\``;
-      }).join('\n\n');
+        const alias = model.aliasFor ? ` → \`${model.aliasFor}\`` : '';
+        const deprecated = model.deprecated ? ' *(deprecated)*' : '';
+        const entry = `**${model.name}${recommended}${deprecated}**\n${model.description}${alias}\nContext: ${model.contextWindow.toLocaleString()} tokens\nID: \`${key}\``;
+        grouped[model.tier].push(entry);
+      }
+      
+      const fields = Object.entries(tiers)
+        .filter(([tier]) => grouped[tier].length > 0)
+        .map(([tier, label]) => ({
+          name: label,
+          value: grouped[tier].join('\n\n'),
+          inline: false
+        }));
 
       await ctx.reply({
         embeds: [{
           color: 0x0099ff,
           title: '🤖 Available Claude Models',
-          description: modelsList,
-          footer: { text: '⭐ = Recommended for general use' },
+          description: '⭐ = Recommended • Aliases (opus, sonnet, haiku) always resolve to the latest version',
+          fields,
+          footer: { text: 'Use any model ID or alias with /claude-enhanced or /settings' },
           timestamp: true
         }],
         ephemeral: true

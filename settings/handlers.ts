@@ -1,4 +1,4 @@
-import { CLAUDE_MODELS } from "../claude/enhanced-client.ts";
+import { CLAUDE_MODELS, isValidModel, resolveModelId, type ModelInfo } from "../claude/enhanced-client.ts";
 import type { AdvancedBotSettings } from "./advanced-settings.ts";
 
 export interface SettingsHandlerDeps {
@@ -34,7 +34,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             break;
 
           case 'set-model':
-            if (!value || !CLAUDE_MODELS[value as keyof typeof CLAUDE_MODELS]) {
+            if (!value) {
               const modelList = Object.entries(CLAUDE_MODELS).map(([key, model]) => 
                 `• \`${key}\` - ${model.name}`
               ).join('\n');
@@ -53,7 +53,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             }
             
             updateSettings({ defaultModel: value });
-            const selectedModel = CLAUDE_MODELS[value as keyof typeof CLAUDE_MODELS];
+            const selectedModel = CLAUDE_MODELS[value as keyof typeof CLAUDE_MODELS] || { name: value, description: 'Custom model', contextWindow: 200000, supportsThinking: false, recommended: false, tier: 'balanced' as const };
             
             await ctx.reply({
               embeds: [{

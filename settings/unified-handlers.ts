@@ -5,7 +5,7 @@ import {
   OPERATION_MODES, 
   ANTHROPIC_RATE_LIMITS 
 } from "./unified-settings.ts";
-import { CLAUDE_MODELS } from "../claude/enhanced-client.ts";
+import { CLAUDE_MODELS, isValidModel, resolveModelId, type ModelInfo } from "../claude/enhanced-client.ts";
 import { 
   getTodosManager, 
   type TodoItem as PersistenceTodoItem
@@ -561,7 +561,7 @@ async function handleClaudeSettings(ctx: any, settings: UnifiedBotSettings, upda
 
   switch (action) {
     case 'set-model':
-      if (!value || !(value in CLAUDE_MODELS)) {
+      if (!value) {
         const availableModels = Object.entries(CLAUDE_MODELS).map(([key, model]) => 
           `• **${key}**: ${model.name}`
         ).join('\n');
@@ -582,7 +582,7 @@ async function handleClaudeSettings(ctx: any, settings: UnifiedBotSettings, upda
       }
       
       updateSettings({ defaultModel: value });
-      const modelInfo = CLAUDE_MODELS[value as keyof typeof CLAUDE_MODELS];
+      const modelInfo = CLAUDE_MODELS[value as keyof typeof CLAUDE_MODELS] || { name: value, description: 'Custom model', contextWindow: 200000, supportsThinking: false, recommended: false, tier: 'balanced' as const };
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,

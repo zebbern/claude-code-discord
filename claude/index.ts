@@ -11,12 +11,17 @@ export {
   enhancedClaudeQuery,
   ClaudeSessionManager,
   CLAUDE_MODELS,
-  CLAUDE_TEMPLATES
+  CLAUDE_TEMPLATES,
+  initModels,
+  refreshModels,
+  resolveModelId,
+  isValidModel
 } from "./enhanced-client.ts";
 export type { DiscordSender } from "./discord-sender.ts";
 export type { ClaudeMessage } from "./types.ts";
 export type { 
   EnhancedClaudeOptions,
-  ClaudeSession
+  ClaudeSession,
+  ModelInfo
 } from "./enhanced-client.ts";
 export type { EnhancedClaudeHandlerDeps } from "./enhanced-commands.ts";
