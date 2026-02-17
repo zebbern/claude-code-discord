@@ -2,18 +2,22 @@
 
 # claude-code-discord
 
+**Run Claude Code from Discord — with full SDK integration, agents, rewind, mid-session controls, and 45+ slash commands.**
+
 <kbd>
 
-| Advantage                                   | Details                                                                                     | Status |
+| Feature                                     | Details                                                                                     | Status |
 |---------------------------------------------|---------------------------------------------------------------------------------------------|:------:|
 | Use Claude Code Anywhere                    | Host locally (VM / Docker / cloud) and send commands via the Discord API                    | ✅     |
+| Full SDK Integration                        | Built on `@anthropic-ai/claude-agent-sdk` v0.2.45 with native agent support                 | ✅     |
 | Centralized collaboration                   | Run commands and discuss results where your team already communicates                       | ✅     |
 | Branch-aware organization                   | Maps Git branches to channels/categories so feature work stays separated                    | ✅     |
-| Immediate, shareable feedback               | Execute `/git`, `/shell`, or `/claude` and get outputs directly in-channel                  | ✅     |
-| Reduced context switching                   | Keep actions, logs, and discussion together — less switching between terminal and chat      | ✅     |
+| Mid-session controls                        | Interrupt, change model, change permissions, and rewind — all without restarting             | ✅     |
+| 7 Specialized AI Agents                     | Code reviewer, architect, debugger, security analyst, performance engineer, DevOps, general  | ✅     |
+| Dynamic model discovery                     | Auto-fetches available models from Anthropic API and CLI                                     | ✅     |
+| Structured output mode                      | Get JSON responses matching a configurable schema                                            | ✅     |
+| Advanced thinking modes                     | Standard, think, think-hard, ultrathink — with configurable effort and budget                | ✅     |
 | Role-based access control                   | Restrict destructive commands (`/shell`, `/git`, worktree ops) to specific Discord roles    | ✅     |
-| Non-developer friendly                      | PMs, QA, and stakeholders can trigger checks and view results without repo access           | ✅     |
-| Automatable touchpoint                      | Integrate with CI/webhooks to triage issues and run fixes from chat                         | ✅     |
 | Local hosting & security                    | Keep keys and code on your infra while exposing a controlled interface through Discord      | ✅     |
 | Audit trail & accountability                | Channel history provides an easy-to-search record of who ran what and when                  | ✅     |
 
@@ -23,29 +27,35 @@
 
 <br>
 
-
 **Start Here If You Have These:**
 <kbd>DISCORD_TOKEN</kbd>
 <kbd>APPLICATION_ID</kbd>
 
 - **[Quick Start](#pre)** 
-- **[Command List 45+ Commands](#Command-list)** 
+- **[Full Command Reference (45+ Commands)](#command-reference)** 
 
-**Tutorial If you dont know or have them follow these first then come back:**
+**Tutorial If you don't have them — follow these first then come back:**
 - **[How To Setup Discord Bot?](#setup)**
 
 ---
 
-### Preview: 
+### Quick Model Switching
+
+```
+/claude-settings action:set-model value:opus
+/claude-settings action:set-model value:sonnet
+/claude-settings action:set-model value:haiku
+```
+
+### Preview
 <img width="350" height="350" alt="image" src="https://github.com/user-attachments/assets/e8091420-d271-48a4-8e55-279f2093d3ae" />
 
-
+---
 
 <h2 id="pre">Quick Start</h2>
 
-### Option 1: Docker (Recommended - Most Secure)
+### Option 1: Docker (Recommended — Most Secure)
 
-**Quick Start:**
 ```bash
 git clone https://github.com/zebbern/claude-code-discord.git
 cd claude-code-discord
@@ -56,30 +66,23 @@ docker compose up -d
 
 **Docker Commands:**
 ```bash
-# Start the bot
-docker compose up -d
-
-# View logs
-docker compose logs -f
-
-# Stop the bot
-docker compose down
-
-# Rebuild after updates
-docker compose build --no-cache && docker compose up -d
+docker compose up -d            # Start
+docker compose logs -f          # View logs
+docker compose down             # Stop
+docker compose build --no-cache && docker compose up -d  # Rebuild
 ```
 
 **Why Docker?**
-- 🔒 **Isolated container** - No direct host system access
-- 🛡️ **Non-root security mode** - Runs as unprivileged user
-- 📦 **Zero dependencies** - Everything bundled in container
-- 🔄 **Auto-restart on crashes** - Built-in resilience
-- 💾 **Persistent storage** - Data survives restarts
-- ⚙️ **Resource limits** - 2 CPU, 2GB RAM max
+- 🔒 Isolated container — no direct host system access
+- 🛡️ Non-root security mode
+- 📦 Zero dependencies — everything bundled
+- 🔄 Auto-restart on crashes
+- 💾 Persistent storage across restarts
+- ⚙️ Resource limits (2 CPU, 2GB RAM max)
 
 ---
 
-### Option 2: One-Command Setup (Quick Start)
+### Option 2: One-Command Setup
 
 **Linux/macOS:**
 ```bash
@@ -137,7 +140,6 @@ deno task start
 # With environment variables
 export DISCORD_TOKEN="your-token"
 export APPLICATION_ID="your-app-id"
-
 deno run --allow-all index.ts
 
 # Development mode (hot reload)
@@ -156,8 +158,6 @@ deno run --allow-all index.ts --category myproject --user-id YOUR_DISCORD_ID
 
 ### Configuration (.env file)
 
-The bot uses a `.env` file for configuration. Copy `.env.example` to `.env` and edit:
-
 ```env
 # Required
 DISCORD_TOKEN=your_bot_token_here
@@ -169,12 +169,11 @@ CATEGORY_NAME=claude-code             # Discord category for channels
 WORK_DIR=/path/to/project             # Working directory (default: current)
 ```
 
-**Environment variables take precedence over `.env` file settings.**
+Environment variables take precedence over `.env` file settings.
 
 <img width="250" height="250" alt="image" src="https://github.com/user-attachments/assets/2fea008b-76b7-48d8-9a87-8214cc7a24ad" />
 
-
-
+---
 
 <h1 id="setup">Setup Discord Bot</h1>
 
@@ -202,8 +201,6 @@ WORK_DIR=/path/to/project             # Working directory (default: current)
 > - Click <kbd>Save Changes</kbd>
 > <img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/0621b5ed-c4b4-44e3-a3f6-fe678f6893c3" />
 
-
-
 <h2 id="4">4. Invite the Bot to Your Server</h2>
 
 > [!Note]
@@ -226,114 +223,273 @@ WORK_DIR=/path/to/project             # Working directory (default: current)
 > <img width="800" height="500" alt="botallowcommands" src="https://github.com/user-attachments/assets/9cd92467-2f3d-4c03-abb0-9f10ec979a1b" />
 > <img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/697f6f52-fe37-4885-b492-5d660f23596d" />
 
+---
 
+<h1 id="command-reference">Command Reference (45+ Commands)</h1>
 
-## Command List 
-> (45+ Commands)
+## Core Claude Commands (3)
 
-### Core Claude (3)
-- `/claude`, `/continue`, `/claude-cancel`
+| Command | Description |
+|---------|-------------|
+| `/claude` | Send a prompt to Claude Code. Supports `prompt` and `session_id` options. |
+| `/continue` | Continue a previous Claude conversation with an optional follow-up prompt. |
+| `/claude-cancel` | Cancel the currently running Claude operation. |
 
-### Enhanced Claude (4) 
-- `/claude-enhanced`, `/claude-models`, `/claude-sessions`, `/claude-context`
+## Enhanced Claude Commands (4)
 
-### Development Tools (7)
-- `/claude-explain`, `/claude-debug`, `/claude-optimize`, `/claude-review`
-- `/claude-generate`, `/claude-refactor`, `/claude-learn`
+| Command | Description |
+|---------|-------------|
+| `/claude-enhanced` | Enhanced Claude interaction with model options and streaming. |
+| `/claude-models` | List all available Claude models (dynamically fetched). |
+| `/claude-sessions` | Manage and view Claude conversation sessions. |
+| `/claude-context` | Set additional context for Claude interactions. |
 
-### Task Management (3)
-- `/todos` - Task management with priorities and persistence
-- `/mcp` - Model Context Protocol servers  
-- `/agent` - 7 specialized AI agents
+## Development Tools (7)
 
-### Settings (4)
-- `/settings` - Unified settings management
-- `/claude-settings`, `/output-settings`, `/quick-model`
+| Command | Description |
+|---------|-------------|
+| `/claude-explain` | Explain code or concepts. Options: `content`, `detail_level`, `include_examples`. |
+| `/claude-debug` | Debug errors or code. Options: `error_or_code`, `language`, `context_files`. |
+| `/claude-optimize` | Optimize code. Options: `code`, `focus` (speed/memory/readability/all), `preserve_functionality`. |
+| `/claude-review` | Code review. Options: `code_or_file`, `review_type`, `include_security`, `include_performance`. |
+| `/claude-generate` | Generate code. Options: `request`, `type` (function/class/module/test/api/config), `style`. |
+| `/claude-refactor` | Refactor code. Options: `code`, `goal`, `preserve_behavior`, `add_tests`. |
+| `/claude-learn` | Learn a topic. Options: `topic`, `level` (beginner/intermediate/advanced/expert), `include_exercises`, `step_by_step`. |
 
-### Git Operations (6)
-- `/git`, `/worktree`, `/worktree-list`, `/worktree-remove`
-- `/worktree-bots`, `/worktree-kill`
+## Info & Control Commands (3) — NEW
 
-### Shell Management (4)
-- `/shell`, `/shell-input`, `/shell-list`, `/shell-kill`
+| Command | Description |
+|---------|-------------|
+| `/claude-info` | View account info, available models, and MCP server status. Options: `section` (all/account/models/mcp). Works with or without an active session. |
+| `/rewind` | Rewind file changes to a specific conversation turn. Options: `turn` (number), `dry_run` (preview changes without applying). |
+| `/claude-control` | Mid-session controls. Options: `action` (interrupt/set-model/set-permissions/status), `value`. Change model or permissions without restarting. |
 
-### System Monitoring (11)
-- `/system-info`, `/processes`, `/system-resources`, `/network-info`
-- `/disk-usage`, `/env-vars`, `/system-logs`, `/port-scan`
-- `/service-status`, `/uptime`, `/screenshot`
+## Settings Commands (4)
 
-### Utilities (4)
-- `/status`, `/pwd`, `/shutdown`, `/help`
+| Command | Description |
+|---------|-------------|
+| `/settings` | Unified settings hub. Options: `category` (mode/claude/output/system/mcp/permissions/all), `action`, `value`. |
+| `/claude-settings` | Claude-specific settings. Actions: `show`, `set-model`, `toggle-git-context`, `toggle-system-info`, `set-system-prompt`, `reset-defaults`. |
+| `/output-settings` | Output formatting settings. |
+| `/quick-model` | Quickly switch the active Claude model. |
+
+## Task & Agent Management (3)
+
+| Command | Description |
+|---------|-------------|
+| `/todos` | Task management. Actions: `list`, `add`, `complete`, `generate`, `prioritize`. Priority levels: low/medium/high/critical. Persists to disk. |
+| `/mcp` | MCP (Model Context Protocol) server management. Actions: `list`, `add`, `remove`, `test`, `status`. Reads from `.mcp.json`. |
+| `/agent` | Run specialized AI agents. Actions: `list`, `start`, `stop`, `status`. 7 built-in agents (see below). |
+
+## Git Operations (6)
+
+| Command | Description |
+|---------|-------------|
+| `/git` | Run git commands from Discord. |
+| `/worktree` | Create a new git worktree with its own Discord channel. |
+| `/worktree-list` | List all active worktrees. |
+| `/worktree-remove` | Remove a worktree and its channel. |
+| `/worktree-bots` | Manage bot instances per worktree. |
+| `/worktree-kill` | Kill a worktree bot instance. |
+
+## Shell Management (4)
+
+| Command | Description |
+|---------|-------------|
+| `/shell` | Execute shell commands on the host. |
+| `/shell-input` | Send input to a running shell process. |
+| `/shell-list` | List active shell processes. |
+| `/shell-kill` | Kill a running shell process. |
+
+## System Monitoring (11)
+
+| Command | Description |
+|---------|-------------|
+| `/system-info` | System information overview. |
+| `/processes` | List running processes. |
+| `/system-resources` | CPU, memory, and disk usage. |
+| `/network-info` | Network configuration and connections. |
+| `/disk-usage` | Detailed disk usage analysis. |
+| `/env-vars` | View environment variables (filtered for safety). |
+| `/system-logs` | View system logs. |
+| `/port-scan` | Scan for open ports. |
+| `/service-status` | Check service status. |
+| `/uptime` | System uptime. |
+| `/screenshot` | Capture a screenshot of the host display. Options: `delay`. |
+
+## Utilities (4)
+
+| Command | Description |
+|---------|-------------|
+| `/status` | Bot status and health check. |
+| `/pwd` | Show current working directory. |
+| `/shutdown` | Gracefully stop the bot. |
+| `/help` | Show all available commands. |
+
+---
+
+## Feature Details
+
+### Thinking Modes
+
+Control how deeply Claude reasons about problems:
+
+| Mode | Description |
+|------|-------------|
+| `none` | Standard responses — no extended thinking |
+| `think` | Step-by-step reasoning |
+| `think-hard` | Deep analysis with higher budget |
+| `ultrathink` | Maximum depth thinking for complex problems |
+
+Configure via `/settings category:mode action:set-thinking value:<mode>`
+
+### Operation Modes
+
+| Mode | Description |
+|------|-------------|
+| `normal` | Standard operation — auto-accepts edits, prompts for dangerous commands |
+| `plan` | Planning mode — Claude analyzes and plans but doesn't execute |
+| `auto-accept` | Automatically apply all suggested changes |
+| `danger` | Unrestricted mode — bypasses all safety checks (use with caution) |
+
+### Effort Levels
+
+| Level | Description |
+|-------|-------------|
+| `low` | Quick, concise responses |
+| `medium` | Balanced depth (default) |
+| `high` | Thorough, detailed analysis |
+
+### Advanced SDK Features
+
+| Feature | Toggle Command |
+|---------|---------------|
+| 1M Token Context | `/settings category:mode action:toggle-1m` |
+| File Checkpointing | `/settings category:mode action:toggle-checkpoint` |
+| Sandbox Mode | `/settings category:mode action:toggle-sandbox` |
+| Structured Output | `/settings category:mode action:toggle-structured-output` |
+| Custom JSON Schema | `/settings category:mode action:set-output-schema value:{...}` |
 
 ### Agent System
-- `/agent` with 7 specialized agents:
-  - Code Reviewer, Software Architect, Debug Specialist
-  - Security Analyst, Performance Engineer, DevOps Engineer, General Assistant
 
+7 specialized AI agents, each with tailored system prompts, operation modes, and SDK `AgentDefinition` format:
 
-#### Thinking Mode Options ✨
-- `none` - Standard Claude responses
-- `think` - Step-by-step reasoning mode
-- `think-hard` - Deep analysis and reasoning
-- `ultrathink` - Maximum depth thinking for complex problems
+| Agent | Specialty | Risk Level |
+|-------|-----------|------------|
+| Code Reviewer | Quality analysis, security, best practices | Low |
+| Software Architect | System design, architecture patterns, ADRs | Medium |
+| Debug Specialist | Bug analysis, troubleshooting, root cause analysis | Medium |
+| Security Analyst | Vulnerability assessment, OWASP compliance | Low |
+| Performance Engineer | Optimization, profiling, benchmarking | Medium |
+| DevOps Engineer | Deployment, CI/CD, infrastructure | High |
+| General Assistant | Multi-purpose development help | Low |
 
-#### Operation Mode Options ✨
-- `normal` - Standard operation with user confirmation
-- `plan` - Planning mode without execution
-- `auto-accept` - Automatically apply suggested changes
-- `danger` - Unrestricted mode (high risk)
+```
+/agent action:list
+/agent action:start agent_name:code-reviewer message:"Review my auth module"
+```
 
-#### `/todos` Command ✨
-- **Action types**: list, add, complete, generate, prioritize
-- **Priority levels**: low, medium, high, critical  
-- **Persistence** - Todos are saved to disk and persist across restarts
-- **Auto-generation** - Generate todos from code files
+### MCP Server Management
 
-#### `/mcp` Command ✨ 
-- **MCP server management** - Model Context Protocol integration
-- **Reads from `.mcp.json`** - Standard Claude Code configuration format
-- **Actions**: list, add, remove, test, status
-- **Cross-platform** - Command testing works on Windows and Unix
-- **Add servers via Discord**:
-  ```
-  /mcp action:add server_name:filesystem command:npx -y @anthropic-ai/filesystem-mcp description:Local filesystem access
-  ```
-- **Or edit `.mcp.json` directly**:
-  ```json
-  {
-    "mcpServers": {
-      "filesystem": {
-        "command": "npx",
-        "args": ["-y", "@anthropic-ai/filesystem-mcp"],
-        "description": "Local filesystem access"
-      }
+Manage Model Context Protocol servers directly from Discord:
+
+```
+/mcp action:list
+/mcp action:add server_name:filesystem command:npx args:-y @anthropic-ai/filesystem-mcp
+/mcp action:status
+```
+
+Or edit `.mcp.json` directly:
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/filesystem-mcp"],
+      "description": "Local filesystem access"
     }
   }
-  ```
+}
+```
 
-#### `/agent` Command ✨
-- **Specialized AI agents** for different development tasks:
-  - Code Reviewer - Quality analysis and security
-  - Software Architect - System design and architecture  
-  - Debug Specialist - Bug analysis and troubleshooting
-  - Security Analyst - Vulnerability assessment
-  - Performance Engineer - Optimization and profiling
-  - DevOps Engineer - Deployment and infrastructure
-  - General Assistant - Multi-purpose development help
-- **Risk levels** - Low/Medium/High risk classification
-- **Session management** - Persistent agent conversations
-- **Context awareness** - Include system info and files
+### Mid-Session Controls
 
-#### `/claude-settings` Command ✨
-- **Actions**: show, set-model, toggle-git-context, toggle-system-info, set-system-prompt, reset-defaults
-- **Supported options**: Model selection, Git context, System info, System prompts
-- *Note: Only features supported by Claude Code CLI are available*
+Control an active Claude session without restarting:
 
-#### `/screenshot` Command ✨
-- **Capture full screen** - Take screenshots of the host machine's display
-- **Optional delay** - `/screenshot delay: 5` to wait before capturing
-- **Platform support** - Windows, macOS, and Linux (with GUI)
-- **DPI-aware** - Captures at actual screen resolution regardless of Windows scaling
-- **Auto-cleanup** - Temporary files are automatically removed
-- *Note: Not available in Docker containers or headless environments*
+```
+/claude-control action:interrupt              # Stop current processing
+/claude-control action:set-model value:opus   # Switch model mid-conversation
+/claude-control action:set-permissions value:plan  # Switch to plan mode
+/claude-control action:status                 # Check active session state
+```
+
+### File Rewind
+
+Undo file changes made during a conversation:
+
+```
+/rewind                          # List conversation turns
+/rewind turn:3 dry_run:true      # Preview what would change at turn 3
+/rewind turn:3                   # Rewind files to turn 3
+```
+
+### Structured Output
+
+Get Claude responses as structured JSON:
+
+```
+/settings category:mode action:toggle-structured-output
+/settings category:mode action:set-output-schema value:{"type":"object","properties":{"answer":{"type":"string"},"confidence":{"type":"number"}}}
+```
+
+---
+
+## Architecture
+
+```
+claude-code-discord/
+├── index.ts                     # Entry point — Discord client setup
+├── claude/
+│   ├── client.ts                # SDK query execution, streaming, query lifecycle
+│   ├── command.ts               # Core slash commands (claude, continue, cancel)
+│   ├── additional-commands.ts   # Dev tool commands (explain, debug, optimize, etc.)
+│   ├── enhanced-client.ts       # Model discovery, enhanced query wrapper
+│   ├── info-commands.ts         # Info, rewind, and control commands
+│   ├── query-manager.ts         # Active query tracking for mid-session controls
+│   ├── message-converter.ts     # SDK message → Discord embed conversion
+│   ├── discord-sender.ts        # Chunked Discord message delivery
+│   ├── model-fetcher.ts         # Dynamic model fetching (API + CLI)
+│   ├── types.ts                 # Shared TypeScript types
+│   └── index.ts                 # Module exports
+├── agent/
+│   └── index.ts                 # 7 predefined agents with SDK AgentDefinition format
+├── core/
+│   ├── handler-registry.ts      # Handler creation, settings→SDK option mapping
+│   └── command-wrappers.ts      # Discord interaction → handler routing
+├── settings/
+│   ├── unified-settings.ts      # Settings interface, defaults, slash commands
+│   ├── unified-handlers.ts      # All settings category handlers
+│   └── advanced-settings.ts     # claude-settings, output-settings, quick-model
+├── system/                      # System monitoring commands
+├── git/                         # Git and worktree commands
+├── shell/                       # Shell execution commands
+└── utils/                       # Utilities (status, pwd, help, shutdown)
+```
+
+### SDK Integration
+
+Built on `@anthropic-ai/claude-agent-sdk` v0.2.45 — the official Anthropic SDK for Claude Code integration. Key capabilities:
+
+- **Streaming responses** via `AsyncGenerator<SDKMessage>`
+- **Native agent support** with `AgentDefinition` objects
+- **Mid-session controls**: `interrupt()`, `setModel()`, `setPermissionMode()`
+- **File rewind**: `rewindFiles()` with dry-run preview
+- **Account introspection**: `accountInfo()`, `supportedModels()`, `mcpServerStatus()`
+- **Advanced options**: thinking budgets, 1M context beta, file checkpointing, sandbox mode, structured output
+
+---
+
+## License
+
+MIT
 
