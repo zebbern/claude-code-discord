@@ -2,7 +2,7 @@
 
 # claude-code-discord
 
-**Run Claude Code from Discord — with full SDK integration, agents, rewind, mid-session controls, and 45+ slash commands.**
+**Run Claude Code from Discord with full SDK integration, agents, rewind, mid-session controls and more..**
 
 <kbd>
 
@@ -12,11 +12,11 @@
 | Full SDK Integration                        | Built on `@anthropic-ai/claude-agent-sdk` v0.2.45 with native agent support                 | ✅     |
 | Centralized collaboration                   | Run commands and discuss results where your team already communicates                       | ✅     |
 | Branch-aware organization                   | Maps Git branches to channels/categories so feature work stays separated                    | ✅     |
-| Mid-session controls                        | Interrupt, change model, change permissions, and rewind — all without restarting             | ✅     |
+| Mid-session controls                        | Interrupt, change model, change permissions, and rewind without restarting                   | ✅     |
 | 7 Specialized AI Agents                     | Code reviewer, architect, debugger, security analyst, performance engineer, DevOps, general  | ✅     |
 | Dynamic model discovery                     | Auto-fetches available models from Anthropic API and CLI                                     | ✅     |
 | Structured output mode                      | Get JSON responses matching a configurable schema                                            | ✅     |
-| Advanced thinking modes                     | Standard, think, think-hard, ultrathink — with configurable effort and budget                | ✅     |
+| Advanced thinking modes                     | Standard, think, think-hard, ultrathink with configurable effort and budget                  | ✅     |
 | Role-based access control                   | Restrict destructive commands (`/shell`, `/git`, worktree ops) to specific Discord roles    | ✅     |
 | Local hosting & security                    | Keep keys and code on your infra while exposing a controlled interface through Discord      | ✅     |
 | Audit trail & accountability                | Channel history provides an easy-to-search record of who ran what and when                  | ✅     |
@@ -32,9 +32,9 @@
 <kbd>APPLICATION_ID</kbd>
 
 - **[Quick Start](#pre)** 
-- **[Full Command Reference (45+ Commands)](#command-reference)** 
+- **[Full Command Reference](#command-reference)** 
 
-**Tutorial If you don't have them — follow these first then come back:**
+**Tutorial: If you don't have them, follow these first then come back:**
 - **[How To Setup Discord Bot?](#setup)**
 
 ---
@@ -54,7 +54,7 @@
 
 <h2 id="pre">Quick Start</h2>
 
-### Option 1: Docker (Recommended — Most Secure)
+### Option 1: Docker (Recommended, Most Secure)
 
 ```bash
 git clone https://github.com/zebbern/claude-code-discord.git
@@ -71,14 +71,6 @@ docker compose logs -f          # View logs
 docker compose down             # Stop
 docker compose build --no-cache && docker compose up -d  # Rebuild
 ```
-
-**Why Docker?**
-- 🔒 Isolated container — no direct host system access
-- 🛡️ Non-root security mode
-- 📦 Zero dependencies — everything bundled
-- 🔄 Auto-restart on crashes
-- 💾 Persistent storage across restarts
-- ⚙️ Resource limits (2 CPU, 2GB RAM max)
 
 ---
 
@@ -98,12 +90,12 @@ cd claude-code-discord
 .\setup.ps1
 ```
 
-The setup script will:
-- ✅ Install Deno (if needed)
-- ✅ Install Claude CLI (if needed)  
-- ✅ Create `.env` file with your tokens
-- ✅ Initialize git repository (if needed)
-- ✅ Offer to start the bot immediately
+`The setup script will:`
+1. Install Deno (if needed)
+2. Install Claude CLI (if needed)  
+3. Create `.env` file with your tokens
+4. Initialize git repository (if needed)
+5. Offer to start the bot immediately
 
 ---
 
@@ -164,6 +156,7 @@ DISCORD_TOKEN=your_bot_token_here
 APPLICATION_ID=your_application_id_here
 
 # Optional
+ANTHROPIC_API_KEY=your_anthropic_api_key_here # Only needed if not using `claude` CLI for auth
 USER_ID=your_discord_user_id          # Get mentioned when Claude finishes
 CATEGORY_NAME=claude-code             # Discord category for channels
 WORK_DIR=/path/to/project             # Working directory (default: current)
@@ -189,7 +182,7 @@ Environment variables take precedence over `.env` file settings.
 <h2 id="2">2. Copy Application ID (Needed For Config)</h2>
 
 > [!Note]
-> - Go to the <kbd>General Information</kbd> → Copy <kbd>Application ID</kbd> section
+> - Go to the <kbd>General Information</kbd> section and copy the <kbd>Application ID</kbd>
 > <img width="800" height="500" alt="APPLICATION_ID" src="https://github.com/user-attachments/assets/3ad02111-0a9f-4f0f-8a77-d61841f6dd27" />
 
 <h2 id="3">3. Create a Bot User</h2>
@@ -223,12 +216,12 @@ Environment variables take precedence over `.env` file settings.
 > | **Use External Emojis** | Emoji formatting in status and completion embeds |
 > | **Use Application Commands** | All 45+ slash commands |
 >
-> **Quick setup** — use this pre-built invite URL (replace `YOUR_APP_ID`):
+> **Quick setup:** use this pre-built invite URL (replace `YOUR_APP_ID`):
 > ```
 > https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot+applications.commands&permissions=412317248576
 > ```
 >
-> **Gateway Intents:** Only the **Guilds** intent is used — no privileged intents (Message Content, Members, Presence) are required. No toggles needed in the Developer Portal.
+> **Gateway Intents:** Only the **Guilds** intent is used. No privileged intents (Message Content, Members, Presence) are required. No toggles needed in the Developer Portal.
 >
 > Copy the generated URL and open it in your browser
 > Select your Discord server and authorize the bot
@@ -269,7 +262,7 @@ Environment variables take precedence over `.env` file settings.
 | `/claude-refactor` | Refactor code. Options: `code`, `goal`, `preserve_behavior`, `add_tests`. |
 | `/claude-learn` | Learn a topic. Options: `topic`, `level` (beginner/intermediate/advanced/expert), `include_exercises`, `step_by_step`. |
 
-## Info & Control Commands (3) — NEW
+## Info & Control Commands (3)
 
 | Command | Description |
 |---------|-------------|
@@ -349,7 +342,7 @@ Control how deeply Claude reasons about problems:
 
 | Mode | Description |
 |------|-------------|
-| `none` | Standard responses — no extended thinking |
+| `none` | Standard responses, no extended thinking |
 | `think` | Step-by-step reasoning |
 | `think-hard` | Deep analysis with higher budget |
 | `ultrathink` | Maximum depth thinking for complex problems |
@@ -360,10 +353,10 @@ Configure via `/settings category:mode action:set-thinking value:<mode>`
 
 | Mode | Description |
 |------|-------------|
-| `normal` | Standard operation — auto-accepts edits, prompts for dangerous commands |
-| `plan` | Planning mode — Claude analyzes and plans but doesn't execute |
+| `normal` | Standard operation: auto-accepts edits, prompts for dangerous commands |
+| `plan` | Planning mode: Claude analyzes and plans but doesn't execute |
 | `auto-accept` | Automatically apply all suggested changes |
-| `danger` | Unrestricted mode — bypasses all safety checks (use with caution) |
+| `danger` | Unrestricted mode: bypasses all safety checks (use with caution) |
 
 ### Effort Levels
 
@@ -461,7 +454,7 @@ Get Claude responses as structured JSON:
 
 ```
 claude-code-discord/
-├── index.ts                     # Entry point — Discord client setup
+├── index.ts                     # Entry point, Discord client setup
 ├── claude/
 │   ├── client.ts                # SDK query execution, streaming, query lifecycle
 │   ├── command.ts               # Core slash commands (claude, continue, cancel)
@@ -469,7 +462,7 @@ claude-code-discord/
 │   ├── enhanced-client.ts       # Model discovery, enhanced query wrapper
 │   ├── info-commands.ts         # Info, rewind, and control commands
 │   ├── query-manager.ts         # Active query tracking for mid-session controls
-│   ├── message-converter.ts     # SDK message → Discord embed conversion
+│   ├── message-converter.ts     # SDK message to Discord embed conversion
 │   ├── discord-sender.ts        # Chunked Discord message delivery
 │   ├── model-fetcher.ts         # Dynamic model fetching (API + CLI)
 │   ├── types.ts                 # Shared TypeScript types
@@ -477,8 +470,8 @@ claude-code-discord/
 ├── agent/
 │   └── index.ts                 # 7 predefined agents with SDK AgentDefinition format
 ├── core/
-│   ├── handler-registry.ts      # Handler creation, settings→SDK option mapping
-│   └── command-wrappers.ts      # Discord interaction → handler routing
+│   ├── handler-registry.ts      # Handler creation, settings to SDK option mapping
+│   └── command-wrappers.ts      # Discord interaction to handler routing
 ├── settings/
 │   ├── unified-settings.ts      # Settings interface, defaults, slash commands
 │   ├── unified-handlers.ts      # All settings category handlers
@@ -491,7 +484,7 @@ claude-code-discord/
 
 ### SDK Integration
 
-Built on `@anthropic-ai/claude-agent-sdk` v0.2.45 — the official Anthropic SDK for Claude Code integration. Key capabilities:
+Built on `@anthropic-ai/claude-agent-sdk` v0.2.45, the official Anthropic SDK for Claude Code integration. Key capabilities:
 
 - **Streaming responses** via `AsyncGenerator<SDKMessage>`
 - **Native agent support** with `AgentDefinition` objects
@@ -499,10 +492,4 @@ Built on `@anthropic-ai/claude-agent-sdk` v0.2.45 — the official Anthropic SDK
 - **File rewind**: `rewindFiles()` with dry-run preview
 - **Account introspection**: `accountInfo()`, `supportedModels()`, `mcpServerStatus()`
 - **Advanced options**: thinking budgets, 1M context beta, file checkpointing, sandbox mode, structured output
-
----
-
-## License
-
-MIT
 
