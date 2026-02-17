@@ -26,6 +26,7 @@ import { systemCommands, createSystemHandlers } from "../system/index.ts";
 import { helpCommand, createHelpHandlers } from "../help/index.ts";
 import { agentCommand, createAgentHandlers } from "../agent/index.ts";
 import { screenshotCommands, createScreenshotHandlers } from "../screenshot/index.ts";
+import { infoCommands, createInfoCommandHandlers } from "../claude/index.ts";
 import { cleanSessionId, ClaudeSessionManager } from "../claude/index.ts";
 import type { ClaudeModelOptions } from "../claude/index.ts";
 import { THINKING_MODES, OPERATION_MODES, EFFORT_LEVELS } from "../settings/index.ts";
@@ -131,6 +132,7 @@ export interface AllHandlers {
   help: ReturnType<typeof createHelpHandlers>;
   agent: ReturnType<typeof createAgentHandlers>;
   screenshot: ReturnType<typeof createScreenshotHandlers>;
+  infoCommands: ReturnType<typeof createInfoCommandHandlers>;
 }
 
 /**
@@ -430,6 +432,9 @@ export function createAllHandlers(
     if (s.enableSandbox) {
       opts.sandbox = { enabled: true, autoAllowBashIfSandboxed: true };
     }
+    if (s.outputJsonSchema) {
+      opts.outputFormat = { type: 'json_schema', schema: s.outputJsonSchema };
+    }
     
     return opts;
   }
@@ -529,6 +534,11 @@ export function createAllHandlers(
     workDir,
   });
 
+  const infoCommandHandlers = createInfoCommandHandlers({
+    workDir,
+    getQueryOptions,
+  });
+
   return {
     claude: claudeHandlers,
     enhancedClaude: enhancedClaudeHandlers,
@@ -542,6 +552,7 @@ export function createAllHandlers(
     help: helpHandlers,
     agent: agentHandlers,
     screenshot: screenshotHandlers,
+    infoCommands: infoCommandHandlers,
   };
 }
 
@@ -563,6 +574,7 @@ export function getAllCommands() {
     ...utilsCommands,
     ...systemCommands,
     ...screenshotCommands,
+    ...infoCommands,
     helpCommand,
   ];
 }

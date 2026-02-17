@@ -446,11 +446,11 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       embeds: [{
         color: 0x0099ff,
         title: '⚙️ Mode Settings',
-        description: 'Available actions: `set-thinking`, `set-operation`, `set-effort`, `set-budget`, `toggle-1m`, `toggle-checkpoint`, `toggle-sandbox`',
+        description: 'Available actions: `set-thinking`, `set-operation`, `set-effort`, `set-budget`, `toggle-1m`, `toggle-checkpoint`, `toggle-sandbox`, `toggle-structured-output`, `set-output-schema`',
         fields: [
           {
             name: 'Current Settings',
-            value: `Thinking Mode: **${settings.thinkingMode}** (${THINKING_MODES[settings.thinkingMode].name})\nOperation Mode: **${settings.operationMode}** (${OPERATION_MODES[settings.operationMode].name})\nEffort Level: **${settings.effortLevel}** (${EFFORT_LEVELS[settings.effortLevel].name})\nBudget Cap: ${settings.maxBudgetUsd != null ? `$${settings.maxBudgetUsd}` : 'No limit'}`,
+            value: `Thinking Mode: **${settings.thinkingMode}** (${THINKING_MODES[settings.thinkingMode].name})\nOperation Mode: **${settings.operationMode}** (${OPERATION_MODES[settings.operationMode].name})\nEffort Level: **${settings.effortLevel}** (${EFFORT_LEVELS[settings.effortLevel].name})\nBudget Cap: ${settings.maxBudgetUsd != null ? `$${settings.maxBudgetUsd}` : 'No limit'}\nStructured Output: ${settings.outputJsonSchema ? '**Enabled**' : 'Disabled'}`,
             inline: false
           },
           {
@@ -659,9 +659,72 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       break;
     }
 
+    case 'toggle-structured-output': {
+      const isEnabled = settings.outputJsonSchema !== null;
+      if (isEnabled) {
+        updateSettings({ outputJsonSchema: null });
+        await ctx.editReply({
+          embeds: [{
+            color: 0xff6600,
+            title: '📝 Structured Output Disabled',
+            description: 'Claude will respond with normal unstructured text.',
+            timestamp: true
+          }]
+        });
+      } else {
+        const defaultSchema: Record<string, unknown> = {
+          type: 'object',
+          properties: {
+            response: { type: 'string', description: 'The main response text' },
+            confidence: { type: 'number', description: 'Confidence level 0-1' },
+            sources: { type: 'array', items: { type: 'string' }, description: 'Referenced sources' }
+          },
+          required: ['response']
+        };
+        updateSettings({ outputJsonSchema: defaultSchema });
+        await ctx.editReply({
+          embeds: [{
+            color: 0x00ff00,
+            title: '📊 Structured Output Enabled',
+            description: 'Claude will respond with JSON matching the configured schema.\n\nDefault schema has `response`, `confidence`, and `sources` fields.\nUse `set-output-schema` to customize.',
+            timestamp: true
+          }]
+        });
+      }
+      break;
+    }
+
+    case 'set-output-schema': {
+      if (!value) {
+        await ctx.editReply({
+          content: 'Provide a JSON schema string. Example: `set-output-schema {"type":"object","properties":{"answer":{"type":"string"}}}`',
+          ephemeral: true
+        });
+        break;
+      }
+      try {
+        const schema = JSON.parse(value) as Record<string, unknown>;
+        updateSettings({ outputJsonSchema: schema });
+        await ctx.editReply({
+          embeds: [{
+            color: 0x00ff00,
+            title: '📊 Output Schema Updated',
+            description: `\`\`\`json\n${JSON.stringify(schema, null, 2).slice(0, 1000)}\n\`\`\``,
+            timestamp: true
+          }]
+        });
+      } catch {
+        await ctx.editReply({
+          content: 'Invalid JSON schema. Please provide valid JSON.',
+          ephemeral: true
+        });
+      }
+      break;
+    }
+
     default:
       await ctx.editReply({
-        content: `Unknown mode action: ${action}. Available: set-thinking, set-operation, set-effort, set-budget, toggle-1m, toggle-checkpoint, toggle-sandbox`,
+        content: `Unknown mode action: ${action}. Available: set-thinking, set-operation, set-effort, set-budget, toggle-1m, toggle-checkpoint, toggle-sandbox, toggle-structured-output, set-output-schema`,
         ephemeral: true
       });
   }

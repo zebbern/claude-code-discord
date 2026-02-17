@@ -513,6 +513,42 @@ function createScreenshotCommandHandlers(
 }
 
 // ================================
+// Info & Control Command Handlers
+// ================================
+
+/**
+ * Create info/control command handlers (/claude-info, /rewind, /claude-control).
+ */
+function createInfoCommandsMap(
+  handlers: AllHandlers
+): Map<string, { execute: (ctx: InteractionContext) => Promise<void> }> {
+  const { infoCommands: infoHandlers } = handlers;
+
+  return new Map([
+    ['claude-info', {
+      execute: async (ctx: InteractionContext) => {
+        const section = ctx.getString('section');
+        await infoHandlers.onClaudeInfo(ctx, section || undefined);
+      }
+    }],
+    ['rewind', {
+      execute: async (ctx: InteractionContext) => {
+        const turn = ctx.getInteger('turn');
+        const dryRun = ctx.getBoolean('dry_run');
+        await infoHandlers.onRewind(ctx, turn ?? undefined, dryRun ?? undefined);
+      }
+    }],
+    ['claude-control', {
+      execute: async (ctx: InteractionContext) => {
+        const action = ctx.getString('action', true)!;
+        const value = ctx.getString('value');
+        await infoHandlers.onClaudeControl(ctx, action, value || undefined);
+      }
+    }],
+  ]);
+}
+
+// ================================
 // Master Command Handler Factory
 // ================================
 
@@ -539,6 +575,7 @@ export function createAllCommandHandlers(deps: CommandWrapperDeps): CommandHandl
   const claudeHandlers = createClaudeCommandHandlers(handlers, messageHistory, getClaudeController);
   const settingsHandlers = createSettingsCommandHandlers(handlers);
   const screenshotHandlers = createScreenshotCommandHandlers(handlers);
+  const infoCommandHandlers = createInfoCommandsMap(handlers);
 
   // Create git/shell deps
   const gitShellDeps: GitShellHandlerDeps = {
@@ -561,6 +598,7 @@ export function createAllCommandHandlers(deps: CommandWrapperDeps): CommandHandl
     ...claudeHandlers,
     ...settingsHandlers,
     ...screenshotHandlers,
+    ...infoCommandHandlers,
     ...gitHandlers,
     ...shellHandlers,
     ...utilityHandlers,

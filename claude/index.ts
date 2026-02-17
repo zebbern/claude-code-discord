@@ -27,3 +27,24 @@ export type {
   ModelInfo
 } from "./enhanced-client.ts";
 export type { EnhancedClaudeHandlerDeps } from "./enhanced-commands.ts";
+// Info & control commands — /claude-info, /rewind, /claude-control
+export { infoCommands, createInfoCommandHandlers } from "./info-commands.ts";
+export type { InfoCommandHandlerDeps } from "./info-commands.ts";
+// Query manager — active query controls, info retrieval, rewind
+export {
+  setActiveQuery,
+  getActiveQuery,
+  trackMessageId,
+  getTrackedMessages,
+  clearTrackedMessages,
+  interruptActiveQuery,
+  setActiveModel,
+  setActivePermissionMode,
+  rewindToMessage,
+  getInitInfo,
+  getAccountInfo,
+  getSupportedModels,
+  getMcpServerStatus,
+  fetchClaudeInfo,
+} from "./query-manager.ts";
+export type { ClaudeInitInfo, RewindFilesResult } from "./query-manager.ts";

@@ -33,6 +33,8 @@ export interface UnifiedBotSettings {
   enableFileCheckpointing: boolean;
   /** Enable sandbox mode for safer command execution */
   enableSandbox: boolean;
+  /** JSON schema for structured output (null = unstructured text) */
+  outputJsonSchema: Record<string, unknown> | null;
   
   // Output settings
   codeHighlighting: boolean;
@@ -88,6 +90,7 @@ export const UNIFIED_DEFAULT_SETTINGS: UnifiedBotSettings = {
   enable1MContext: false,
   enableFileCheckpointing: false,
   enableSandbox: false,
+  outputJsonSchema: null,
   
   // Output
   codeHighlighting: true,

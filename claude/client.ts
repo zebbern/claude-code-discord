@@ -1,4 +1,5 @@
 import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgentDefinition, type ModelInfo as SDKModelInfo, type SdkBeta } from "@anthropic-ai/claude-agent-sdk";
+import { setActiveQuery, trackMessageId, clearTrackedMessages } from "./query-manager.ts";
 
 export type { SDKAgentDefinition, SDKModelInfo };
 
@@ -72,6 +73,8 @@ export interface ClaudeModelOptions {
   enableFileCheckpointing?: boolean;
   /** Sandbox settings for safer command execution */
   sandbox?: { enabled: boolean; autoAllowBashIfSandboxed?: boolean };
+  /** Structured output format (JSON schema) */
+  outputFormat?: { type: 'json_schema'; schema: Record<string, unknown> };
 }
 
 // Wrapper for Claude Code SDK query function
@@ -156,6 +159,7 @@ export async function sendToClaudeCode(
           ...(modelOptions?.betas && modelOptions.betas.length > 0 && { betas: modelOptions.betas }),
           ...(modelOptions?.enableFileCheckpointing && { enableFileCheckpointing: true }),
           ...(modelOptions?.sandbox && { sandbox: modelOptions.sandbox }),
+          ...(modelOptions?.outputFormat && { outputFormat: modelOptions.outputFormat }),
           env: envVars,
         },
       };
@@ -172,9 +176,14 @@ export async function sendToClaudeCode(
       }
       
       const iterator = claudeQuery(queryOptions);
+      // Store query reference for mid-session controls (interrupt, rewind, info)
+      setActiveQuery(iterator);
+      clearTrackedMessages();
+      
       const currentMessages: SDKMessage[] = [];
       let currentResponse = "";
       let currentSessionId: string | undefined;
+      let turnCount = 0;
       
       for await (const message of iterator) {
         // Check AbortSignal to stop iteration
@@ -206,11 +215,24 @@ export async function sendToClaudeCode(
           currentResponse = textContent;
         }
         
+        // Track user message IDs for rewind (if checkpointing enabled)
+        if (message.type === 'user' && 'message' in message && 'id' in message.message) {
+          turnCount++;
+          trackMessageId(
+            message.message.id as string,
+            turnCount,
+            `Turn ${turnCount}`
+          );
+        }
+        
         // Save session information
         if ('session_id' in message && message.session_id) {
           currentSessionId = message.session_id;
         }
       }
+      
+      // Clear active query when done
+      setActiveQuery(null);
       
       return {
         messages: currentMessages,
@@ -221,6 +243,8 @@ export async function sendToClaudeCode(
       };
     // deno-lint-ignore no-explicit-any
     } catch (error: any) {
+      // Clear active query on error
+      setActiveQuery(null);
       // Properly handle process exit code 143 (SIGTERM) and AbortError
       if (error.name === 'AbortError' || 
           controller.signal.aborted || 
