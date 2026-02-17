@@ -83,11 +83,81 @@ export function convertToClaudeMessages(jsonData: any): ClaudeMessage[] {
         });
       }
     }
-  } else if (jsonData.type === 'system') {
+  } else if (jsonData.type === 'result') {
+    // Handle result messages — surface permission denials and errors
+    if (jsonData.permission_denials && jsonData.permission_denials.length > 0) {
+      for (const denial of jsonData.permission_denials) {
+        messages.push({
+          type: 'permission_denied',
+          content: `Tool "${denial.tool_name}" was denied by permission mode`,
+          metadata: {
+            toolName: denial.tool_name,
+            toolUseId: denial.tool_use_id,
+            toolInput: denial.tool_input,
+          }
+        });
+      }
+    }
+    // Surface result metadata (cost, duration, etc.) as system
     messages.push({
       type: 'system',
       content: '',
-      metadata: jsonData
+      metadata: { ...jsonData, subtype: jsonData.subtype === 'success' ? 'completion' : 'error' }
+    });
+  } else if (jsonData.type === 'system') {
+    // Task notifications from subagents
+    if (jsonData.subtype === 'task_notification') {
+      messages.push({
+        type: 'task_notification',
+        content: jsonData.summary || '',
+        metadata: {
+          taskId: jsonData.task_id,
+          status: jsonData.status,
+          outputFile: jsonData.output_file,
+          summary: jsonData.summary,
+        }
+      });
+    }
+    // Task started notifications
+    else if (jsonData.subtype === 'task_started') {
+      messages.push({
+        type: 'task_started',
+        content: jsonData.description || '',
+        metadata: {
+          taskId: jsonData.task_id,
+          description: jsonData.description,
+          taskType: jsonData.task_type,
+        }
+      });
+    }
+    // Generic system messages
+    else {
+      messages.push({
+        type: 'system',
+        content: '',
+        metadata: jsonData
+      });
+    }
+  } else if (jsonData.type === 'tool_progress') {
+    // Tool progress updates (long-running tools)
+    messages.push({
+      type: 'tool_progress',
+      content: `${jsonData.tool_name}: ${jsonData.elapsed_time_seconds}s`,
+      metadata: {
+        toolUseId: jsonData.tool_use_id,
+        toolName: jsonData.tool_name,
+        elapsedSeconds: jsonData.elapsed_time_seconds,
+      }
+    });
+  } else if (jsonData.type === 'tool_use_summary') {
+    // Tool use summary messages
+    messages.push({
+      type: 'tool_summary',
+      content: jsonData.summary || '',
+      metadata: {
+        summary: jsonData.summary,
+        toolUseIds: jsonData.preceding_tool_use_ids,
+      }
     });
   }
   

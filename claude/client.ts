@@ -2,6 +2,23 @@ import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgent
 
 export type { SDKAgentDefinition, SDKModelInfo };
 
+// Extract permission denials from SDK result messages
+function extractPermissionDenials(messages: SDKMessage[]): Array<{ toolName: string; toolUseId: string; toolInput: Record<string, unknown> }> {
+  const denials: Array<{ toolName: string; toolUseId: string; toolInput: Record<string, unknown> }> = [];
+  for (const msg of messages) {
+    if (msg.type === 'result' && 'permission_denials' in msg && Array.isArray(msg.permission_denials)) {
+      for (const d of msg.permission_denials) {
+        denials.push({
+          toolName: d.tool_name,
+          toolUseId: d.tool_use_id,
+          toolInput: d.tool_input,
+        });
+      }
+    }
+  }
+  return denials;
+}
+
 // Clean session ID (remove unwanted characters)
 export function cleanSessionId(sessionId: string): string {
   return sessionId
@@ -68,6 +85,8 @@ export async function sendToClaudeCode(
   cost?: number;
   duration?: number;
   modelUsed?: string;
+  /** Tools denied by permission mode (dontAsk, plan, etc.) */
+  permissionDenials?: Array<{ toolName: string; toolUseId: string; toolInput: Record<string, unknown> }>;
 }> {
   const messages: SDKMessage[] = [];
   let fullResponse = "";
@@ -225,12 +244,16 @@ export async function sendToClaudeCode(
     // Get information from the last message
     const lastMessage = messages[messages.length - 1];
     
+    // Extract permission denials from result messages
+    const permissionDenials = extractPermissionDenials(messages);
+    
     return {
       response: fullResponse || "No response received",
       sessionId: resultSessionId,
       cost: 'total_cost_usd' in lastMessage ? lastMessage.total_cost_usd : undefined,
       duration: 'duration_ms' in lastMessage ? lastMessage.duration_ms : undefined,
-      modelUsed
+      modelUsed,
+      ...(permissionDenials.length > 0 && { permissionDenials }),
     };
   // deno-lint-ignore no-explicit-any
   } catch (error: any) {
@@ -247,13 +270,15 @@ export async function sendToClaudeCode(
         
         // Get information from the last message
         const lastRetryMessage = retryResult.messages[retryResult.messages.length - 1];
+        const retryDenials = extractPermissionDenials(retryResult.messages);
         
         return {
           response: retryResult.response || "No response received",
           sessionId: retryResult.sessionId,
           cost: 'total_cost_usd' in lastRetryMessage ? lastRetryMessage.total_cost_usd : undefined,
           duration: 'duration_ms' in lastRetryMessage ? lastRetryMessage.duration_ms : undefined,
-          modelUsed: retryResult.modelUsed
+          modelUsed: retryResult.modelUsed,
+          ...(retryDenials.length > 0 && { permissionDenials: retryDenials }),
         };
       // deno-lint-ignore no-explicit-any
       } catch (retryError: any) {

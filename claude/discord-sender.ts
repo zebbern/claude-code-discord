@@ -374,6 +374,92 @@ export function createClaudeSender(sender: DiscordSender) {
         }
         break;
       }
+
+      case 'permission_denied': {
+        const toolName = msg.metadata?.toolName || 'Unknown';
+        const toolInput = msg.metadata?.toolInput || {};
+        const inputPreview = JSON.stringify(toolInput, null, 2);
+        const { preview } = truncateContent(inputPreview, 6, 500);
+        
+        await sender.sendMessage({
+          embeds: [{
+            color: 0xff4444,
+            title: `🚫 Permission Denied: ${toolName}`,
+            description: 'This tool was blocked by the current permission mode (`dontAsk`). The bot denies tools that aren\'t pre-approved.',
+            fields: [
+              { name: 'Tool', value: `\`${toolName}\``, inline: true },
+              { name: 'Input Preview', value: `\`\`\`json\n${preview}\n\`\`\``, inline: false }
+            ],
+            footer: { text: 'Change operation mode with /settings → Mode Settings to allow more tools' },
+            timestamp: true
+          }]
+        });
+        break;
+      }
+
+      case 'task_started': {
+        const description = msg.metadata?.description || msg.content || 'Starting subagent task...';
+        const taskType = msg.metadata?.taskType;
+        
+        await sender.sendMessage({
+          embeds: [{
+            color: 0x5865f2,
+            title: '🚀 Subagent Task Started',
+            description,
+            fields: taskType ? [{ name: 'Type', value: taskType, inline: true }] : [],
+            timestamp: true
+          }]
+        });
+        break;
+      }
+
+      case 'task_notification': {
+        const status = msg.metadata?.status || 'unknown';
+        const summary = msg.metadata?.summary || msg.content || 'No summary';
+        const statusEmoji = status === 'completed' ? '✅' : status === 'failed' ? '❌' : '⏹️';
+        const statusColor = status === 'completed' ? 0x00ff00 : status === 'failed' ? 0xff0000 : 0xffaa00;
+        
+        await sender.sendMessage({
+          embeds: [{
+            color: statusColor,
+            title: `${statusEmoji} Subagent Task ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+            description: summary.length > 4000 ? summary.substring(0, 3997) + '...' : summary,
+            timestamp: true
+          }]
+        });
+        break;
+      }
+
+      case 'tool_progress': {
+        // Only show progress for long-running tools (>5s)
+        const elapsed = msg.metadata?.elapsedSeconds || 0;
+        if (elapsed >= 5) {
+          const toolName = msg.metadata?.toolName || 'Unknown';
+          await sender.sendMessage({
+            embeds: [{
+              color: 0x888888,
+              title: `⏳ ${toolName} running...`,
+              description: `Elapsed: ${elapsed.toFixed(1)}s`,
+              timestamp: true
+            }]
+          });
+        }
+        break;
+      }
+
+      case 'tool_summary': {
+        if (msg.content) {
+          await sender.sendMessage({
+            embeds: [{
+              color: 0x00ccff,
+              title: '📋 Tool Summary',
+              description: msg.content.length > 4000 ? msg.content.substring(0, 3997) + '...' : msg.content,
+              timestamp: true
+            }]
+          });
+        }
+        break;
+      }
     }
   }
   };
