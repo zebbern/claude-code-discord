@@ -188,10 +188,22 @@ export interface AdditionalClaudeHandlerDeps {
   sessionManager: any;
   crashHandler: any;
   settings: any;
+  /** Get current runtime options from unified settings (thinking, operation, proxy) */
+  getQueryOptions?: () => import("./client.ts").ClaudeModelOptions;
 }
 
 export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps) {
   const { workDir, sessionManager, crashHandler, sendClaudeMessages, settings } = deps;
+
+  // Helper: merge runtime options (thinking, operation, proxy) into enhanced query options
+  function getRuntimeOpts() {
+    const opts = deps.getQueryOptions?.() || {};
+    return {
+      permissionMode: opts.permissionMode,
+      thinkingBudget: opts.thinkingBudget,
+      extraEnv: opts.extraEnv,
+    };
+  }
 
   return {
     async onClaudeExplain(
@@ -222,7 +234,8 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             workDir,
             model: settings.defaultModel,
             includeSystemInfo: false,
-            includeGitContext: false
+            includeGitContext: false,
+            ...getRuntimeOpts(),
           },
           controller,
           undefined,
@@ -278,7 +291,8 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             model: settings.defaultModel,
             includeSystemInfo: settings.autoIncludeSystemInfo,
             includeGitContext: settings.autoIncludeGitContext,
-            contextFiles: contextFilesList
+            contextFiles: contextFilesList,
+            ...getRuntimeOpts(),
           },
           controller,
           undefined,
@@ -333,7 +347,8 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             workDir,
             model: settings.defaultModel,
             includeSystemInfo: false,
-            includeGitContext: settings.autoIncludeGitContext
+            includeGitContext: settings.autoIncludeGitContext,
+            ...getRuntimeOpts(),
           },
           controller,
           undefined,
@@ -401,7 +416,8 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             model: settings.defaultModel,
             includeSystemInfo: false,
             includeGitContext: settings.autoIncludeGitContext,
-            contextFiles
+            contextFiles,
+            ...getRuntimeOpts(),
           },
           controller,
           undefined,
@@ -452,7 +468,8 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             workDir,
             model: settings.defaultModel,
             includeSystemInfo: settings.autoIncludeSystemInfo,
-            includeGitContext: settings.autoIncludeGitContext
+            includeGitContext: settings.autoIncludeGitContext,
+            ...getRuntimeOpts(),
           },
           controller,
           undefined,
@@ -512,7 +529,8 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             workDir,
             model: settings.defaultModel,
             includeSystemInfo: false,
-            includeGitContext: settings.autoIncludeGitContext
+            includeGitContext: settings.autoIncludeGitContext,
+            ...getRuntimeOpts(),
           },
           controller,
           undefined,
@@ -568,7 +586,8 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             workDir,
             model: settings.defaultModel,
             includeSystemInfo: false,
-            includeGitContext: false
+            includeGitContext: false,
+            ...getRuntimeOpts(),
           },
           controller,
           undefined,

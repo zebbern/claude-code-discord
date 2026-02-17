@@ -120,12 +120,6 @@ export const advancedSettingsCommands = [
     .setDescription('Quickly switch Claude model for next conversation')
     .addStringOption(option =>
       option.setName('model')
-        .setDescription('Claude model to use')
-        .setRequired(true)
-        .addChoices(
-          ...Object.entries(CLAUDE_MODELS).map(([key, model]) => ({
-            name: `${model.name}${model.recommended ? ' ⭐' : ''}`,
-            value: key
-          }))
-        ))
+        .setDescription('Claude model to use (e.g. sonnet, opus, haiku, claude-sonnet-4)')
+        .setRequired(true))
 ];

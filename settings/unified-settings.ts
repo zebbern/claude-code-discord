@@ -89,50 +89,54 @@ export const UNIFIED_DEFAULT_SETTINGS: UnifiedBotSettings = {
   noProxyDomains: ['localhost', '127.0.0.1', '::1']
 };
 
-// Thinking mode options
+// Thinking mode options — maps to MAX_THINKING_TOKENS env var for Claude Code CLI
 export const THINKING_MODES = {
   'none': {
-    name: 'Standard Mode',
-    description: 'Regular Claude responses without thinking mode',
-    parameter: null
+    name: 'Default',
+    description: 'Default thinking behavior — Claude decides automatically',
+    budgetTokens: null as number | null
   },
   'think': {
     name: 'Thinking Mode',
-    description: 'Claude thinks through problems step by step',
-    parameter: 'thinking_mode=true'
+    description: 'Extended thinking with moderate budget (10K tokens)',
+    budgetTokens: 10000
   },
   'think-hard': {
     name: 'Deep Thinking',
-    description: 'Claude engages in deeper analysis and reasoning',
-    parameter: 'thinking_mode=deep'
+    description: 'Deep analysis and reasoning (50K tokens)',
+    budgetTokens: 50000
   },
   'ultrathink': {
     name: 'Ultra Thinking',
-    description: 'Maximum depth thinking for complex problems',
-    parameter: 'thinking_mode=ultra'
+    description: 'Maximum thinking depth (100K tokens)',
+    budgetTokens: 100000
   }
 } as const;
 
-// Operation mode options
+// Operation mode options — maps to SDK permissionMode / CLI --permission-mode
 export const OPERATION_MODES = {
   'normal': {
     name: 'Normal Mode',
-    description: 'Standard operation with user confirmation for changes',
+    description: 'Standard operation — Claude asks before making changes',
+    permissionMode: 'default' as const,
     riskLevel: 'low'
   },
   'plan': {
     name: 'Plan Mode',
-    description: 'Focus on planning and architecture without execution',
+    description: 'Analysis only — Claude plans but does not execute changes',
+    permissionMode: 'plan' as const,
     riskLevel: 'low'
   },
   'auto-accept': {
     name: 'Auto Accept Edits',
-    description: 'Automatically apply suggested changes without confirmation',
+    description: 'Automatically accepts file edits without confirmation',
+    permissionMode: 'acceptEdits' as const,
     riskLevel: 'medium'
   },
   'danger': {
-    name: 'Danger Mode',
-    description: 'Unrestricted mode - use with extreme caution',
+    name: 'Bypass Permissions',
+    description: 'Bypasses all permission checks — use with extreme caution',
+    permissionMode: 'bypassPermissions' as const,
     riskLevel: 'high'
   }
 } as const;

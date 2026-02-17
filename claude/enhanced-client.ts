@@ -1,11 +1,10 @@
-import { sendToClaudeCode, type ClaudeModelOptions } from "./client.ts";
+import { sendToClaudeCode, type ClaudeModelOptions, type SDKPermissionMode } from "./client.ts";
 import type { ClaudeMessage } from "./types.ts";
 import { recordAPIUsage } from "../util/usage-tracker.ts";
 import { startModelRefresh, stopModelRefresh, fetchModels } from "./model-fetcher.ts";
 
 // Enhanced Claude Code client with additional features
-// NOTE: Temperature and maxTokens are NOT supported by Claude Code CLI
-// Only model selection, system prompts, and context options are supported
+// Maps user-facing settings to actual Claude Code SDK parameters
 export interface EnhancedClaudeOptions {
   workDir: string;
   model?: string;
@@ -13,6 +12,12 @@ export interface EnhancedClaudeOptions {
   contextFiles?: string[];
   includeGitContext?: boolean;
   includeSystemInfo?: boolean;
+  /** SDK permissionMode — controls what Claude can do */
+  permissionMode?: SDKPermissionMode;
+  /** Thinking budget in tokens (controls MAX_THINKING_TOKENS env var) */
+  thinkingBudget?: number | null;
+  /** Extra env vars for proxy or other settings */
+  extraEnv?: Record<string, string>;
 }
 
 export interface ClaudeSession {
@@ -101,10 +106,8 @@ export async function enhancedClaudeQuery(
 ) {
   let enhancedPrompt = prompt;
 
-  // Add system prompt if provided
-  if (options.systemPrompt) {
-    enhancedPrompt = `<system-instructions>\n${options.systemPrompt}\n</system-instructions>\n\n${prompt}`;
-  }
+  // System prompt is passed via SDK's appendSystemPrompt option (not inline in prompt)
+  // This ensures proper handling by Claude Code CLI
 
   // Add system context if requested
   if (options.includeSystemInfo) {
@@ -128,11 +131,25 @@ export async function enhancedClaudeQuery(
     }
   }
 
-  // Build model options - only model is supported by Claude Code CLI
+  // Build model options — pass through all SDK-relevant settings
   const modelOptions: ClaudeModelOptions = {};
   if (options.model) {
     modelOptions.model = options.model;
     console.log(`Enhanced Claude: Using model ${options.model}`);
+  }
+  if (options.permissionMode) {
+    modelOptions.permissionMode = options.permissionMode;
+  }
+  if (options.thinkingBudget != null) {
+    modelOptions.thinkingBudget = options.thinkingBudget;
+  }
+  if (options.extraEnv) {
+    modelOptions.extraEnv = options.extraEnv;
+  }
+  // System prompt is already prepended to the prompt above,
+  // but we can also set it as SDK systemPrompt for better integration
+  if (options.systemPrompt) {
+    modelOptions.appendSystemPrompt = options.systemPrompt;
   }
 
   const result = await sendToClaudeCode(

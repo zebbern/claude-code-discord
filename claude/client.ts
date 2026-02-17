@@ -10,10 +10,26 @@ export function cleanSessionId(sessionId: string): string {
     .trim();                         // Remove whitespace again
 }
 
-// Model options for Claude Code
-// NOTE: Only model selection is supported by the CLI
+// Valid SDK permission modes (maps to CLI --permission-mode)
+export type SDKPermissionMode = 'default' | 'plan' | 'acceptEdits' | 'bypassPermissions';
+
+// Full query options for Claude Code SDK
 export interface ClaudeModelOptions {
   model?: string;
+  /** SDK permissionMode: 'default' | 'plan' | 'acceptEdits' | 'bypassPermissions' */
+  permissionMode?: SDKPermissionMode;
+  /** MAX_THINKING_TOKENS env var value — controls thinking budget. null = default behavior */
+  thinkingBudget?: number | null;
+  /** Custom system prompt (replaces default) */
+  systemPrompt?: string;
+  /** Append to default system prompt */
+  appendSystemPrompt?: string;
+  /** Max turns for the conversation */
+  maxTurns?: number;
+  /** Fallback model on rate limit */
+  fallbackModel?: string;
+  /** Extra environment variables for the Claude subprocess (proxy, etc.) */
+  extraEnv?: Record<string, string>;
 }
 
 // Wrapper for Claude Code SDK query function
@@ -48,21 +64,42 @@ export async function sendToClaudeCode(
       // Determine which model to use
       const modelToUse = overrideModel || modelOptions?.model;
       
+      // Determine permission mode (defaults to bypassPermissions for backward compat)
+      const permMode = modelOptions?.permissionMode || "bypassPermissions";
+      
+      // Build environment variables for the subprocess
+      const envVars: Record<string, string> = {
+        ...Object.fromEntries(Object.entries(Deno.env.toObject())),
+      };
+      
+      // Apply thinking budget via MAX_THINKING_TOKENS env var
+      if (modelOptions?.thinkingBudget != null && modelOptions.thinkingBudget > 0) {
+        envVars.MAX_THINKING_TOKENS = String(modelOptions.thinkingBudget);
+      }
+      
+      // Apply extra env vars (proxy settings, etc.)
+      if (modelOptions?.extraEnv) {
+        Object.assign(envVars, modelOptions.extraEnv);
+      }
+
       const queryOptions = {
         prompt,
         abortController: controller,
         options: {
           cwd: workDir,
-          permissionMode: "bypassPermissions" as const,
-          verbose: true,
-          outputFormat: "stream-json",
+          permissionMode: permMode as "bypassPermissions" | "default" | "plan" | "acceptEdits",
           ...(continueMode && { continue: true }),
           ...(cleanedSessionId && !continueMode && { resume: cleanedSessionId }),
           ...(modelToUse && { model: modelToUse }),
+          ...(modelOptions?.systemPrompt && { customSystemPrompt: modelOptions.systemPrompt }),
+          ...(modelOptions?.appendSystemPrompt && { appendSystemPrompt: modelOptions.appendSystemPrompt }),
+          ...(modelOptions?.maxTurns && { maxTurns: modelOptions.maxTurns }),
+          ...(modelOptions?.fallbackModel && { fallbackModel: modelOptions.fallbackModel }),
+          env: envVars,
         },
       };
       
-      console.log(`Claude Code: Running with ${modelToUse || 'default'} model...`);
+      console.log(`Claude Code: Running with ${modelToUse || 'default'} model, permission=${permMode}${modelOptions?.thinkingBudget ? `, thinking=${modelOptions.thinkingBudget}` : ''}...`);
       if (continueMode) {
         console.log(`Continue mode: Reading latest conversation in directory`);
       } else if (cleanedSessionId) {

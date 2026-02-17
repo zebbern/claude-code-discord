@@ -27,6 +27,8 @@ import { helpCommand, createHelpHandlers } from "../help/index.ts";
 import { agentCommand, createAgentHandlers } from "../agent/index.ts";
 import { screenshotCommands, createScreenshotHandlers } from "../screenshot/index.ts";
 import { cleanSessionId, ClaudeSessionManager } from "../claude/index.ts";
+import type { ClaudeModelOptions } from "../claude/index.ts";
+import { THINKING_MODES, OPERATION_MODES } from "../settings/index.ts";
 
 import type { ShellManager } from "../shell/index.ts";
 import type { WorktreeBotManager } from "../git/index.ts";
@@ -304,18 +306,38 @@ export function createBotSettings(
 
     updateAdvanced(settings: Partial<AdvancedBotSettings>) {
       Object.assign(state.advanced, settings);
-      // Sync mention settings to legacy
+      // Sync ALL overlapping fields to unified settings
       state.legacy.mentionEnabled = state.advanced.mentionEnabled;
       state.legacy.mentionUserId = state.advanced.mentionUserId;
+      // Sync shared fields to unified
+      state.unified.mentionEnabled = state.advanced.mentionEnabled;
+      state.unified.mentionUserId = state.advanced.mentionUserId;
+      state.unified.defaultModel = state.advanced.defaultModel;
+      state.unified.defaultSystemPrompt = state.advanced.defaultSystemPrompt;
+      state.unified.autoIncludeSystemInfo = state.advanced.autoIncludeSystemInfo;
+      state.unified.autoIncludeGitContext = state.advanced.autoIncludeGitContext;
+      state.unified.codeHighlighting = state.advanced.codeHighlighting;
+      state.unified.autoPageLongOutput = state.advanced.autoPageLongOutput;
+      state.unified.maxOutputLength = state.advanced.maxOutputLength;
+      state.unified.timestampFormat = state.advanced.timestampFormat;
     },
 
     updateUnified(settings: Partial<UnifiedBotSettings>) {
       Object.assign(state.unified, settings);
-      // Sync mention settings to legacy and advanced
+      // Sync ALL overlapping fields to advanced and legacy
       state.legacy.mentionEnabled = state.unified.mentionEnabled;
       state.legacy.mentionUserId = state.unified.mentionUserId;
+      // Sync shared fields to advanced
       state.advanced.mentionEnabled = state.unified.mentionEnabled;
       state.advanced.mentionUserId = state.unified.mentionUserId;
+      state.advanced.defaultModel = state.unified.defaultModel;
+      state.advanced.defaultSystemPrompt = state.unified.defaultSystemPrompt;
+      state.advanced.autoIncludeSystemInfo = state.unified.autoIncludeSystemInfo;
+      state.advanced.autoIncludeGitContext = state.unified.autoIncludeGitContext;
+      state.advanced.codeHighlighting = state.unified.codeHighlighting;
+      state.advanced.autoPageLongOutput = state.unified.autoPageLongOutput;
+      state.advanced.maxOutputLength = state.unified.maxOutputLength;
+      state.advanced.timestampFormat = state.unified.timestampFormat;
     },
 
     updateLegacy(settings: { mentionEnabled: boolean; mentionUserId: string | null }) {
@@ -349,12 +371,55 @@ export function createAllHandlers(
 
   const currentSettings = settings.getSettings();
 
+  // Helper: builds ClaudeModelOptions from current unified settings at call time
+  // This is called for every Claude query so it always reflects current settings
+  function getQueryOptions(): ClaudeModelOptions {
+    const s = settings.getSettings().unified;
+    const opts: ClaudeModelOptions = {};
+    
+    // Model
+    if (s.defaultModel) {
+      opts.model = s.defaultModel;
+    }
+    
+    // Operation mode → SDK permissionMode
+    const opMode = OPERATION_MODES[s.operationMode];
+    if (opMode) {
+      opts.permissionMode = opMode.permissionMode;
+    }
+    
+    // Thinking mode → MAX_THINKING_TOKENS env var
+    const thinkMode = THINKING_MODES[s.thinkingMode];
+    if (thinkMode && thinkMode.budgetTokens != null) {
+      opts.thinkingBudget = thinkMode.budgetTokens;
+    }
+    
+    // System prompt
+    if (s.defaultSystemPrompt) {
+      opts.appendSystemPrompt = s.defaultSystemPrompt;
+    }
+    
+    // Proxy settings → env vars
+    if (s.proxyEnabled && s.proxyUrl) {
+      opts.extraEnv = {
+        HTTP_PROXY: s.proxyUrl,
+        HTTPS_PROXY: s.proxyUrl,
+      };
+      if (s.noProxyDomains.length > 0) {
+        opts.extraEnv.NO_PROXY = s.noProxyDomains.join(',');
+      }
+    }
+    
+    return opts;
+  }
+
   const claudeHandlers = createClaudeHandlers({
     workDir,
     claudeController: claudeSession.getController(),
     setClaudeController: claudeSession.setController,
     setClaudeSessionId: claudeSession.setSessionId,
     sendClaudeMessages,
+    getQueryOptions,
   });
 
   const gitHandlers = createGitHandlers({
@@ -399,6 +464,7 @@ export function createAllHandlers(
     sendClaudeMessages,
     sessionManager: claudeSessionManager,
     crashHandler,
+    getQueryOptions,
   });
 
   const systemHandlers = createSystemHandlers({
@@ -414,6 +480,7 @@ export function createAllHandlers(
     sessionManager: claudeSessionManager,
     crashHandler,
     settings: currentSettings.advanced,
+    getQueryOptions,
   });
 
   const advancedSettingsHandlers = createAdvancedSettingsHandlers({
@@ -434,6 +501,7 @@ export function createAllHandlers(
     crashHandler,
     sendClaudeMessages,
     sessionManager: claudeSessionManager,
+    getQueryOptions,
   });
 
   const screenshotHandlers = createScreenshotHandlers({

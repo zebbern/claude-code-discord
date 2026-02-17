@@ -96,6 +96,8 @@ export interface EnhancedClaudeHandlerDeps {
   sendClaudeMessages: (messages: any[]) => Promise<void>;
   sessionManager: any;
   crashHandler: any;
+  /** Get current runtime options from unified settings (thinking, operation, proxy) */
+  getQueryOptions?: () => import("./client.ts").ClaudeModelOptions;
 }
 
 export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
@@ -154,14 +156,20 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
 
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
 
+        // Get current runtime options from settings (thinking, operation, proxy)
+        const runtimeOpts = deps.getQueryOptions?.() || {};
+
         const result = await enhancedClaudeQuery(
           enhancedPrompt,
           {
             workDir,
-            model,
+            model: model || runtimeOpts.model,
             includeSystemInfo: !!includeSystemInfo,
             includeGitContext: !!includeGitContext,
-            contextFiles: contextFilesList
+            contextFiles: contextFilesList,
+            permissionMode: runtimeOpts.permissionMode,
+            thinkingBudget: runtimeOpts.thinkingBudget,
+            extraEnv: runtimeOpts.extraEnv,
           },
           controller,
           sessionId,

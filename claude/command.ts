@@ -1,5 +1,5 @@
 import type { ClaudeResponse, ClaudeMessage } from "./types.ts";
-import { sendToClaudeCode } from "./client.ts";
+import { sendToClaudeCode, type ClaudeModelOptions } from "./client.ts";
 import { convertToClaudeMessages } from "./message-converter.ts";
 import { SlashCommandBuilder } from "npm:discord.js@14.14.1";
 
@@ -36,6 +36,8 @@ export interface ClaudeHandlerDeps {
   setClaudeController: (controller: AbortController | null) => void;
   setClaudeSessionId: (sessionId: string | undefined) => void;
   sendClaudeMessages: (messages: ClaudeMessage[]) => Promise<void>;
+  /** Get current runtime options from unified settings (thinking, operation, proxy) */
+  getQueryOptions?: () => ClaudeModelOptions;
 }
 
 export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
@@ -79,7 +81,8 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
             sendClaudeMessages(claudeMessages).catch(() => {});
           }
         },
-        false // continueMode = false
+        false, // continueMode = false
+        deps.getQueryOptions?.() // Pass runtime settings (thinking, operation, proxy)
       );
       
       deps.setClaudeSessionId(result.sessionId);
@@ -146,7 +149,8 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
             sendClaudeMessages(claudeMessages).catch(() => {});
           }
         },
-        true // continueMode = true
+        true, // continueMode = true
+        deps.getQueryOptions?.() // Pass runtime settings (thinking, operation, proxy)
       );
       
       deps.setClaudeSessionId(result.sessionId);

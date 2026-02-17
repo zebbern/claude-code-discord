@@ -4,6 +4,7 @@ import {
   getAgentSessionsManager,
   type AgentSessionData 
 } from "../util/persistence.ts";
+import type { ClaudeModelOptions } from "../claude/index.ts";
 
 // Agent types and interfaces
 // NOTE: Temperature and maxTokens are NOT supported by Claude Code CLI
@@ -133,6 +134,7 @@ export interface AgentHandlerDeps {
   crashHandler: any;
   sendClaudeMessages: (messages: any[]) => Promise<void>;
   sessionManager: any;
+  getQueryOptions?: () => ClaudeModelOptions;
 }
 
 // Persistence manager for agent sessions
@@ -429,6 +431,9 @@ async function chatWithAgent(
       contextFiles.split(',').map(f => f.trim()).filter(f => f.length > 0) : 
       undefined;
 
+    // Merge runtime settings (permissionMode, thinkingBudget, proxy, etc.)
+    const runtimeOpts = deps?.getQueryOptions?.() || {};
+
     const result = await enhancedClaudeQuery(
       enhancedPrompt,
       {
@@ -437,7 +442,8 @@ async function chatWithAgent(
         systemPrompt: agent.systemPrompt,
         includeSystemInfo: !!includeSystemInfo,
         includeGitContext: false,
-        contextFiles: contextFilesList
+        contextFiles: contextFilesList,
+        ...runtimeOpts,
       },
       controller,
       undefined, // sessionId

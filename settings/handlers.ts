@@ -273,16 +273,26 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
     // Quick model switch
     async onQuickModel(ctx: any, model: string) {
       try {
-        if (!CLAUDE_MODELS[model as keyof typeof CLAUDE_MODELS]) {
+        const selectedModel = CLAUDE_MODELS[model as keyof typeof CLAUDE_MODELS];
+        if (!selectedModel) {
+          const modelList = Object.entries(CLAUDE_MODELS)
+            .map(([key, m]) => `\`${key}\` — ${m.name}${m.recommended ? ' ⭐' : ''}`)
+            .join('\n');
           await ctx.reply({
-            content: 'Invalid model specified',
+            embeds: [{
+              color: 0xff6600,
+              title: '❌ Invalid Model',
+              description: `\`${model}\` is not a recognized model.`,
+              fields: [{ name: 'Available Models', value: modelList || 'No models loaded', inline: false }],
+              footer: { text: 'Use /claude-models to refresh the model list' },
+              timestamp: true
+            }],
             ephemeral: true
           });
           return;
         }
 
         updateSettings({ defaultModel: model });
-        const selectedModel = CLAUDE_MODELS[model as keyof typeof CLAUDE_MODELS];
 
         await ctx.reply({
           embeds: [{
@@ -292,7 +302,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             fields: [
               { name: 'Model ID', value: `\`${model}\``, inline: true },
               { name: 'Context Window', value: selectedModel.contextWindow.toLocaleString() + ' tokens', inline: true },
-              { name: 'Thinking Mode', value: (selectedModel as any).thinkingMode ? 'Enabled' : 'Disabled', inline: true }
+              { name: 'Thinking Mode', value: selectedModel.supportsThinking ? 'Enabled' : 'Disabled', inline: true }
             ],
             footer: { text: 'This applies to all new conversations' },
             timestamp: true
