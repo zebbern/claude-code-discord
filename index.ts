@@ -31,6 +31,7 @@ import { systemCommands } from "./system/index.ts";
 import { helpCommand } from "./help/index.ts";
 import { agentCommand } from "./agent/index.ts";
 import { cleanupPaginationStates } from "./discord/index.ts";
+import { runVersionCheck } from "./util/version-check.ts";
 
 // Core modules - now handle most of the heavy lifting
 import { 
@@ -188,6 +189,23 @@ export async function createClaudeCodeBot(config: BotConfig) {
   
   // Create Discord sender for Claude messages
   claudeSender = createClaudeSender(createDiscordSenderAdapter(bot));
+  
+  // Check for updates (non-blocking)
+  runVersionCheck().then(async ({ updateAvailable, embed }) => {
+    if (updateAvailable && embed) {
+      const channel = bot.getChannel();
+      if (channel) {
+        const { EmbedBuilder } = await import("npm:discord.js@14.14.1");
+        const discordEmbed = new EmbedBuilder()
+          .setColor(embed.color)
+          .setTitle(embed.title)
+          .setDescription(embed.description)
+          .setTimestamp();
+        embed.fields.forEach(f => discordEmbed.addFields(f));
+        await channel.send({ embeds: [discordEmbed] });
+      }
+    }
+  }).catch(() => { /* version check is best-effort */ });
   
   // Setup signal handlers for graceful shutdown
   setupSignalHandlers({
