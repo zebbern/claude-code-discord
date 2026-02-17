@@ -114,11 +114,15 @@ export const THINKING_MODES = {
 } as const;
 
 // Operation mode options — maps to SDK permissionMode / CLI --permission-mode
+// NOTE: The SDK 'default' permissionMode requires interactive permission prompts (canUseTool callback)
+// which needs streaming mode (AsyncIterable prompt). Since this Discord bot sends string prompts,
+// 'default' mode would hang indefinitely waiting for interactive input. All modes here are safe
+// for headless/Discord operation.
 export const OPERATION_MODES = {
   'normal': {
     name: 'Normal Mode',
-    description: 'Standard operation — Claude asks before making changes',
-    permissionMode: 'default' as const,
+    description: 'Auto-accepts edits, asks before risky operations (recommended for Discord)',
+    permissionMode: 'acceptEdits' as const,
     riskLevel: 'low'
   },
   'plan': {
