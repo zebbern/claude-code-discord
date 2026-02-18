@@ -3,8 +3,9 @@
 # Bot runtime data (persistence files)
 .bot-data/
 
-# Claude session data
+# Claude session data (ignore all except mcp.json)
 .claude/
+!.claude/mcp.json
 
 # Plan files (development only)
 plan/
