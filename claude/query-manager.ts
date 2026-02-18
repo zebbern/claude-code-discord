@@ -203,6 +203,22 @@ export async function getMcpServerStatus(): Promise<McpServerStatus[] | null> {
   }
 }
 
+/**
+ * Stop a running background task (subagent).
+ * A task_notification with status 'stopped' will be emitted.
+ * 
+ * @param taskId - The task ID from task_notification/task_started events
+ */
+export async function stopActiveTask(taskId: string): Promise<boolean> {
+  if (!activeQuery) return false;
+  try {
+    await activeQuery.stopTask(taskId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ================================
 // Ephemeral Info Query
 // ================================

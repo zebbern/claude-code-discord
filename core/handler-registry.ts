@@ -436,6 +436,9 @@ export function createAllHandlers(
     if (s.enableSandbox) {
       opts.sandbox = { enabled: true, autoAllowBashIfSandboxed: true };
     }
+    if (s.enableAgentTeams) {
+      opts.enableAgentTeams = true;
+    }
     if (s.outputJsonSchema) {
       opts.outputFormat = { type: 'json_schema', schema: s.outputJsonSchema };
     }

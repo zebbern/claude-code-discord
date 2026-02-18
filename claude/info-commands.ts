@@ -22,6 +22,7 @@ import {
   getAccountInfo,
   getSupportedModels,
   getMcpServerStatus,
+  stopActiveTask,
 } from "./query-manager.ts";
 
 // ================================
@@ -66,6 +67,7 @@ export const infoCommands = [
           { name: 'Interrupt — Stop current processing', value: 'interrupt' },
           { name: 'Change Model — Switch model mid-session', value: 'set-model' },
           { name: 'Change Permissions — Switch permission mode', value: 'set-permissions' },
+          { name: 'Stop Task — Stop a running background task', value: 'stop-task' },
           { name: 'Status — Show active session info', value: 'status' }
         ))
     .addStringOption(option =>
@@ -428,9 +430,31 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           break;
         }
 
+        case 'stop-task': {
+          if (!value) {
+            await ctx.editReply({
+              content: 'Please provide a task ID. Example: `/claude-control action:stop-task value:<taskId>`\nTask IDs are shown in "Subagent Task Started" embeds.',
+              ephemeral: true
+            });
+            return;
+          }
+          const success = await stopActiveTask(value);
+          await ctx.editReply({
+            embeds: [{
+              color: success ? 0x00ff00 : 0xff0000,
+              title: success ? '⏹️ Task Stop Requested' : '❌ Cannot Stop Task',
+              description: success
+                ? `Stop signal sent for task \`${value}\`. A notification will appear when the task stops.`
+                : 'No active query, or the task ID was not found.',
+              timestamp: new Date().toISOString()
+            }]
+          });
+          break;
+        }
+
         default:
           await ctx.editReply({
-            content: `Unknown action: ${action}. Available: interrupt, set-model, set-permissions, status`,
+            content: `Unknown action: ${action}. Available: interrupt, set-model, set-permissions, stop-task, status`,
             ephemeral: true
           });
       }

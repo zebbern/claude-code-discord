@@ -799,6 +799,70 @@ export const COMMAND_HELP = {
       "Takes effect on the next query (persists across sessions)",
       "Use /fast again to toggle back to standard mode"
     ]
+  },
+  "claude-info": {
+    title: "ℹ️ Claude Info & Diagnostics",
+    description: "Show Claude account info, available models, and MCP server status",
+    usage: "/claude-info section: [account/models/mcp/all]",
+    examples: [
+      "/claude-info",
+      "/claude-info section: account",
+      "/claude-info section: models",
+      "/claude-info section: mcp"
+    ],
+    parameters: [
+      { name: "section", description: "Which info section to show (account, models, mcp, or all)", required: false }
+    ],
+    notes: [
+      "Requires an active Claude session to query",
+      "Shows account tier, rate limits, and usage",
+      "Lists all available models with capabilities",
+      "Displays MCP server connection status"
+    ]
+  },
+  "rewind": {
+    title: "⏪ Rewind File Changes",
+    description: "Rewind file changes to a previous state (requires file checkpointing)",
+    usage: "/rewind turn: [turn_number] dry_run: [true/false]",
+    examples: [
+      "/rewind",
+      "/rewind turn: 5",
+      "/rewind turn: 3 dry_run: true"
+    ],
+    parameters: [
+      { name: "turn", description: "Turn number to rewind to (omit to see available turns)", required: false },
+      { name: "dry_run", description: "Preview changes without modifying files", required: false }
+    ],
+    notes: [
+      "Requires an active Claude session with file checkpointing enabled",
+      "Use without arguments to list available checkpoint turns",
+      "Use dry_run to preview which files would be affected",
+      "Rewinding restores files to their state at the specified turn"
+    ]
+  },
+  "claude-control": {
+    title: "🎛️ Mid-Session Controls",
+    description: "Control an active Claude query — interrupt, switch models, change permissions, or stop tasks",
+    usage: "/claude-control action: [interrupt/set-model/set-permissions/stop-task/status] value: [optional]",
+    examples: [
+      "/claude-control action: interrupt",
+      "/claude-control action: set-model value: claude-sonnet-4",
+      "/claude-control action: set-permissions value: plan",
+      "/claude-control action: stop-task value: task_id_here",
+      "/claude-control action: status"
+    ],
+    parameters: [
+      { name: "action", description: "Control action to perform", required: true },
+      { name: "value", description: "Value for the action (model name, permission mode, or task ID)", required: false }
+    ],
+    notes: [
+      "Requires an active Claude session to control",
+      "Interrupt stops the current processing immediately",
+      "Set-model switches the model mid-conversation",
+      "Set-permissions changes the permission mode (plan, autoEdit, fullAuto, delegate, bypassPermissions)",
+      "Stop-task halts a running background task by its ID",
+      "Status shows active session info"
+    ]
   }
 };
 

@@ -113,6 +113,8 @@ export interface ClaudeModelOptions {
   enableFileCheckpointing?: boolean;
   /** Sandbox settings for safer command execution */
   sandbox?: { enabled: boolean; autoAllowBashIfSandboxed?: boolean };
+  /** Enable experimental Agent Teams (multi-agent collaboration) */
+  enableAgentTeams?: boolean;
   /** Structured output format (JSON schema) */
   outputFormat?: { type: 'json_schema'; schema: Record<string, unknown> };
   /** Callback for AskUserQuestion tool — Claude asks the user mid-session.
@@ -170,6 +172,8 @@ export async function sendToClaudeCode(
         ...Object.fromEntries(Object.entries(Deno.env.toObject())),
         // Enable the Tasks system for subagent background tasks (SDK v0.2.19+)
         CLAUDE_CODE_ENABLE_TASKS: '1',
+        // Enable experimental Agent Teams if configured
+        ...(modelOptions?.enableAgentTeams && { CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1' }),
       };
       
       // Apply extra env vars (proxy settings, etc.)

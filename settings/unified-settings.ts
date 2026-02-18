@@ -21,7 +21,7 @@ export interface UnifiedBotSettings {
   effortLevel: 'low' | 'medium' | 'high' | 'max';
   
   // Mode settings
-  operationMode: 'normal' | 'plan' | 'auto-accept' | 'danger' | 'dont-ask';
+  operationMode: 'normal' | 'plan' | 'auto-accept' | 'danger' | 'dont-ask' | 'delegate';
   
   // Fast mode — Opus 4.6 speed-optimized API config (2.5x faster, higher cost, same quality)
   fastMode: boolean;
@@ -36,6 +36,8 @@ export interface UnifiedBotSettings {
   enableFileCheckpointing: boolean;
   /** Enable sandbox mode for safer command execution */
   enableSandbox: boolean;
+  /** Enable experimental Agent Teams (multi-agent collaboration) */
+  enableAgentTeams: boolean;
   /** JSON schema for structured output (null = unstructured text) */
   outputJsonSchema: Record<string, unknown> | null;
   
@@ -96,6 +98,7 @@ export const UNIFIED_DEFAULT_SETTINGS: UnifiedBotSettings = {
   enable1MContext: false,
   enableFileCheckpointing: false,
   enableSandbox: false,
+  enableAgentTeams: false,
   outputJsonSchema: null,
   
   // Output
@@ -213,6 +216,12 @@ export const OPERATION_MODES = {
     description: 'Bypasses all permission checks — use with extreme caution',
     permissionMode: 'bypassPermissions' as const,
     riskLevel: 'high'
+  },
+  'delegate': {
+    name: 'Delegate Mode',
+    description: 'Restricts to Teammate + Task tools only — for agent team leaders',
+    permissionMode: 'delegate' as const,
+    riskLevel: 'low'
   }
 } as const;
 
