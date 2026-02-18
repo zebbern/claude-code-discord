@@ -295,7 +295,7 @@ export function createClaudeCommandHandlers(
         }
       }
     }],
-    ['continue', {
+    ['resume', {
       execute: async (ctx: InteractionContext) => {
         const prompt = ctx.getString('prompt');
         if (prompt) addToHistory(prompt);

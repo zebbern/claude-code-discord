@@ -495,6 +495,15 @@ export async function createDiscordBot(
             { name: 'Working Directory', value: `\`${workDir}\``, inline: false }
           ],
           timestamp: true
+        }],
+        components: [{
+          type: 'actionRow',
+          components: [
+            { type: 'button', customId: 'startup:continue', label: '▶️ Resume Last', style: 'primary' },
+            { type: 'button', customId: 'startup:sessions', label: '📂 Sessions', style: 'secondary' },
+            { type: 'button', customId: 'workflow:git-status', label: '📋 Git Status', style: 'secondary' },
+            { type: 'button', customId: 'startup:system-info', label: '💻 System Info', style: 'secondary' },
+          ]
         }]
       }));
     } catch (error) {

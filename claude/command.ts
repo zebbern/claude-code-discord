@@ -18,8 +18,8 @@ export const claudeCommands = [
         .setRequired(false)),
   
   new SlashCommandBuilder()
-    .setName('continue')
-    .setDescription('Continue the previous Claude Code session')
+    .setName('resume')
+    .setDescription('Resume the previous Claude Code session')
     .addStringOption(option =>
       option.setName('prompt')
         .setDescription('Prompt for Claude Code (optional)')

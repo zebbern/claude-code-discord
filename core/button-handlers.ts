@@ -11,6 +11,85 @@ import type { AllHandlers } from "./handler-registry.ts";
 import type { ClaudeMessage } from "../claude/index.ts";
 
 // ================================
+// Session Reader Utility
+// ================================
+
+interface RecentSession {
+  id: string;
+  prompt: string;
+  timestamp: Date;
+}
+
+/**
+ * Read recent sessions from ~/.claude/projects/<slug>/.
+ * Claude Code stores session data as JSONL files — the filename is the session ID.
+ */
+async function readRecentSessions(workDir: string): Promise<RecentSession[]> {
+  try {
+    // Build project slug: absolute path with separators replaced
+    const slug = workDir
+      .replace(/^[A-Za-z]:/, (m) => m[0].toUpperCase())
+      .replace(/[\\/]/g, '-')
+      .replace(/^-/, '');
+    
+    const homeDir = Deno.env.get('USERPROFILE') || Deno.env.get('HOME') || '';
+    const projectDir = `${homeDir}/.claude/projects/${slug}`;
+    
+    const entries: RecentSession[] = [];
+    
+    for await (const entry of Deno.readDir(projectDir)) {
+      if (!entry.name.endsWith('.jsonl') || entry.isDirectory) continue;
+      
+      const sessionId = entry.name.replace('.jsonl', '');
+      const filePath = `${projectDir}/${entry.name}`;
+      const stat = await Deno.stat(filePath);
+      
+      // Read only the first few bytes to extract the prompt
+      let prompt = '(unknown)';
+      try {
+        const file = await Deno.open(filePath);
+        const buf = new Uint8Array(2048);
+        const bytesRead = await file.read(buf);
+        file.close();
+        if (bytesRead && bytesRead > 0) {
+          const text = new TextDecoder().decode(buf.subarray(0, bytesRead));
+          const lines = text.split('\n');
+          // Find the first user message line
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const obj = JSON.parse(line);
+              if (obj.type === 'user' && obj.message?.content) {
+                const content = obj.message.content;
+                if (Array.isArray(content)) {
+                  const textBlock = content.find((b: { type: string }) => b.type === 'text');
+                  if (textBlock) prompt = textBlock.text;
+                } else if (typeof content === 'string') {
+                  prompt = content;
+                }
+                break;
+              }
+            } catch { /* skip malformed lines */ }
+          }
+        }
+      } catch { /* skip unreadable files */ }
+      
+      entries.push({
+        id: sessionId,
+        prompt,
+        timestamp: stat.mtime ?? new Date(0),
+      });
+    }
+    
+    // Sort by most recent first
+    entries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return entries;
+  } catch {
+    return [];
+  }
+}
+
+// ================================
 // Types
 // ================================
 
@@ -26,6 +105,8 @@ export interface ButtonHandlerDeps {
   getClaudeSessionId: () => string | undefined;
   /** Function to send Claude messages */
   sendClaudeMessages?: (messages: ClaudeMessage[]) => Promise<void>;
+  /** Working directory */
+  workDir: string;
 }
 
 /**
@@ -283,6 +364,99 @@ export function createButtonHandlers(
             color: 0xff0000,
             title: '📊 Git Status Error',
             description: `Error: ${error instanceof Error ? error.message : String(error)}`,
+            timestamp: true
+          }]
+        });
+      }
+    }],
+
+    // ================================
+    // Startup Buttons
+    // ================================
+
+    // Continue last session (uses SDK's continue: true — picks up most recent conversation)
+    ['startup:continue', async (ctx: InteractionContext) => {
+      await ctx.deferReply();
+      try {
+        await claudeHandlers.onContinue(ctx, undefined);
+      } catch (error) {
+        await ctx.editReply({
+          embeds: [{
+            color: 0xff0000,
+            title: '❌ Resume Failed',
+            description: `${error instanceof Error ? error.message : String(error)}`,
+            timestamp: true
+          }]
+        });
+      }
+    }],
+
+    // Recent sessions — reads from ~/.claude/projects/ to show recent conversations
+    ['startup:sessions', async (ctx: InteractionContext) => {
+      await ctx.deferReply();
+      try {
+        const sessions = await readRecentSessions(deps.workDir);
+        if (sessions.length === 0) {
+          await ctx.editReply({
+            embeds: [{
+              color: 0xffaa00,
+              title: '📂 No Recent Sessions',
+              description: 'No session history found for this project.',
+              timestamp: true
+            }]
+          });
+          return;
+        }
+
+        const fields = sessions.slice(0, 10).map((s, i) => ({
+          name: `${i + 1}. ${s.timestamp.toLocaleString()}`,
+          value: `\`${s.id}\`\n${s.prompt.substring(0, 80)}${s.prompt.length > 80 ? '...' : ''}`,
+          inline: false
+        }));
+
+        await ctx.editReply({
+          embeds: [{
+            color: 0x0099ff,
+            title: '📂 Recent Sessions',
+            description: 'Use `/resume` or `/claude session_id:<id>` to resume any session.',
+            fields,
+            timestamp: true
+          }]
+        });
+      } catch (error) {
+        await ctx.editReply({
+          embeds: [{
+            color: 0xff0000,
+            title: '📂 Sessions Error',
+            description: `${error instanceof Error ? error.message : String(error)}`,
+            timestamp: true
+          }]
+        });
+      }
+    }],
+
+    // System info — quick health check
+    ['startup:system-info', async (ctx: InteractionContext) => {
+      await ctx.deferReply();
+      try {
+        const result = await handlers.system.onSystemInfo(ctx);
+        const info = result.data;
+        // Truncate to fit embed
+        const truncated = info.length > 4000 ? info.substring(0, 4000) + '...' : info;
+        await ctx.editReply({
+          embeds: [{
+            color: 0x0099ff,
+            title: '💻 System Info',
+            description: `\`\`\`\n${truncated}\n\`\`\``,
+            timestamp: true
+          }]
+        });
+      } catch (error) {
+        await ctx.editReply({
+          embeds: [{
+            color: 0xff0000,
+            title: '💻 System Info Error',
+            description: `${error instanceof Error ? error.message : String(error)}`,
             timestamp: true
           }]
         });

@@ -189,6 +189,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       handlers: allHandlers,
       getClaudeSessionId: () => claudeSessionId,
       sendClaudeMessages,
+      workDir,
     },
     expandableContent
   );
