@@ -19,6 +19,7 @@ import { sanitizeChannelName } from "./utils.ts";
 import { handlePaginationInteraction } from "./pagination.ts";
 import { checkCommandPermission } from "../core/rbac.ts";
 import { SETTINGS_ACTIONS, SETTINGS_VALUES } from "../settings/unified-settings.ts";
+import { BOT_VERSION } from "../util/version-check.ts";
 import type { 
   BotConfig, 
   CommandHandlers, 
@@ -513,7 +514,7 @@ export async function createDiscordBot(
       await myChannel.send(convertMessageContent({
         embeds: [{
           color: 0x00ff00,
-          title: '🚀 Startup Complete',
+          title: `🚀 v${BOT_VERSION} — Startup Complete`,
           description: `Claude Code bot for branch ${branchName} has started`,
           fields: [
             { name: 'Category', value: actualCategoryName, inline: true },

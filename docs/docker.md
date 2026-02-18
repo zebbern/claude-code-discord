@@ -82,8 +82,7 @@ This checks for new images every 5 minutes and restarts the bot automatically.
 
 The Dockerfile builds on `denoland/deno:latest` and adds:
 
-- **Node.js 20** (required for Claude CLI)
-- **`@anthropic-ai/claude-code`** CLI (installed globally via npm)
+- **Git** (required for branch tracking and version checks)
 - **Deno cached dependencies** from `deno.json`
 
 ## Resource Limits

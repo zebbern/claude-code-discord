@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-07-18
+
+### Added
+- **Version in /status**: Shows bot version (e.g. `v2.2.0`) and update status in the `/status` embed
+- **Periodic Update Checks**: Automatically checks for updates every 12 hours and notifies in Discord
+- **Semver in Startup Embed**: Startup message now shows version number
+- **BOT_VERSION Export**: `deno.json` version read at startup and available throughout codebase
+
+### Changed
+- **Dockerfile Optimized**: Removed unnecessary Node.js and `@anthropic-ai/claude-code` CLI install — bot uses SDK directly via Deno imports, reducing image size
+
+### Fixed
+- `deno.json` version bumped from `1.0.0` to `2.2.0` (was not updated for v2.1.0)
+- CHANGELOG legacy reference to deprecated CLI corrected to `@anthropic-ai/claude-agent-sdk`
+
 ## [2.1.0] - 2025-07-17
 
 ### Added
@@ -169,9 +184,10 @@ This is the first stable release of Claude Code Discord Bot - a Discord bot that
 ### Technical Details
 - Built with Deno 2.x and TypeScript
 - Uses Discord.js 14.14.1
-- Claude API via @anthropic-ai/claude-code (deprecated; see v2.0.0 for migration)
+- Claude API via @anthropic-ai/claude-agent-sdk
 
 ---
 
+[2.2.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.2.0
 [2.0.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.0.0
 [1.0.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v1.0.0

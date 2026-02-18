@@ -33,7 +33,7 @@ import { systemCommands } from "./system/index.ts";
 import { helpCommand } from "./help/index.ts";
 import { agentCommand } from "./agent/index.ts";
 import { cleanupPaginationStates } from "./discord/index.ts";
-import { runVersionCheck } from "./util/version-check.ts";
+import { runVersionCheck, startPeriodicUpdateCheck, BOT_VERSION } from "./util/version-check.ts";
 
 // Core modules - now handle most of the heavy lifting
 import { 
@@ -248,6 +248,34 @@ export async function createClaudeCodeBot(config: BotConfig) {
       }
     }
   }).catch(() => { /* version check is best-effort */ });
+
+  // Start periodic update checks (every 12 hours)
+  startPeriodicUpdateCheck(async (result) => {
+    try {
+      const channel = bot.getChannel();
+      if (channel) {
+        const { EmbedBuilder } = await import("npm:discord.js@14.14.1");
+        const embed = new EmbedBuilder()
+          .setColor(0xFFA500)
+          .setTitle("🔄 Update Available")
+          .setDescription(`A newer version is available. You are running **v${BOT_VERSION}** (\`${result.localCommit}\`).`)
+          .addFields(
+            { name: "Latest Commit", value: `\`${result.remoteCommit}\``, inline: true },
+            {
+              name: "How to Update",
+              value: Deno.env.get("DOCKER_CONTAINER")
+                ? "```\ndocker compose pull && docker compose up -d\n```"
+                : "```\ngit pull origin main && deno task start\n```",
+              inline: false
+            }
+          )
+          .setTimestamp();
+        await channel.send({ embeds: [embed] });
+      }
+    } catch {
+      // Periodic notification is best-effort
+    }
+  });
   
   // Setup signal handlers for graceful shutdown
   setupSignalHandlers({

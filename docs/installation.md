@@ -146,5 +146,5 @@ Environment variables override `.env` file settings. CLI flags override environm
 ### Docker (all platforms)
 
 - Docker Desktop required on Windows/macOS, Docker Engine on Linux
-- The image bundles Deno, Node.js, and Claude CLI so no local installs needed
+- The image bundles Deno and Git so no local installs needed
 - See [Docker Guide](docker.md) for volumes, GHCR, and Watchtower
