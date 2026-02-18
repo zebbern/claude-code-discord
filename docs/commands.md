@@ -5,8 +5,9 @@
 | Command | Description |
 |---------|-------------|
 | `/claude` | Send a prompt to Claude Code. Supports `prompt` and `session_id` options. |
-| `/continue` | Continue a previous Claude conversation with an optional follow-up prompt. |
+| `/resume` | Resume (continue) a previous Claude conversation with an optional follow-up prompt. |
 | `/claude-cancel` | Cancel the currently running Claude operation. |
+| `/fast` | Toggle Opus 4.6 fast mode — 2.5x faster responses, same quality. |
 
 ## Enhanced Claude Commands (4)
 
@@ -35,7 +36,7 @@
 |---------|-------------|
 | `/claude-info` | View account info, available models, and MCP server status. Options: `section` (all/account/models/mcp). Works with or without an active session. |
 | `/rewind` | Rewind file changes to a specific conversation turn. Options: `turn` (number), `dry_run` (preview changes without applying). |
-| `/claude-control` | Mid-session controls. Options: `action` (interrupt/set-model/set-permissions/status), `value`. Change model or permissions without restarting. |
+| `/claude-control` | Mid-session controls. Options: `action` (interrupt/set-model/set-permissions/stop-task/status), `value`. Change model, permissions, or stop background tasks without restarting. |
 
 ## Settings Commands (4)
 
@@ -51,7 +52,7 @@
 | Command | Description |
 |---------|-------------|
 | `/todos` | Task management. Actions: `list`, `add`, `complete`, `generate`, `prioritize`. Priority levels: low/medium/high/critical. Persists to disk. |
-| `/mcp` | MCP (Model Context Protocol) server management. Actions: `list`, `add`, `remove`, `test`, `status`. Reads from `.claude/mcp.json`. |
+| `/mcp` | MCP (Model Context Protocol) server management. Actions: `list`, `add`, `remove`, `test`, `status`, `toggle`, `reconnect`. Reads from `.claude/mcp.json`. Toggle/reconnect work mid-session. |
 | `/agent` | Run specialized AI agents. Actions: `list`, `start`, `stop`, `status`. 7 built-in agents. |
 
 ## Git Operations (6)

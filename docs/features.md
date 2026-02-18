@@ -37,9 +37,15 @@ Set via `/settings` > `claude` > `set-effort`.
 
 | Feature | Description |
 |---------|-------------|
+| Fast Mode | Toggle Opus 4.6 speed-optimized API (2.5x faster, same quality) via `/fast` |
 | 1M Token Context | Beta: increases context window to 1M tokens |
-| Sandbox Mode | Runs Claude in sandboxed environment for safety |
+| Sandbox Mode | Granular sandbox with network rules, filesystem ACLs, excluded commands |
 | File Checkpointing | Enables file change tracking for rewind support |
+| Agent Teams | Experimental multi-agent collaboration (delegate mode) |
+| Hooks System | Passive SDK callbacks for tool use, notification, and task observability |
+| Additional Directories | Multi-repo access — let Claude read/write across multiple directories |
+| Fork Session | Branch a conversation into a new independent session |
+| AskUserQuestion | Claude can ask clarifying questions mid-session via Discord buttons |
 
 Toggles available via `/settings` > `claude`.
 
@@ -73,11 +79,13 @@ Agents run through the SDK using native `AgentDefinition` support with tailored 
 Manage Model Context Protocol servers for Claude:
 
 ```
-/mcp list       # Show configured MCP servers
-/mcp add        # Add a new MCP server
-/mcp remove     # Remove an MCP server
-/mcp status     # Check connection status
-/mcp test       # Test a server connection
+/mcp list        # Show configured MCP servers
+/mcp add         # Add a new MCP server
+/mcp remove      # Remove an MCP server
+/mcp status      # Check connection status
+/mcp test        # Test a server connection
+/mcp toggle      # Enable/disable a server mid-session
+/mcp reconnect   # Reconnect a failed server mid-session
 ```
 
 MCP configuration is stored in `.claude/mcp.json`:
@@ -103,6 +111,7 @@ Change model or permissions without restarting your session:
 ```
 /claude-control set-model claude-sonnet-4-20250514
 /claude-control set-permissions bypassPermissions
+/claude-control stop-task <task_id>
 /claude-control status
 /claude-control interrupt
 ```
