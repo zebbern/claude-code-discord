@@ -32,7 +32,7 @@ export const claudeCommands = [
 
 export interface ClaudeHandlerDeps {
   workDir: string;
-  claudeController: AbortController | null;
+  getClaudeController: () => AbortController | null;
   setClaudeController: (controller: AbortController | null) => void;
   setClaudeSessionId: (sessionId: string | undefined) => void;
   sendClaudeMessages: (messages: ClaudeMessage[]) => Promise<void>;
@@ -47,8 +47,9 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
     // deno-lint-ignore no-explicit-any
     async onClaude(ctx: any, prompt: string, sessionId?: string): Promise<ClaudeResponse> {
       // Cancel any existing session
-      if (deps.claudeController) {
-        deps.claudeController.abort();
+      const existingController = deps.getClaudeController();
+      if (existingController) {
+        existingController.abort();
       }
       
       const controller = new AbortController();
@@ -96,8 +97,9 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
     // deno-lint-ignore no-explicit-any
     async onContinue(ctx: any, prompt?: string): Promise<ClaudeResponse> {
       // Cancel any existing session
-      if (deps.claudeController) {
-        deps.claudeController.abort();
+      const existingController = deps.getClaudeController();
+      if (existingController) {
+        existingController.abort();
       }
       
       const controller = new AbortController();
@@ -149,12 +151,13 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
     
     // deno-lint-ignore no-explicit-any
     onClaudeCancel(_ctx: any): boolean {
-      if (!deps.claudeController) {
+      const currentController = deps.getClaudeController();
+      if (!currentController) {
         return false;
       }
       
       console.log("Cancelling Claude Code session...");
-      deps.claudeController.abort();
+      currentController.abort();
       deps.setClaudeController(null);
       deps.setClaudeSessionId(undefined);
       

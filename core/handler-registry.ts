@@ -441,7 +441,7 @@ export function createAllHandlers(
 
   const claudeHandlers = createClaudeHandlers({
     workDir,
-    claudeController: claudeSession.getController(),
+    getClaudeController: claudeSession.getController,
     setClaudeController: claudeSession.setController,
     setClaudeSessionId: claudeSession.setSessionId,
     sendClaudeMessages,
@@ -484,7 +484,7 @@ export function createAllHandlers(
 
   const enhancedClaudeHandlers = createEnhancedClaudeHandlers({
     workDir,
-    claudeController: claudeSession.getController(),
+    getClaudeController: claudeSession.getController,
     setClaudeController: claudeSession.setController,
     setClaudeSessionId: claudeSession.setSessionId,
     sendClaudeMessages,
@@ -500,7 +500,7 @@ export function createAllHandlers(
 
   const additionalClaudeHandlers = createAdditionalClaudeHandlers({
     workDir,
-    claudeController: claudeSession.getController(),
+    getClaudeController: claudeSession.getController,
     setClaudeController: claudeSession.setController,
     sendClaudeMessages,
     sessionManager: claudeSessionManager,

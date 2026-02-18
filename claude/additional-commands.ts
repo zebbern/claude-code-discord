@@ -182,7 +182,7 @@ export const additionalClaudeCommands = [
 
 export interface AdditionalClaudeHandlerDeps {
   workDir: string;
-  claudeController: AbortController | null;
+  getClaudeController: () => AbortController | null;
   setClaudeController: (controller: AbortController | null) => void;
   sendClaudeMessages: (messages: any[]) => Promise<void>;
   sessionManager: any;
@@ -227,6 +227,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
 
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
+        // Cancel any existing session
+        const existingController = deps.getClaudeController();
+        if (existingController) {
+          existingController.abort();
+        }
+
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
@@ -279,6 +285,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
 
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
+        // Cancel any existing session
+        const existingController = deps.getClaudeController();
+        if (existingController) {
+          existingController.abort();
+        }
+
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
@@ -340,6 +352,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
 
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
+        // Cancel any existing session
+        const existingController = deps.getClaudeController();
+        if (existingController) {
+          existingController.abort();
+        }
+
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
@@ -404,6 +422,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
 
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
+        // Cancel any existing session
+        const existingController = deps.getClaudeController();
+        if (existingController) {
+          existingController.abort();
+        }
+
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
@@ -461,6 +485,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
 
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
+        // Cancel any existing session
+        const existingController = deps.getClaudeController();
+        if (existingController) {
+          existingController.abort();
+        }
+
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
@@ -522,6 +552,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
 
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
+        // Cancel any existing session
+        const existingController = deps.getClaudeController();
+        if (existingController) {
+          existingController.abort();
+        }
+
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
@@ -579,6 +615,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
 
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
+        // Cancel any existing session
+        const existingController = deps.getClaudeController();
+        if (existingController) {
+          existingController.abort();
+        }
+
         const controller = new AbortController();
         deps.setClaudeController(controller);
 

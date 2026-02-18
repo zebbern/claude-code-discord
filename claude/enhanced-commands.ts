@@ -90,7 +90,7 @@ export const enhancedClaudeCommands = [
 
 export interface EnhancedClaudeHandlerDeps {
   workDir: string;
-  claudeController: AbortController | null;
+  getClaudeController: () => AbortController | null;
   setClaudeController: (controller: AbortController | null) => void;
   setClaudeSessionId: (sessionId: string | undefined) => void;
   sendClaudeMessages: (messages: any[]) => Promise<void>;
@@ -116,8 +116,9 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
     ) {
       try {
         // Cancel any existing session
-        if (deps.claudeController) {
-          deps.claudeController.abort();
+        const existingController = deps.getClaudeController();
+        if (existingController) {
+          existingController.abort();
         }
 
         const controller = new AbortController();
