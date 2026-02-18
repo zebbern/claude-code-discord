@@ -63,6 +63,33 @@ function truncateContent(content: string, maxLines = 15, maxChars = 1000): { pre
   };
 }
 
+// Format stop_reason for human-readable display in completion embeds
+// See SDK v0.2.31+ for stop_reason field on result messages
+function formatStopReason(stopReason?: string, sdkSubtype?: string): string | null {
+  // Map SDK error subtypes to user-friendly messages
+  if (sdkSubtype && sdkSubtype !== 'success') {
+    const subtypeMap: Record<string, string> = {
+      'error_max_turns': '🔄 Hit turn limit',
+      'error_budget': '💰 Budget exceeded',
+      'error_tool': '🔧 Tool error',
+      'error_streaming': '📡 Streaming error',
+    };
+    if (subtypeMap[sdkSubtype]) return subtypeMap[sdkSubtype];
+  }
+
+  if (!stopReason) return null;
+
+  const reasonMap: Record<string, string> = {
+    'end_turn': '✅ Completed',
+    'max_tokens': '⚠️ Hit token limit',
+    'refusal': '🚫 Request declined',
+    'stop_sequence': '⏹️ Stop sequence',
+    'tool_use': '🔧 Tool use',
+  };
+
+  return reasonMap[stopReason] ?? null;
+}
+
 // Helper function to detect file type from path
 function getFileTypeInfo(filePath: string): { icon: string; language: string } {
   const ext = filePath.split('.').pop()?.toLowerCase() || '';
@@ -308,6 +335,12 @@ export function createClaudeSender(sender: DiscordSender) {
         }
         if (msg.metadata?.duration_ms !== undefined) {
           embedData.fields!.push({ name: 'Duration', value: `${(msg.metadata.duration_ms / 1000).toFixed(2)}s`, inline: true });
+        }
+        
+        // Display stop reason — why Claude finished (v0.2.31+ SDK feature)
+        const stopReasonDisplay = formatStopReason(msg.metadata?.stop_reason, msg.metadata?.sdkSubtype);
+        if (stopReasonDisplay) {
+          embedData.fields!.push({ name: 'Stop Reason', value: stopReasonDisplay, inline: true });
         }
         
         // Special handling for shutdown

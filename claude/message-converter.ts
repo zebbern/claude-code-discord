@@ -104,10 +104,16 @@ export function convertToClaudeMessages(jsonData: any): ClaudeMessage[] {
       }
     }
     // Surface result metadata (cost, duration, etc.) as system
+    // Preserve the original SDK subtype (e.g. 'error_max_turns', 'error_budget')
+    // alongside the simplified display subtype ('completion' | 'error')
     messages.push({
       type: 'system',
       content: '',
-      metadata: { ...jsonData, subtype: jsonData.subtype === 'success' ? 'completion' : 'error' }
+      metadata: {
+        ...jsonData,
+        subtype: jsonData.subtype === 'success' ? 'completion' : 'error',
+        sdkSubtype: jsonData.subtype, // Original SDK subtype for detailed display
+      }
     });
   } else if (jsonData.type === 'system') {
     // Task notifications from subagents

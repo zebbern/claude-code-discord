@@ -1,5 +1,6 @@
 import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgentDefinition, type ModelInfo as SDKModelInfo, type SdkBeta, type McpServerConfig } from "@anthropic-ai/claude-agent-sdk";
 import { setActiveQuery, trackMessageId, clearTrackedMessages } from "./query-manager.ts";
+import type { AskUserQuestionInput, AskUserCallback } from "./user-question.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 
 // Load MCP server configs from .claude/mcp.json
@@ -114,6 +115,9 @@ export interface ClaudeModelOptions {
   sandbox?: { enabled: boolean; autoAllowBashIfSandboxed?: boolean };
   /** Structured output format (JSON schema) */
   outputFormat?: { type: 'json_schema'; schema: Record<string, unknown> };
+  /** Callback for AskUserQuestion tool — Claude asks the user mid-session.
+   *  If provided, the AskUserQuestion tool is enabled and routed through this callback. */
+  onAskUser?: AskUserCallback;
 }
 
 // Wrapper for Claude Code SDK query function
@@ -164,6 +168,8 @@ export async function sendToClaudeCode(
       // Build environment variables for the subprocess
       const envVars: Record<string, string> = {
         ...Object.fromEntries(Object.entries(Deno.env.toObject())),
+        // Enable the Tasks system for subagent background tasks (SDK v0.2.19+)
+        CLAUDE_CODE_ENABLE_TASKS: '1',
       };
       
       // Apply extra env vars (proxy settings, etc.)
@@ -209,20 +215,38 @@ export async function sendToClaudeCode(
           ...(modelOptions?.outputFormat && { outputFormat: modelOptions.outputFormat }),
           // MCP servers from .claude/mcp.json
           ...(mcpServers && { mcpServers }),
-          // Auto-allow MCP tools from configured servers.
-          // The dontAsk permission mode blocks MCP tools because they aren't "pre-approved".
-          // canUseTool handles permission prompts — built-in tools that dontAsk
-          // auto-approves (Read, Edit, Bash, etc.) won't trigger this callback.
+          // Permission / tool-use callback — handles:
+          //   1. AskUserQuestion tool → routes to onAskUser callback for interactive Discord flow
+          //   2. MCP tools → auto-allow tools from configured servers
+          //   3. Everything else → deny (dontAsk mode blocks unapproved tools)
           // NOTE: The SDK's runtime Zod schema requires `updatedInput` on allow responses
           // even though the TypeScript types mark it optional — pass through original input.
-          ...(mcpToolPrefixes.length > 0 && {
-            canUseTool: async (toolName: string, input: Record<string, unknown>) => {
-              if (mcpToolPrefixes.some(prefix => toolName.startsWith(prefix))) {
-                return { behavior: 'allow' as const, updatedInput: input };
+          canUseTool: async (toolName: string, input: Record<string, unknown>) => {
+            // AskUserQuestion: route to Discord interactive flow
+            if (toolName === 'AskUserQuestion' && modelOptions?.onAskUser) {
+              try {
+                const askInput = input as unknown as AskUserQuestionInput;
+                const answers = await modelOptions.onAskUser(askInput);
+                return {
+                  behavior: 'allow' as const,
+                  updatedInput: {
+                    questions: askInput.questions,
+                    answers,
+                  },
+                };
+              } catch (err) {
+                console.error('[AskUserQuestion] Failed to collect answers:', err);
+                return { behavior: 'deny' as const, message: 'User did not respond in time' };
               }
-              return { behavior: 'deny' as const, message: `Tool ${toolName} not pre-approved` };
-            },
-          }),
+            }
+
+            // MCP tools: auto-allow tools from configured servers
+            if (mcpToolPrefixes.some(prefix => toolName.startsWith(prefix))) {
+              return { behavior: 'allow' as const, updatedInput: input };
+            }
+
+            return { behavior: 'deny' as const, message: `Tool ${toolName} not pre-approved` };
+          },
           env: envVars,
         },
       };

@@ -29,6 +29,7 @@ import { screenshotCommands, createScreenshotHandlers } from "../screenshot/inde
 import { infoCommands, createInfoCommandHandlers } from "../claude/index.ts";
 import { cleanSessionId, ClaudeSessionManager } from "../claude/index.ts";
 import type { ClaudeModelOptions } from "../claude/index.ts";
+import type { AskUserCallback } from "../claude/index.ts";
 import { THINKING_MODES, OPERATION_MODES, EFFORT_LEVELS } from "../settings/index.ts";
 
 import type { ShellManager } from "../shell/index.ts";
@@ -167,6 +168,9 @@ export interface HandlerRegistryDeps {
   sendClaudeMessages: (messages: ClaudeMessage[]) => Promise<void>;
   /** Callback when bot settings update */
   onBotSettingsUpdate?: (settings: { mentionEnabled: boolean; mentionUserId: string | null }) => void;
+  /** Late-bound callback for AskUserQuestion tool — Claude asks the Discord user mid-session.
+   *  Set from index.ts after bot is created. */
+  onAskUser?: AskUserCallback;
 }
 
 /**
@@ -434,6 +438,11 @@ export function createAllHandlers(
     }
     if (s.outputJsonSchema) {
       opts.outputFormat = { type: 'json_schema', schema: s.outputJsonSchema };
+    }
+    
+    // AskUserQuestion — interactive question flow (late-bound from index.ts)
+    if (deps.onAskUser) {
+      opts.onAskUser = deps.onAskUser;
     }
     
     return opts;

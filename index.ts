@@ -20,6 +20,7 @@ import {
 
 import { getGitInfo } from "./git/index.ts";
 import { createClaudeSender, expandableContent, type DiscordSender, type ClaudeMessage } from "./claude/index.ts";
+import { buildQuestionMessages, parseAskUserButtonId, parseAskUserConfirmId, type AskUserQuestionInput } from "./claude/index.ts";
 import { claudeCommands, enhancedClaudeCommands } from "./claude/index.ts";
 import { additionalClaudeCommands } from "./claude/additional-index.ts";
 import { initModels } from "./claude/enhanced-client.ts";
@@ -114,11 +115,25 @@ export async function createClaudeCodeBot(config: BotConfig) {
   let bot: any;
   let claudeSender: ((messages: ClaudeMessage[]) => Promise<void>) | null = null;
   
+  // Late-bound AskUserQuestion handler — set after bot is created.
+  // When Claude needs clarification mid-session, this sends buttons to Discord
+  // and waits for the user's click.
+  // Uses an object wrapper so TypeScript doesn't narrow the closure to `never`.
+  const askUserState: { handler: ((input: AskUserQuestionInput) => Promise<Record<string, string>>) | null } = { handler: null };
+  
   // Create sendClaudeMessages function that uses the sender when available
   const sendClaudeMessages = async (messages: ClaudeMessage[]) => {
     if (claudeSender) {
       await claudeSender(messages);
     }
+  };
+  
+  // Create onAskUser wrapper — delegates to askUserState.handler once bot is ready
+  const onAskUser = async (input: AskUserQuestionInput): Promise<Record<string, string>> => {
+    if (!askUserState.handler) {
+      throw new Error('AskUserQuestion handler not initialized — bot not ready');
+    }
+    return await askUserState.handler(input);
   };
 
   // Create all handlers using the registry (centralized handler creation)
@@ -137,6 +152,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       healthMonitor,
       claudeSessionManager,
       sendClaudeMessages,
+      onAskUser,
       onBotSettingsUpdate: (settings) => {
         botSettings.mentionEnabled = settings.mentionEnabled;
         botSettings.mentionUserId = settings.mentionUserId;
@@ -192,6 +208,9 @@ export async function createClaudeCodeBot(config: BotConfig) {
   
   // Create Discord sender for Claude messages
   claudeSender = createClaudeSender(createDiscordSenderAdapter(bot));
+  
+  // Initialize AskUserQuestion handler — sends questions to Discord, waits for button clicks
+  askUserState.handler = createAskUserDiscordHandler(bot);
   
   // Check for updates (non-blocking)
   runVersionCheck().then(async ({ updateAvailable, embed }) => {
@@ -289,6 +308,135 @@ function createDiscordSenderAdapter(bot: any): DiscordSender {
   };
 }
 
+/**
+ * Create the AskUserQuestion handler that uses the Discord channel.
+ *
+ * When Claude calls the AskUserQuestion tool:
+ * 1. Builds embeds with option buttons for each question
+ * 2. Sends them to the bot's channel
+ * 3. Waits up to 5 minutes for button clicks
+ * 4. Returns answers to the SDK so Claude can continue
+ */
+// deno-lint-ignore no-explicit-any
+function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) => Promise<Record<string, string>> {
+  return async (input: AskUserQuestionInput): Promise<Record<string, string>> => {
+    const channel = bot.getChannel();
+    if (!channel) {
+      throw new Error('Discord channel not available');
+    }
+
+    const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = await import("npm:discord.js@14.14.1");
+    const answers: Record<string, string> = {};
+    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+    for (let qi = 0; qi < input.questions.length; qi++) {
+      const q = input.questions[qi];
+
+      // Build embed
+      const embed = new EmbedBuilder()
+        .setColor(0xff9900)
+        .setTitle(`❓ Claude needs your input — ${q.header}`)
+        .setDescription(q.question)
+        .setFooter({ text: q.multiSelect ? 'Select option(s), then click ✅ Confirm' : 'Click an option to answer' })
+        .setTimestamp();
+
+      for (let oi = 0; oi < q.options.length; oi++) {
+        embed.addFields({ name: `${oi + 1}. ${q.options[oi].label}`, value: q.options[oi].description, inline: true });
+      }
+
+      // Build buttons
+      const row = new ActionRowBuilder();
+      for (let oi = 0; oi < q.options.length; oi++) {
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`ask-user:${qi}:${oi}`)
+            .setLabel(q.options[oi].label)
+            .setStyle(ButtonStyle.Primary)
+        );
+      }
+
+      if (q.multiSelect) {
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`ask-user-confirm:${qi}`)
+            .setLabel('✅ Confirm')
+            .setStyle(ButtonStyle.Success)
+        );
+      }
+
+      // Send the question message
+      const questionMsg = await channel.send({ embeds: [embed], components: [row] });
+
+      // Collect response
+      if (q.multiSelect) {
+        // Multi-select: collect multiple clicks, then wait for confirm
+        const selected: string[] = [];
+        const collector = questionMsg.createMessageComponentCollector({
+          componentType: ComponentType.Button,
+          time: TIMEOUT_MS,
+        });
+
+        await new Promise<void>((resolve, reject) => {
+          // deno-lint-ignore no-explicit-any
+          collector.on('collect', async (i: any) => {
+            const parsed = parseAskUserButtonId(i.customId);
+            if (parsed && parsed.questionIndex === qi) {
+              const label = q.options[parsed.optionIndex].label;
+              if (!selected.includes(label)) {
+                selected.push(label);
+              }
+              await i.update({
+                embeds: [embed.setFooter({ text: `Selected: ${selected.join(', ')} — click ✅ Confirm when done` })],
+                components: [row],
+              });
+            } else if (parseAskUserConfirmId(i.customId)?.questionIndex === qi) {
+              answers[q.question] = selected.join(', ');
+              collector.stop('confirmed');
+              await i.update({
+                embeds: [embed.setColor(0x00ff00).setFooter({ text: `✅ Answered: ${selected.join(', ')}` })],
+                components: [],
+              });
+              resolve();
+            }
+          });
+
+          collector.on('end', (_: unknown, reason: string) => {
+            if (reason !== 'confirmed') {
+              reject(new Error(`Question "${q.header}" timed out waiting for response`));
+            }
+          });
+        });
+      } else {
+        // Single-select: wait for one button click
+        // deno-lint-ignore no-explicit-any
+        const interaction: any = await questionMsg.awaitMessageComponent({
+          componentType: ComponentType.Button,
+          time: TIMEOUT_MS,
+        }).catch(() => null);
+
+        if (!interaction) {
+          throw new Error(`Question "${q.header}" timed out waiting for response`);
+        }
+
+        const parsed = parseAskUserButtonId(interaction.customId);
+        if (parsed && parsed.questionIndex === qi) {
+          const label = q.options[parsed.optionIndex].label;
+          answers[q.question] = label;
+
+          await interaction.update({
+            embeds: [embed.setColor(0x00ff00).setFooter({ text: `✅ Answered: ${label}` })],
+            components: [],
+          });
+        } else {
+          throw new Error(`Unexpected button ID: ${interaction.customId}`);
+        }
+      }
+    }
+
+    console.log('[AskUserQuestion] Collected answers:', JSON.stringify(answers));
+    return answers;
+  };
+}
 /**
  * Setup signal handlers for graceful shutdown.
  */

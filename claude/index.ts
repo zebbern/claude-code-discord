@@ -48,3 +48,6 @@ export {
   fetchClaudeInfo,
 } from "./query-manager.ts";
 export type { ClaudeInitInfo, RewindFilesResult } from "./query-manager.ts";
+// AskUserQuestion — interactive question flow (SDK v0.1.71+)
+export { buildQuestionMessages, parseAskUserButtonId, parseAskUserConfirmId } from "./user-question.ts";
+export type { AskUserCallback, AskUserQuestionInput, AskUserQuestionItem, AskUserOption } from "./user-question.ts";
