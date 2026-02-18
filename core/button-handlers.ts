@@ -48,12 +48,12 @@ export function createButtonHandlers(
   deps: ButtonHandlerDeps,
   expandableContent: ExpandableContentMap
 ): ButtonHandlers {
-  const { messageHistory, handlers, getClaudeSessionId } = deps;
+  const { messageHistory, handlers } = deps;
   const { addToHistory, getPreviousMessage, getNextMessage, getState } = messageHistory;
   const { claude: claudeHandlers, git: gitHandlers } = handlers;
 
   const buttonHandlers: ButtonHandlers = new Map([
-    // Cancel Claude session
+    // Cancel Claude session (kept for programmatic use, no longer on completion buttons)
     ['cancel-claude', async (ctx: InteractionContext) => {
       const cancelled = claudeHandlers.onClaudeCancel(ctx);
       await ctx.update({
@@ -66,31 +66,18 @@ export function createButtonHandlers(
       });
     }],
     
-    // Copy session ID button
-    ['copy-session', async (ctx: InteractionContext) => {
-      const sessionId = getClaudeSessionId();
-      await ctx.update({
-        embeds: [{
-          color: 0x00ff00,
-          title: 'Session ID',
-          description: sessionId ? `\`${sessionId}\`` : 'No active session',
-          timestamp: true
-        }]
-      });
-    }],
-    
-    // Jump to previous message button
-    ['jump-previous', async (ctx: InteractionContext) => {
+    // Prompt history — replaces old "jump-previous"
+    ['prompt-history', async (ctx: InteractionContext) => {
       const previousMessage = getPreviousMessage();
       
       if (!previousMessage) {
         await ctx.update({
           embeds: [{
             color: 0xffaa00,
-            title: '⬆️ No Previous Messages',
-            description: 'No previous messages found in history.',
+            title: '📜 No Prompt History',
+            description: 'No previous prompts found.',
             fields: [
-              { name: 'Tip', value: 'Send some Claude commands to build up your message history!', inline: false }
+              { name: 'Tip', value: 'Use `/claude` to send prompts — they\'ll appear here for reuse.', inline: false }
             ],
             timestamp: true
           }]
@@ -98,7 +85,6 @@ export function createButtonHandlers(
         return;
       }
       
-      // Show the previous message with navigation options
       const historyState = getState();
       const historyPosition = historyState.currentIndex + 1;
       const totalMessages = historyState.history.length;
@@ -106,12 +92,8 @@ export function createButtonHandlers(
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
-          title: `⬆️ Previous Message (${historyPosition}/${totalMessages})`,
+          title: `📜 Prompt History (${historyPosition}/${totalMessages})`,
           description: `\`\`\`\n${previousMessage}\n\`\`\``,
-          fields: [
-            { name: 'Usage', value: 'Copy this message to use with `/claude prompt:...`', inline: false },
-            { name: 'Navigation', value: `Position ${historyPosition} of ${totalMessages} messages in history`, inline: false }
-          ],
           timestamp: true
         }],
         components: [
@@ -120,7 +102,7 @@ export function createButtonHandlers(
             components: [
               { type: 'button', customId: 'history-previous', label: '⬅️ Older', style: 'secondary' },
               { type: 'button', customId: 'history-next', label: '➡️ Newer', style: 'secondary' },
-              { type: 'button', customId: 'history-use', label: '🔄 Use This Message', style: 'primary' },
+              { type: 'button', customId: 'history-use', label: '▶️ Run This Prompt', style: 'primary' },
               { type: 'button', customId: 'history-close', label: '❌ Close', style: 'danger' }
             ]
           }
@@ -128,32 +110,11 @@ export function createButtonHandlers(
       });
     }],
     
-    // Continue button with session ID
-    ['continue', async (ctx: InteractionContext) => {
-      const sessionId = getClaudeSessionId();
-      if (!sessionId) {
-        await ctx.update({
-          embeds: [{
-            color: 0xff0000,
-            title: '❌ No Session Available',
-            description: 'No active session found. Use `/claude` to start a new conversation.',
-            timestamp: true
-          }]
-        });
-        return;
-      }
-      
-      await ctx.update({
-        embeds: [{
-          color: 0xffff00,
-          title: '➡️ Continue Session',
-          description: `Use \`/continue\` or \`/claude session_id:${sessionId}\` to continue the conversation.`,
-          fields: [
-            { name: 'Session ID', value: `\`${sessionId}\``, inline: false }
-          ],
-          timestamp: true
-        }]
-      });
+    // Legacy alias — old messages may still have jump-previous buttons
+    ['jump-previous', async (ctx: InteractionContext) => {
+      // Delegate to prompt-history handler
+      const handler = buttonHandlers.get('prompt-history');
+      if (handler) await handler(ctx);
     }],
     
     // History navigation - older
@@ -164,8 +125,8 @@ export function createButtonHandlers(
         await ctx.update({
           embeds: [{
             color: 0xffaa00,
-            title: '⬅️ No Older Messages',
-            description: 'You\'ve reached the beginning of your message history.',
+            title: '⬅️ No Older Prompts',
+            description: 'You\'ve reached the beginning of your prompt history.',
             timestamp: true
           }],
           components: []
@@ -180,12 +141,8 @@ export function createButtonHandlers(
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
-          title: `⬅️ Older Message (${historyPosition}/${totalMessages})`,
+          title: `📜 Prompt History (${historyPosition}/${totalMessages})`,
           description: `\`\`\`\n${olderMessage}\n\`\`\``,
-          fields: [
-            { name: 'Usage', value: 'Copy this message to use with `/claude prompt:...`', inline: false },
-            { name: 'Navigation', value: `Position ${historyPosition} of ${totalMessages} messages in history`, inline: false }
-          ],
           timestamp: true
         }],
         components: [
@@ -194,7 +151,7 @@ export function createButtonHandlers(
             components: [
               { type: 'button', customId: 'history-previous', label: '⬅️ Older', style: 'secondary' },
               { type: 'button', customId: 'history-next', label: '➡️ Newer', style: 'secondary' },
-              { type: 'button', customId: 'history-use', label: '🔄 Use This Message', style: 'primary' },
+              { type: 'button', customId: 'history-use', label: '▶️ Run This Prompt', style: 'primary' },
               { type: 'button', customId: 'history-close', label: '❌ Close', style: 'danger' }
             ]
           }
@@ -210,8 +167,8 @@ export function createButtonHandlers(
         await ctx.update({
           embeds: [{
             color: 0xffaa00,
-            title: '➡️ No Newer Messages',
-            description: 'You\'ve reached the end of your message history.',
+            title: '➡️ No Newer Prompts',
+            description: 'You\'ve reached the end of your prompt history.',
             timestamp: true
           }],
           components: []
@@ -226,12 +183,8 @@ export function createButtonHandlers(
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
-          title: `➡️ Newer Message (${historyPosition}/${totalMessages})`,
+          title: `📜 Prompt History (${historyPosition}/${totalMessages})`,
           description: `\`\`\`\n${newerMessage}\n\`\`\``,
-          fields: [
-            { name: 'Usage', value: 'Copy this message to use with `/claude prompt:...`', inline: false },
-            { name: 'Navigation', value: `Position ${historyPosition} of ${totalMessages} messages in history`, inline: false }
-          ],
           timestamp: true
         }],
         components: [
@@ -240,7 +193,7 @@ export function createButtonHandlers(
             components: [
               { type: 'button', customId: 'history-previous', label: '⬅️ Older', style: 'secondary' },
               { type: 'button', customId: 'history-next', label: '➡️ Newer', style: 'secondary' },
-              { type: 'button', customId: 'history-use', label: '🔄 Use This Message', style: 'primary' },
+              { type: 'button', customId: 'history-use', label: '▶️ Run This Prompt', style: 'primary' },
               { type: 'button', customId: 'history-close', label: '❌ Close', style: 'danger' }
             ]
           }
@@ -256,8 +209,8 @@ export function createButtonHandlers(
         await ctx.update({
           embeds: [{
             color: 0xff0000,
-            title: '❌ No Message Selected',
-            description: 'No message available to use.',
+            title: '❌ No Prompt Selected',
+            description: 'No prompt available to run.',
             timestamp: true
           }],
           components: []
@@ -268,11 +221,8 @@ export function createButtonHandlers(
       await ctx.update({
         embeds: [{
           color: 0x00ff00,
-          title: '🔄 Using Previous Message',
-          description: `Running Claude Code with:\n\`\`\`\n${currentMessage}\n\`\`\``,
-          fields: [
-            { name: 'Status', value: 'Executing...', inline: false }
-          ],
+          title: '▶️ Running Prompt',
+          description: `\`\`\`\n${currentMessage}\n\`\`\``,
           timestamp: true
         }],
         components: []

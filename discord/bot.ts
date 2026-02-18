@@ -336,33 +336,48 @@ export async function createDiscordBot(
     
     // Handle continue with session ID pattern: "continue:sessionId"
     if (buttonId.startsWith('continue:')) {
-      const sessionId = buttonId.split(':')[1];
-      try {
-        await ctx.update({
-          embeds: [{
-            color: 0xffff00,
-            title: '\u27a1\ufe0f Continue Session',
-            description: `Use \`/continue\` or \`/claude session_id:${sessionId}\` to continue this conversation.`,
-            fields: [
-              { name: 'Session ID', value: `\`${sessionId}\``, inline: false }
-            ],
-            timestamp: true
-          }]
-        });
-      } catch (error) {
-        console.error(`Error handling continue button:`, error);
+      if (dependencies.onContinueSession) {
+        try {
+          await dependencies.onContinueSession(ctx);
+        } catch (error) {
+          console.error('Error handling continue button:', error);
+          try {
+            await ctx.followUp({
+              content: `Error continuing session: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              ephemeral: true
+            });
+          } catch { /* ignore follow-up errors */ }
+        }
+      } else {
+        // Fallback: show session ID text if callback not wired
+        const sessionId = buttonId.split(':')[1];
+        try {
+          await ctx.update({
+            embeds: [{
+              color: 0xffff00,
+              title: '\u27a1\ufe0f Continue Session',
+              description: `Use \`/continue\` or \`/claude session_id:${sessionId}\` to continue this conversation.`,
+              fields: [
+                { name: 'Session ID', value: `\`${sessionId}\``, inline: false }
+              ],
+              timestamp: true
+            }]
+          });
+        } catch (error) {
+          console.error(`Error handling continue button fallback:`, error);
+        }
       }
       return;
     }
     
-    // Handle copy session ID pattern: "copy-session:sessionId"
+    // Handle copy session ID pattern: "copy-session:sessionId" (legacy — kept for old messages)
     if (buttonId.startsWith('copy-session:')) {
       const sessionId = buttonId.split(':')[1];
       try {
         await ctx.update({
           embeds: [{
             color: 0x00ff00,
-            title: '📋 Session ID',
+            title: '\ud83d\udccb Session ID',
             description: `\`${sessionId}\``,
             fields: [
               { name: 'Usage', value: 'Copy this ID to use with `/claude session_id:...`', inline: false }

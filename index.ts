@@ -181,7 +181,10 @@ export async function createClaudeCodeBot(config: BotConfig) {
   const dependencies: BotDependencies = {
     commands: getAllCommands(),
     cleanSessionId,
-    botSettings
+    botSettings,
+    onContinueSession: async (ctx) => {
+      await allHandlers.claude.onContinue(ctx);
+    },
   };
 
   // Create Discord bot

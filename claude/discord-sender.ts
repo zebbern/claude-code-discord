@@ -10,53 +10,35 @@ export interface DiscordSender {
 // Store full content for expand functionality
 export const expandableContent = new Map<string, string>();
 
-// Helper function to create common action buttons
+// Helper function to create action buttons for completed sessions
 function createActionButtons(sessionId?: string): ComponentData[] {
   const buttons: ComponentData[] = [];
   
   if (sessionId) {
-    buttons.push(
-      {
-        type: 'button',
-        customId: `continue:${sessionId}`,
-        label: '➡️ Continue',
-        style: 'primary'
-      },
-      {
-        type: 'button',
-        customId: `copy-session:${sessionId}`,
-        label: '📋 Session ID',
-        style: 'secondary'
-      },
-      {
-        type: 'button',
-        customId: 'jump-previous',
-        label: '⬆️ Jump to Previous',
-        style: 'secondary'
-      }
-    );
+    buttons.push({
+      type: 'button',
+      customId: `continue:${sessionId}`,
+      label: '▶️ Continue',
+      style: 'primary'
+    });
   }
   
-  buttons.push({
-    type: 'button',
-    customId: 'cancel-claude',
-    label: '❌ Cancel',
-    style: 'danger'
-  });
-  
-  return buttons;
-}
-
-// Helper function to create workflow buttons  
-function createWorkflowButtons(): ComponentData[] {
-  return [
+  buttons.push(
     {
       type: 'button',
       customId: 'workflow:git-status',
       label: '📊 Git Status',
       style: 'secondary'
+    },
+    {
+      type: 'button',
+      customId: 'prompt-history',
+      label: '📜 Prompt History',
+      style: 'secondary'
     }
-  ];
+  );
+  
+  return buttons;
 }
 
 // Helper function to truncate content with smart preview
@@ -345,11 +327,9 @@ export function createClaudeSender(sender: DiscordSender) {
         
         if (msg.metadata?.subtype === 'completion' && msg.metadata?.session_id) {
           const actionButtons = createActionButtons(msg.metadata.session_id);
-          const workflowButtons = createWorkflowButtons();
           
           messageContent.components = [
-            { type: 'actionRow', components: actionButtons },
-            { type: 'actionRow', components: workflowButtons }
+            { type: 'actionRow', components: actionButtons }
           ];
         }
         
