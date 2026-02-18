@@ -71,49 +71,9 @@ export const DEFAULT_SETTINGS: AdvancedBotSettings = {
 };
 
 export const advancedSettingsCommands = [
-  new SlashCommandBuilder()
-    .setName('claude-settings')
-    .setDescription('Manage Claude Code specific settings')
-    .addStringOption(option =>
-      option.setName('action')
-        .setDescription('Setting action to perform')
-        .setRequired(true)
-        .addChoices(
-          { name: 'show', value: 'show' },
-          { name: 'set-model', value: 'set-model' },
-          { name: 'set-system-prompt', value: 'set-system-prompt' },
-          { name: 'toggle-auto-system-info', value: 'toggle-auto-system-info' },
-          { name: 'toggle-auto-git-context', value: 'toggle-auto-git-context' },
-          { name: 'reset-defaults', value: 'reset-defaults' }
-        ))
-    .addStringOption(option =>
-      option.setName('value')
-        .setDescription('New value for the setting')
-        .setRequired(false)),
-
-  new SlashCommandBuilder()
-    .setName('output-settings')
-    .setDescription('Configure output formatting and display settings')
-    .addStringOption(option =>
-      option.setName('action')
-        .setDescription('Output setting to configure')
-        .setRequired(true)
-        .addChoices(
-          { name: 'show', value: 'show' },
-          { name: 'toggle-code-highlighting', value: 'toggle-code-highlighting' },
-          { name: 'toggle-auto-pagination', value: 'toggle-auto-pagination' },
-          { name: 'set-max-length', value: 'set-max-length' },
-          { name: 'set-timestamp-format', value: 'set-timestamp-format' }
-        ))
-    .addStringOption(option =>
-      option.setName('value')
-        .setDescription('New value for the setting')
-        .setRequired(false)),
-
-  // NOTE: Removed non-implemented advanced settings commands:
-  // - session-settings, monitoring-settings, developer-settings, profile-settings
-  // These commands were defined but had no handlers implemented
-  // Their functionality is now available through the unified settings system
+  // NOTE: /claude-settings and /output-settings have been removed.
+  // Their functionality is fully covered by the unified /settings command
+  // (category:claude and category:output respectively).
 
   new SlashCommandBuilder()
     .setName('quick-model')

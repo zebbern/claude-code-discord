@@ -64,9 +64,9 @@ Installment options (`auto setup script` or `manual installment`), see [Installa
 ## Select Newest Model Available
 
 ```
-/claude-settings action:set-model value:opus
-/claude-settings action:set-model value:sonnet
-/claude-settings action:set-model value:haiku
+/settings category:claude action:set-model value:opus
+/settings category:claude action:set-model value:sonnet
+/quick-model model:haiku
 ```
 
 ## Configuration

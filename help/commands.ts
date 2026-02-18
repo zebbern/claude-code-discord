@@ -726,46 +726,8 @@ export const COMMAND_HELP = {
       "Provides exercises for hands-on practice"
     ]
   },
-  "claude-settings": {
-    title: "⚙️ Claude Code Settings",
-    description: "Manage Claude Code specific settings and preferences",
-    usage: "/claude-settings action: [show/set-model/toggle-auto-system-info/toggle-auto-git-context/set-system-prompt] value: [optional]",
-    examples: [
-      "/claude-settings action: show",
-      "/claude-settings action: set-model value: claude-sonnet-4",
-      "/claude-settings action: toggle-auto-git-context",
-      "/claude-settings action: set-system-prompt value: You are a helpful coding assistant"
-    ],
-    parameters: [
-      { name: "action", description: "Setting action to perform", required: true },
-      { name: "value", description: "New value for the setting", required: false }
-    ],
-    notes: [
-      "Configure default model and context options",
-      "Enable/disable automatic system info and git context",
-      "Set custom system prompts for specialized tasks",
-      "Note: Only model and context options are supported by Claude Code CLI"
-    ]
-  },
-  "output-settings": {
-    title: "🎨 Output Display Settings",
-    description: "Configure output formatting and display preferences",
-    usage: "/output-settings action: [show/toggle-code-highlighting/set-max-length/etc] value: [optional]",
-    examples: [
-      "/output-settings action: show",
-      "/output-settings action: toggle-code-highlighting",
-      "/output-settings action: set-max-length value: 5000"
-    ],
-    parameters: [
-      { name: "action", description: "Output setting to configure", required: true },
-      { name: "value", description: "New value for the setting", required: false }
-    ],
-    notes: [
-      "Control syntax highlighting and pagination",
-      "Set maximum output length and timestamp format",
-      "Customize display preferences for better readability"
-    ]
-  },
+  // /claude-settings and /output-settings have been removed.
+  // Use /settings category:claude and /settings category:output instead.
   "quick-model": {
     title: "🚀 Quick Model Switch",
     description: "Quickly switch Claude model for your next conversation",
@@ -982,8 +944,8 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
                 inline: false
               },
               {
-                name: "⚙️ Advanced Settings",
-                value: "`/settings` - Unified bot settings (NEW)\n`/claude-settings` - Claude preferences\n`/output-settings` - Display settings\n`/quick-model` - Switch Claude model\n`/fast` - Toggle fast mode",
+                name: "⚙️ Settings",
+                value: "`/settings` - Unified settings hub (all categories)\n`/quick-model` - Quick model switch\n`/fast` - Toggle fast mode",
                 inline: false
               },
               {

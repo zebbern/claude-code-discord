@@ -432,13 +432,6 @@ export function createSettingsCommandHandlers(
   const { advancedSettings: advancedSettingsHandlers, unifiedSettings: unifiedSettingsHandlers, agent: agentHandlers } = handlers;
 
   return new Map([
-    ['claude-settings', {
-      execute: async (ctx: InteractionContext) => {
-        const action = ctx.getString('action', true)!;
-        const value = ctx.getString('value');
-        await advancedSettingsHandlers.onClaudeSettings(ctx, action, value || undefined);
-      }
-    }],
     ['settings', {
       execute: async (ctx: InteractionContext) => {
         const category = ctx.getString('category', true)!;
@@ -474,13 +467,6 @@ export function createSettingsCommandHandlers(
         const contextFiles = ctx.getString('context_files');
         const includeSystemInfo = ctx.getBoolean('include_system_info');
         await agentHandlers.onAgent(ctx, action, agentName || undefined, message || undefined, contextFiles || undefined, includeSystemInfo || undefined);
-      }
-    }],
-    ['output-settings', {
-      execute: async (ctx: InteractionContext) => {
-        const action = ctx.getString('action', true)!;
-        const value = ctx.getString('value');
-        await advancedSettingsHandlers.onOutputSettings(ctx, action, value || undefined);
       }
     }],
     ['quick-model', {

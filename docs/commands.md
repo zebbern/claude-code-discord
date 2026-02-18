@@ -38,13 +38,11 @@
 | `/rewind` | Rewind file changes to a specific conversation turn. Options: `turn` (number), `dry_run` (preview changes without applying). |
 | `/claude-control` | Mid-session controls. Options: `action` (interrupt/set-model/set-permissions/stop-task/status), `value`. Change model, permissions, or stop background tasks without restarting. In default/acceptEdits mode, unapproved tools trigger interactive Allow/Deny buttons. |
 
-## Settings Commands (4)
+## Settings Commands (2)
 
 | Command | Description |
 |---------|-------------|
-| `/settings` | Unified settings hub. Options: `category` (mode/claude/output/system/mcp/permissions/all), `action`, `value`. |
-| `/claude-settings` | Claude-specific settings. Actions: `show`, `set-model`, `toggle-git-context`, `toggle-system-info`, `set-system-prompt`, `reset-defaults`. |
-| `/output-settings` | Output formatting settings. |
+| `/settings` | Unified settings hub. Categories: `show`, `bot`, `claude`, `modes`, `output`, `proxy`, `developer`, `reset`. Action and value fields have autocomplete. |
 | `/quick-model` | Quickly switch the active Claude model. |
 
 ## Task & Agent Management (3)

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Interactive Permission Requests**: Allow/Deny buttons in Discord when Claude wants to use an unapproved tool (replaces CLI TUI prompt, makes `default` and `acceptEdits` modes fully usable)
+- **Settings Autocomplete**: `/settings` action and value fields now show dropdown suggestions based on selected category
 - **Fast Mode** (`/fast`): Toggle Opus 4.6 speed-optimized API config (2.5x faster, same quality)
 - **AskUserQuestion Handler**: Claude can now ask clarifying questions mid-session via Discord buttons
 - **Startup Buttons**: Quick-action buttons on the startup embed (Status, Sessions, Help, Shutdown)
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `/continue` renamed to `/resume` for clarity
+- `/claude-settings` and `/output-settings` removed — consolidated into `/settings` (use `category:claude` or `category:output`)
 - Button UX overhaul: consistent styling, proper disabled states, contextual labels
 - Settings display now shows SDK features (hooks, agent teams, sandbox config, additional dirs)
 - Help system updated with all new command documentation
