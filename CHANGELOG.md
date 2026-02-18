@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-06-19
+
+### Breaking Changes
+- Migrated from deprecated `@anthropic-ai/claude-code` to `@anthropic-ai/claude-agent-sdk` v0.2.45
+- Default model no longer hardcoded; SDK auto-selects the best available model
+
+### Added
+- **Mid-Session Controls** (`/claude-control`): interrupt, change model, change permissions without restarting
+- **File Rewind** (`/rewind`): undo file changes to any conversation turn with dry-run preview
+- **Structured Output**: force JSON responses matching a configurable schema
+- **Info Commands** (`/claude-info`): view account info, available models, MCP server status
+- **Dynamic Model Discovery**: auto-fetches models from Anthropic API and CLI at startup
+- **1M Token Context Beta**: opt-in extended context window
+- **File Checkpointing**: enables rewind support for file changes
+- **Sandbox Mode**: run Claude in a sandboxed environment
+- **Startup Version Check**: compares local commit vs GitHub, sends Discord notification if behind
+- **GHCR Docker Publishing**: GitHub Actions workflow builds and pushes images on every push to main
+- **Watchtower Support**: auto-update Docker containers when new images are published
+- **DRY Documentation**: README slimmed to hub, 7 focused doc files in `/docs`
+- **OS-Specific Install Guides**: separate instructions for Linux/macOS, Windows, Docker
+
+### Changed
+- SDK integration uses `AsyncGenerator<SDKMessage>` streaming instead of CLI subprocess
+- Agents converted to native SDK `AgentDefinition` format
+- Normal permission mode uses `acceptEdits` instead of `default`
+- All settings (thinking, effort, system prompt, permissions, git context) now wired to SDK
+- Dockerfile includes Node.js 20 and Claude CLI
+- `ANTHROPIC_API_KEY` passthrough added to Docker Compose
+
+### Fixed
+- Duplicate "Claude Code Complete" embeds per query
+- Model default causing rate limit fallback to haiku
+- Settings not being passed through to SDK queries
+
 ## [1.0.0] - 2026-02-05
 
 ### 🎉 First Public Release
@@ -102,8 +136,9 @@ This is the first stable release of Claude Code Discord Bot - a Discord bot that
 ### Technical Details
 - Built with Deno 2.x and TypeScript
 - Uses Discord.js 14.14.1
-- Claude API via @anthropic-ai/claude-code
+- Claude API via @anthropic-ai/claude-code (deprecated; see v2.0.0 for migration)
 
 ---
 
+[2.0.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.0.0
 [1.0.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v1.0.0
