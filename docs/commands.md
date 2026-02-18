@@ -36,7 +36,7 @@
 |---------|-------------|
 | `/claude-info` | View account info, available models, and MCP server status. Options: `section` (all/account/models/mcp). Works with or without an active session. |
 | `/rewind` | Rewind file changes to a specific conversation turn. Options: `turn` (number), `dry_run` (preview changes without applying). |
-| `/claude-control` | Mid-session controls. Options: `action` (interrupt/set-model/set-permissions/stop-task/status), `value`. Change model, permissions, or stop background tasks without restarting. |
+| `/claude-control` | Mid-session controls. Options: `action` (interrupt/set-model/set-permissions/stop-task/status), `value`. Change model, permissions, or stop background tasks without restarting. In default/acceptEdits mode, unapproved tools trigger interactive Allow/Deny buttons. |
 
 ## Settings Commands (4)
 

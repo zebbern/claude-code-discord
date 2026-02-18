@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.1.0] - 2025-07-17
 
 ### Added
+- **Interactive Permission Requests**: Allow/Deny buttons in Discord when Claude wants to use an unapproved tool (replaces CLI TUI prompt, makes `default` and `acceptEdits` modes fully usable)
 - **Fast Mode** (`/fast`): Toggle Opus 4.6 speed-optimized API config (2.5x faster, same quality)
 - **AskUserQuestion Handler**: Claude can now ask clarifying questions mid-session via Discord buttons
 - **Startup Buttons**: Quick-action buttons on the startup embed (Status, Sessions, Help, Shutdown)

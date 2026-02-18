@@ -19,6 +19,7 @@
 | Hooks system | Passive SDK callbacks for tool use, notification, and task completion observability | ✅ |
 | Granular sandbox config | Full SDK sandbox with network rules, filesystem ACLs, and excluded commands | ✅ |
 | AskUserQuestion | Claude can ask clarifying questions mid-session via Discord buttons | ✅ |
+| Interactive permission prompts | Allow/Deny buttons when Claude wants to use unapproved tools | ✅ |
 | Dynamic model discovery | Auto-fetches available models from Anthropic API and CLI | ✅ |
 | Structured output mode | Get JSON responses matching a configurable schema | ✅ |
 | Advanced thinking modes | Standard, think, think-hard, ultrathink with configurable effort and budget | ✅ |

@@ -15,9 +15,11 @@ Set via `/settings` > `claude` > `set-thinking`.
 
 | Mode | Permissions | Description |
 |------|-------------|-------------|
-| Normal | `acceptEdits` | Can edit files, asks before running commands |
+| Normal | `acceptEdits` | Can edit files, shows Allow/Deny buttons for other tools (e.g. Bash) |
 | Trusted | `bypassPermissions` | Full auto-approval of all operations |
 | Safe | `plan` | Analyze only, no modifications |
+| Don't Ask | `dontAsk` | Auto-denies any tool that isn't pre-approved |
+| Delegate | `delegate` | Restricts to Teammate + Task tools only (agent teams) |
 
 Set via `/settings` > `permissions` > `set-mode`.
 
@@ -46,6 +48,7 @@ Set via `/settings` > `claude` > `set-effort`.
 | Additional Directories | Multi-repo access — let Claude read/write across multiple directories |
 | Fork Session | Branch a conversation into a new independent session |
 | AskUserQuestion | Claude can ask clarifying questions mid-session via Discord buttons |
+| Interactive Permission Requests | Allow/Deny buttons when Claude wants to use unapproved tools (replaces CLI TUI prompt) |
 
 Toggles available via `/settings` > `claude`.
 
