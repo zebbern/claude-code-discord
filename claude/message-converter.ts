@@ -86,7 +86,12 @@ export function convertToClaudeMessages(jsonData: any): ClaudeMessage[] {
   } else if (jsonData.type === 'result') {
     // Handle result messages — surface permission denials and errors
     if (jsonData.permission_denials && jsonData.permission_denials.length > 0) {
+      // Deduplicate by tool_name — the SDK may report the same tool multiple times
+      // when Claude retries a denied tool, producing duplicate embeds in Discord
+      const seenTools = new Set<string>();
       for (const denial of jsonData.permission_denials) {
+        if (seenTools.has(denial.tool_name)) continue;
+        seenTools.add(denial.tool_name);
         messages.push({
           type: 'permission_denied',
           content: `Tool "${denial.tool_name}" was denied by permission mode`,

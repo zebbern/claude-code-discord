@@ -192,26 +192,9 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
         // Update session manager
         if (result.sessionId) {
           sessionManager.updateSession(result.sessionId, result.cost);
-          
-          await sendClaudeMessages([{
-            type: 'system',
-            content: '',
-            metadata: {
-              subtype: 'completion',
-              session_id: result.sessionId,
-              model: result.modelUsed || model || 'Default',
-              total_cost_usd: result.cost,
-              duration_ms: result.duration,
-              cwd: workDir,
-              enhanced_options: {
-                template,
-                includeSystemInfo,
-                includeGitContext,
-                contextFiles: contextFilesList?.length || 0
-              }
-            }
-          }]);
         }
+
+        // Completion message is already sent via SDK streaming (result type → message-converter.ts)
 
         return result;
       } catch (error) {

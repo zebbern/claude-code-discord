@@ -37,12 +37,17 @@ async function loadMcpServers(workDir: string): Promise<Record<string, McpServer
 
 export type { SDKAgentDefinition, SDKModelInfo };
 
-// Extract permission denials from SDK result messages
+// Extract permission denials from SDK result messages (deduplicated by tool name)
 function extractPermissionDenials(messages: SDKMessage[]): Array<{ toolName: string; toolUseId: string; toolInput: Record<string, unknown> }> {
   const denials: Array<{ toolName: string; toolUseId: string; toolInput: Record<string, unknown> }> = [];
+  const seenTools = new Set<string>();
   for (const msg of messages) {
     if (msg.type === 'result' && 'permission_denials' in msg && Array.isArray(msg.permission_denials)) {
       for (const d of msg.permission_denials) {
+        // Skip duplicate tool names — SDK may report the same tool multiple times
+        // when Claude retries a denied tool
+        if (seenTools.has(d.tool_name)) continue;
+        seenTools.add(d.tool_name);
         denials.push({
           toolName: d.tool_name,
           toolUseId: d.tool_use_id,
