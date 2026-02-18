@@ -57,3 +57,6 @@ export type { HookConfig, HookEvent_Discord } from "./hooks.ts";
 // AskUserQuestion — interactive question flow (SDK v0.1.71+)
 export { buildQuestionMessages, parseAskUserButtonId, parseAskUserConfirmId } from "./user-question.ts";
 export type { AskUserCallback, AskUserQuestionInput, AskUserQuestionItem, AskUserOption } from "./user-question.ts";
+// PermissionRequest — interactive tool-permission flow (replaces TUI prompt)
+export { buildPermissionEmbed, describeToolAction, parsePermissionButtonId } from "./permission-request.ts";
+export type { PermissionRequestCallback } from "./permission-request.ts";

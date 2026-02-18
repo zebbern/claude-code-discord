@@ -21,6 +21,7 @@ import {
 import { getGitInfo } from "./git/index.ts";
 import { createClaudeSender, expandableContent, type DiscordSender, type ClaudeMessage } from "./claude/index.ts";
 import { buildQuestionMessages, parseAskUserButtonId, parseAskUserConfirmId, type AskUserQuestionInput } from "./claude/index.ts";
+import { buildPermissionEmbed, parsePermissionButtonId, type PermissionRequestCallback } from "./claude/index.ts";
 import { claudeCommands, enhancedClaudeCommands } from "./claude/index.ts";
 import { additionalClaudeCommands } from "./claude/additional-index.ts";
 import { initModels } from "./claude/enhanced-client.ts";
@@ -120,6 +121,11 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // and waits for the user's click.
   // Uses an object wrapper so TypeScript doesn't narrow the closure to `never`.
   const askUserState: { handler: ((input: AskUserQuestionInput) => Promise<Record<string, string>>) | null } = { handler: null };
+
+  // Late-bound PermissionRequest handler — set after bot is created.
+  // When Claude wants to use a tool that isn't pre-approved, this shows
+  // Allow/Deny buttons in Discord and returns the user's decision.
+  const permReqState: { handler: PermissionRequestCallback | null } = { handler: null };
   
   // Create sendClaudeMessages function that uses the sender when available
   const sendClaudeMessages = async (messages: ClaudeMessage[]) => {
@@ -134,6 +140,15 @@ export async function createClaudeCodeBot(config: BotConfig) {
       throw new Error('AskUserQuestion handler not initialized — bot not ready');
     }
     return await askUserState.handler(input);
+  };
+
+  // Create onPermissionRequest wrapper — delegates to permReqState.handler once bot is ready
+  const onPermissionRequest: PermissionRequestCallback = async (toolName, toolInput) => {
+    if (!permReqState.handler) {
+      console.warn('[PermissionRequest] Handler not initialized — auto-denying');
+      return false;
+    }
+    return await permReqState.handler(toolName, toolInput);
   };
 
   // Create all handlers using the registry (centralized handler creation)
@@ -153,6 +168,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       claudeSessionManager,
       sendClaudeMessages,
       onAskUser,
+      onPermissionRequest,
       onBotSettingsUpdate: (settings) => {
         botSettings.mentionEnabled = settings.mentionEnabled;
         botSettings.mentionUserId = settings.mentionUserId;
@@ -212,6 +228,9 @@ export async function createClaudeCodeBot(config: BotConfig) {
   
   // Initialize AskUserQuestion handler — sends questions to Discord, waits for button clicks
   askUserState.handler = createAskUserDiscordHandler(bot);
+
+  // Initialize PermissionRequest handler — shows Allow/Deny buttons for unapproved tools
+  permReqState.handler = createPermissionRequestHandler(bot);
   
   // Check for updates (non-blocking)
   runVersionCheck().then(async ({ updateAvailable, embed }) => {
@@ -431,6 +450,81 @@ function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) =>
     return answers;
   };
 }
+
+/**
+ * Create the PermissionRequest handler that uses the Discord channel.
+ *
+ * When Claude wants to use a tool that isn't pre-approved:
+ * 1. Builds an embed showing the tool name and input preview
+ * 2. Adds Allow / Deny buttons
+ * 3. Sends to the bot's channel
+ * 4. Waits for a button click (no timeout — user decides)
+ * 5. Returns true (allow) or false (deny)
+ */
+// deno-lint-ignore no-explicit-any
+function createPermissionRequestHandler(bot: any): PermissionRequestCallback {
+  // Simple incrementing nonce to disambiguate concurrent requests
+  let nonce = 0;
+
+  return async (toolName: string, toolInput: Record<string, unknown>): Promise<boolean> => {
+    const channel = bot.getChannel();
+    if (!channel) {
+      console.warn('[PermissionRequest] No channel — auto-denying');
+      return false;
+    }
+
+    const reqNonce = String(++nonce);
+    const embedData = buildPermissionEmbed(toolName, toolInput);
+
+    const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = await import("npm:discord.js@14.14.1");
+
+    const embed = new EmbedBuilder()
+      .setColor(embedData.color)
+      .setTitle(embedData.title)
+      .setDescription(embedData.description)
+      .setFooter({ text: embedData.footer.text })
+      .setTimestamp();
+
+    for (const field of embedData.fields) {
+      embed.addFields({ name: field.name, value: field.value, inline: field.inline });
+    }
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`perm-req:${reqNonce}:allow`)
+        .setLabel('✅ Allow')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`perm-req:${reqNonce}:deny`)
+        .setLabel('❌ Deny')
+        .setStyle(ButtonStyle.Danger),
+    );
+
+    const msg = await channel.send({ embeds: [embed], components: [row] });
+
+    // Wait for exactly one button click — no timeout
+    // deno-lint-ignore no-explicit-any
+    const interaction: any = await msg.awaitMessageComponent({
+      componentType: ComponentType.Button,
+    });
+
+    const parsed = parsePermissionButtonId(interaction.customId);
+    const allowed = parsed?.allowed ?? false;
+
+    // Update the embed to reflect the decision
+    embed.setColor(allowed ? 0x00ff00 : 0xff4444)
+      .setFooter({ text: allowed ? `✅ Allowed by user` : `❌ Denied by user` });
+
+    await interaction.update({
+      embeds: [embed],
+      components: [], // Remove buttons after decision
+    });
+
+    console.log(`[PermissionRequest] Tool "${toolName}" — ${allowed ? 'ALLOWED' : 'DENIED'} by user`);
+    return allowed;
+  };
+}
+
 /**
  * Setup signal handlers for graceful shutdown.
  */

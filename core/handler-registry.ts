@@ -30,6 +30,7 @@ import { infoCommands, createInfoCommandHandlers } from "../claude/index.ts";
 import { cleanSessionId, ClaudeSessionManager } from "../claude/index.ts";
 import type { ClaudeModelOptions } from "../claude/index.ts";
 import type { AskUserCallback } from "../claude/index.ts";
+import type { PermissionRequestCallback } from "../claude/index.ts";
 import { buildHooks } from "../claude/hooks.ts";
 import type { HookEvent_Discord } from "../claude/hooks.ts";
 import { THINKING_MODES, OPERATION_MODES, EFFORT_LEVELS } from "../settings/index.ts";
@@ -173,6 +174,9 @@ export interface HandlerRegistryDeps {
   /** Late-bound callback for AskUserQuestion tool — Claude asks the Discord user mid-session.
    *  Set from index.ts after bot is created. */
   onAskUser?: AskUserCallback;
+  /** Late-bound callback for interactive permission requests — replaces auto-deny.
+   *  Shows Allow/Deny buttons in Discord when Claude wants to use an unapproved tool. */
+  onPermissionRequest?: PermissionRequestCallback;
 }
 
 /**
@@ -489,6 +493,11 @@ export function createAllHandlers(
     // AskUserQuestion — interactive question flow (late-bound from index.ts)
     if (deps.onAskUser) {
       opts.onAskUser = deps.onAskUser;
+    }
+
+    // PermissionRequest — interactive Allow/Deny buttons (late-bound from index.ts)
+    if (deps.onPermissionRequest) {
+      opts.onPermissionRequest = deps.onPermissionRequest;
     }
     
     return opts;

@@ -1,6 +1,7 @@
 import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgentDefinition, type ModelInfo as SDKModelInfo, type SdkBeta, type McpServerConfig, type HookEvent, type HookCallbackMatcher } from "@anthropic-ai/claude-agent-sdk";
 import { setActiveQuery, trackMessageId, clearTrackedMessages } from "./query-manager.ts";
 import type { AskUserQuestionInput, AskUserCallback } from "./user-question.ts";
+import type { PermissionRequestCallback } from "./permission-request.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 
 // Load MCP server configs from .claude/mcp.json
@@ -146,6 +147,10 @@ export interface ClaudeModelOptions {
   /** Callback for AskUserQuestion tool — Claude asks the user mid-session.
    *  If provided, the AskUserQuestion tool is enabled and routed through this callback. */
   onAskUser?: AskUserCallback;
+  /** Callback for interactive permission requests — replaces auto-deny.
+   *  When Claude wants to use a tool that isn't pre-approved, this callback
+   *  presents Allow/Deny buttons in Discord and waits for a response. */
+  onPermissionRequest?: PermissionRequestCallback;
 }
 
 // Wrapper for Claude Code SDK query function
@@ -277,6 +282,20 @@ export async function sendToClaudeCode(
             // MCP tools: auto-allow tools from configured servers
             if (mcpToolPrefixes.some(prefix => toolName.startsWith(prefix))) {
               return { behavior: 'allow' as const, updatedInput: input };
+            }
+
+            // Interactive permission request — show Discord buttons for Allow/Deny
+            if (modelOptions?.onPermissionRequest) {
+              try {
+                const allowed = await modelOptions.onPermissionRequest(toolName, input);
+                if (allowed) {
+                  return { behavior: 'allow' as const, updatedInput: input };
+                }
+                return { behavior: 'deny' as const, message: `User denied tool: ${toolName}` };
+              } catch (err) {
+                console.error(`[PermissionRequest] Error for ${toolName}:`, err);
+                return { behavior: 'deny' as const, message: `Permission request failed for: ${toolName}` };
+              }
             }
 
             return { behavior: 'deny' as const, message: `Tool ${toolName} not pre-approved` };
