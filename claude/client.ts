@@ -191,7 +191,7 @@ export async function sendToClaudeCode(
           // Use Claude Code's system prompt + optional append
           systemPrompt: systemPromptConfig,
           // Load project CLAUDE.md files
-          settingSources: ['project' as const],
+          settingSources: ['project' as const, 'local' as const],
           // Native thinking config (replaces MAX_THINKING_TOKENS env var hack)
           ...(modelOptions?.thinking && { thinking: modelOptions.thinking }),
           // Effort level

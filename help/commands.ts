@@ -786,7 +786,7 @@ export const COMMAND_HELP = {
   },
   "fast": {
     title: "⚡ Fast Mode Toggle",
-    description: "Toggle between the default model (Opus) and a fast/cheap model (Sonnet)",
+    description: "Toggle Opus 4.6 fast mode — 2.5x faster responses at higher per-token cost, same quality",
     usage: "/fast",
     examples: [
       "/fast"
@@ -794,10 +794,10 @@ export const COMMAND_HELP = {
     parameters: [],
     notes: [
       "Toggles fast mode on/off",
-      "Fast mode uses Sonnet for faster, cheaper responses",
-      "Works mid-session — switches model on an active query",
-      "Configure the fast model via /settings",
-      "Use /fast again to toggle back to your default model"
+      "Fast mode uses the same Opus 4.6 with a speed-optimized API config",
+      "2.5x faster responses, higher per-token cost ($30/$150 MTok)",
+      "Takes effect on the next query (persists across sessions)",
+      "Use /fast again to toggle back to standard mode"
     ]
   }
 };
@@ -877,7 +877,7 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
             fields: [
               {
                 name: "🤖 Claude Code Commands",
-                value: "`/claude` - Send prompts to Claude Code\n`/claude-enhanced` - Advanced Claude with options\n`/resume` - Resume conversation\n`/claude-cancel` - Cancel running operation\n`/fast` - Toggle fast mode (Opus ↔ Sonnet)",
+                value: "`/claude` - Send prompts to Claude Code\n`/claude-enhanced` - Advanced Claude with options\n`/resume` - Resume conversation\n`/claude-cancel` - Cancel running operation\n`/fast` - Toggle fast mode (2.5x speed)",
                 inline: false
               },
               {

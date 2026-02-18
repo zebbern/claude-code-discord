@@ -75,7 +75,7 @@ export const infoCommands = [
   
   new SlashCommandBuilder()
     .setName('fast')
-    .setDescription('Toggle fast mode — switch between default model and a fast/cheap model (Sonnet)'),
+    .setDescription('Toggle fast mode — 2.5x faster Opus 4.6 responses (higher cost, same quality)'),
 ];
 
 // ================================
@@ -437,7 +437,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
     },
 
     // ================================
-    // /fast — Toggle fast mode
+    // /fast — Toggle fast mode (Opus 4.6 speed-optimized API config)
     // ================================
     // deno-lint-ignore no-explicit-any
     async onFast(ctx: any): Promise<void> {
@@ -450,26 +450,16 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
       const newFastMode = !current.fastMode;
       deps.updateUnifiedSettings({ fastMode: newFastMode });
 
-      // If there's an active query, switch the model mid-session
-      const activeQuery = getActiveQuery();
-      if (activeQuery) {
-        try {
-          if (newFastMode) {
-            await setActiveModel(current.fastModel || 'claude-sonnet-4-6');
-          } else {
-            // Revert to default model (undefined = SDK default)
-            await setActiveModel(current.defaultModel || undefined);
-          }
-        } catch {
-          // Mid-session switch failed — setting still applies to next query
-        }
+      // Write fastMode to .claude/settings.local.json so the CLI subprocess picks it up
+      try {
+        await writeFastModeToLocalSettings(workDir, newFastMode);
+      } catch (err) {
+        console.error('[/fast] Failed to write local settings:', err);
       }
 
-      const modelName = newFastMode
-        ? (current.fastModel || 'claude-sonnet-4-6')
-        : (current.defaultModel || 'default (Opus)');
-      const midSessionNote = activeQuery
-        ? '\nModel switched on active session.'
+      const activeQuery = getActiveQuery();
+      const sessionNote = activeQuery
+        ? '\n⚠️ Takes effect on **next query** (cannot toggle mid-session via SDK).'
         : '';
 
       await ctx.reply({
@@ -477,9 +467,9 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           color: newFastMode ? 0xffaa00 : 0x5865f2,
           title: newFastMode ? '⚡ Fast Mode ON' : '🧠 Fast Mode OFF',
           description: newFastMode
-            ? `Switched to **${modelName}** — faster responses, lower cost.${midSessionNote}`
-            : `Switched to **${modelName}** — full reasoning power.${midSessionNote}`,
-          footer: { text: 'Use /fast again to toggle back' },
+            ? `Opus 4.6 fast mode enabled — **2.5x faster** responses, higher per-token cost, same quality.${sessionNote}`
+            : `Standard Opus 4.6 mode — normal speed and pricing.${sessionNote}`,
+          footer: { text: 'Use /fast again to toggle' },
           timestamp: new Date().toISOString()
         }]
       });
@@ -490,6 +480,41 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
 // ================================
 // Helper Functions
 // ================================
+
+import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
+
+/**
+ * Writes fastMode to .claude/settings.local.json in workDir.
+ * The SDK loads this file via settingSources: ['local'].
+ * Merges with existing settings to avoid clobbering other local config.
+ */
+async function writeFastModeToLocalSettings(workDir: string, fastMode: boolean): Promise<void> {
+  const settingsDir = path.join(workDir, ".claude");
+  const settingsPath = path.join(settingsDir, "settings.local.json");
+
+  // Read existing settings (if any)
+  // deno-lint-ignore no-explicit-any
+  let existing: Record<string, any> = {};
+  try {
+    const raw = await Deno.readTextFile(settingsPath);
+    existing = JSON.parse(raw);
+  } catch {
+    // File doesn't exist or is invalid — start fresh
+  }
+
+  // Merge fastMode
+  existing.fastMode = fastMode;
+
+  // Ensure .claude/ directory exists
+  try {
+    await Deno.mkdir(settingsDir, { recursive: true });
+  } catch {
+    // Already exists
+  }
+
+  await Deno.writeTextFile(settingsPath, JSON.stringify(existing, null, 2) + "\n");
+  console.log(`[/fast] Wrote fastMode=${fastMode} to ${settingsPath}`);
+}
 
 // deno-lint-ignore no-explicit-any
 async function sendFullInfoEmbed(ctx: any, account: any, models: any[], mcpServers: any[]): Promise<void> {

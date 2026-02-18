@@ -383,10 +383,8 @@ export function createAllHandlers(
     const s = settings.getSettings().unified;
     const opts: ClaudeModelOptions = {};
     
-    // Model — fast mode overrides default model
-    if (s.fastMode && s.fastModel) {
-      opts.model = s.fastModel;
-    } else if (s.defaultModel) {
+    // Model — fast mode is handled by CLI via .claude/settings.local.json (not a model switch)
+    if (s.defaultModel) {
       opts.model = s.defaultModel;
     }
     
