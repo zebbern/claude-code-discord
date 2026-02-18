@@ -41,7 +41,7 @@ docker compose up -d
 
 Need a Discord bot token first? See [Discord Bot Setup](docs/setup-discord.md).
 
-For other install methods (setup script, manual), see [Installation Guide](docs/installation.md).
+Installment options (`auto setup script` or `manual installment`), see [Installation Guide](docs/installation.md).
 
 ## Documentation
 
@@ -55,7 +55,7 @@ For other install methods (setup script, manual), see [Installation Guide](docs/
 | [Docker](docs/docker.md) | Docker Compose, GHCR images, Watchtower auto-updates |
 | [Updating](docs/updating.md) | How to update (Docker pull, git pull, version check) |
 
-## Quick Model Switching
+## Select Newest Model Available
 
 ```
 /claude-settings action:set-model value:opus
@@ -77,4 +77,25 @@ CATEGORY_NAME=claude-code
 WORK_DIR=/path/to/project
 ```
 
-<img width="250" height="250" alt="image" src="https://github.com/user-attachments/assets/2fea008b-76b7-48d8-9a87-8214cc7a24ad" />
+## Startup Options
+
+```bash
+# Standard start
+deno task start
+
+# Development mode (hot reload)
+deno task dev
+
+# Direct with environment variables
+deno run --allow-all index.ts
+
+# With optional flags
+deno run --allow-all index.ts --category myproject --user-id YOUR_DISCORD_ID
+```
+
+| Flag | Env Variable | Description |
+| --- | --- | --- |
+| `--category <name>` | `CATEGORY_NAME` | Discord category name for channels (default: `claude-code`) |
+| `--user-id <id>` | `USER_ID` | Your Discord user ID for mentions when tasks finish |
+
+> CLI flags override environment variables. Environment variables override `.env` file values.
