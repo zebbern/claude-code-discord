@@ -70,17 +70,44 @@ Installment options (`auto setup script` or `manual installment`), see [Installa
 
 ## Configuration
 
+Create a `.env` file (or copy `.env.example`):
+
 ```env
 # Required
 DISCORD_TOKEN=your_bot_token_here
 APPLICATION_ID=your_application_id_here
 
 # Optional
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-USER_ID=your_discord_user_id
-CATEGORY_NAME=claude-code
-WORK_DIR=/path/to/project
+ANTHROPIC_API_KEY=sk-ant-...          # Enables dynamic model discovery & refresh
+USER_ID=your_discord_user_id          # @mention when Claude finishes a task
+CATEGORY_NAME=claude-code             # Discord category for bot channels
+WORK_DIR=/path/to/project             # Working directory (default: current dir)
+
+# Access Control (RBAC) — leave blank to keep all commands open
+ADMIN_ROLE_IDS=123456789,987654321    # Comma-separated Discord role IDs
+ADMIN_USER_IDS=111111111              # Comma-separated Discord user IDs
+
+# Proxy (optional — respected automatically if set)
+# HTTP_PROXY=http://proxy:8080
+# HTTPS_PROXY=http://proxy:8080
+# NO_PROXY=localhost,127.0.0.1
 ```
+
+| Variable | Required | Description |
+| --- | :---: | --- |
+| `DISCORD_TOKEN` | **Yes** | Bot token from the [Discord Developer Portal](https://discord.com/developers/applications) |
+| `APPLICATION_ID` | **Yes** | Application ID from the Developer Portal |
+| `ANTHROPIC_API_KEY` | No | Enables dynamic model discovery; refreshes hourly |
+| `USER_ID` | No | Your Discord user ID — bot @mentions you when tasks finish |
+| `CATEGORY_NAME` | No | Discord category name for channels (default: `claude-code`) |
+| `WORK_DIR` | No | Working directory for Claude operations (default: current dir) |
+| `ADMIN_ROLE_IDS` | No | Comma-separated role IDs for RBAC (shell, git, system, admin) |
+| `ADMIN_USER_IDS` | No | Comma-separated user IDs for RBAC — grants access regardless of roles |
+| `HTTP_PROXY` | No | HTTP proxy URL (also reads `http_proxy`) |
+| `HTTPS_PROXY` | No | HTTPS proxy URL (also reads `https_proxy`) |
+| `NO_PROXY` | No | Comma-separated hosts to bypass proxy |
+
+> CLI flags override environment variables. Environment variables override `.env` file values.
 
 ## Startup Options
 
