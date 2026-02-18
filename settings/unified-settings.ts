@@ -23,6 +23,10 @@ export interface UnifiedBotSettings {
   // Mode settings
   operationMode: 'normal' | 'plan' | 'auto-accept' | 'danger' | 'dont-ask';
   
+  // Fast mode — toggles between default model and a fast/cheap model
+  fastMode: boolean;
+  fastModel: string;
+  
   // Budget settings
   maxBudgetUsd: number | null;
   
@@ -82,6 +86,10 @@ export const UNIFIED_DEFAULT_SETTINGS: UnifiedBotSettings = {
   
   // Operation mode
   operationMode: 'normal',
+  
+  // Fast mode — off by default, uses Sonnet as fast model
+  fastMode: false,
+  fastModel: 'claude-sonnet-4-6',
   
   // Budget
   maxBudgetUsd: null,

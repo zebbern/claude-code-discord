@@ -72,6 +72,10 @@ export const infoCommands = [
       option.setName('value')
         .setDescription('Value for the action (model name or permission mode)')
         .setRequired(false)),
+  
+  new SlashCommandBuilder()
+    .setName('fast')
+    .setDescription('Toggle fast mode — switch between default model and a fast/cheap model (Sonnet)'),
 ];
 
 // ================================
@@ -81,6 +85,10 @@ export const infoCommands = [
 export interface InfoCommandHandlerDeps {
   workDir: string;
   getQueryOptions?: () => ClaudeModelOptions;
+  /** Read current unified settings (for /fast toggle) */
+  getUnifiedSettings?: () => import("../settings/unified-settings.ts").UnifiedBotSettings;
+  /** Update unified settings (for /fast toggle) */
+  updateUnifiedSettings?: (partial: Partial<import("../settings/unified-settings.ts").UnifiedBotSettings>) => void;
 }
 
 export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
@@ -426,6 +434,55 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
             ephemeral: true
           });
       }
+    },
+
+    // ================================
+    // /fast — Toggle fast mode
+    // ================================
+    // deno-lint-ignore no-explicit-any
+    async onFast(ctx: any): Promise<void> {
+      if (!deps.getUnifiedSettings || !deps.updateUnifiedSettings) {
+        await ctx.reply({ content: 'Fast mode not available (settings not wired).', ephemeral: true });
+        return;
+      }
+
+      const current = deps.getUnifiedSettings();
+      const newFastMode = !current.fastMode;
+      deps.updateUnifiedSettings({ fastMode: newFastMode });
+
+      // If there's an active query, switch the model mid-session
+      const activeQuery = getActiveQuery();
+      if (activeQuery) {
+        try {
+          if (newFastMode) {
+            await setActiveModel(current.fastModel || 'claude-sonnet-4-6');
+          } else {
+            // Revert to default model (undefined = SDK default)
+            await setActiveModel(current.defaultModel || undefined);
+          }
+        } catch {
+          // Mid-session switch failed — setting still applies to next query
+        }
+      }
+
+      const modelName = newFastMode
+        ? (current.fastModel || 'claude-sonnet-4-6')
+        : (current.defaultModel || 'default (Opus)');
+      const midSessionNote = activeQuery
+        ? '\nModel switched on active session.'
+        : '';
+
+      await ctx.reply({
+        embeds: [{
+          color: newFastMode ? 0xffaa00 : 0x5865f2,
+          title: newFastMode ? '⚡ Fast Mode ON' : '🧠 Fast Mode OFF',
+          description: newFastMode
+            ? `Switched to **${modelName}** — faster responses, lower cost.${midSessionNote}`
+            : `Switched to **${modelName}** — full reasoning power.${midSessionNote}`,
+          footer: { text: 'Use /fast again to toggle back' },
+          timestamp: new Date().toISOString()
+        }]
+      });
     },
   };
 }

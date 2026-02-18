@@ -383,8 +383,10 @@ export function createAllHandlers(
     const s = settings.getSettings().unified;
     const opts: ClaudeModelOptions = {};
     
-    // Model
-    if (s.defaultModel) {
+    // Model — fast mode overrides default model
+    if (s.fastMode && s.fastModel) {
+      opts.model = s.fastModel;
+    } else if (s.defaultModel) {
       opts.model = s.defaultModel;
     }
     
@@ -546,6 +548,8 @@ export function createAllHandlers(
   const infoCommandHandlers = createInfoCommandHandlers({
     workDir,
     getQueryOptions,
+    getUnifiedSettings: () => settings.getSettings().unified,
+    updateUnifiedSettings: (partial) => settings.updateUnified(partial),
   });
 
   return {

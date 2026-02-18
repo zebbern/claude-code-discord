@@ -783,6 +783,22 @@ export const COMMAND_HELP = {
       "Shows model capabilities and features",
       "Applies to all new conversations until changed again"
     ]
+  },
+  "fast": {
+    title: "⚡ Fast Mode Toggle",
+    description: "Toggle between the default model (Opus) and a fast/cheap model (Sonnet)",
+    usage: "/fast",
+    examples: [
+      "/fast"
+    ],
+    parameters: [],
+    notes: [
+      "Toggles fast mode on/off",
+      "Fast mode uses Sonnet for faster, cheaper responses",
+      "Works mid-session — switches model on an active query",
+      "Configure the fast model via /settings",
+      "Use /fast again to toggle back to your default model"
+    ]
   }
 };
 
@@ -861,7 +877,7 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
             fields: [
               {
                 name: "🤖 Claude Code Commands",
-                value: "`/claude` - Send prompts to Claude Code\n`/claude-enhanced` - Advanced Claude with options\n`/continue` - Continue conversation\n`/claude-cancel` - Cancel running operation",
+                value: "`/claude` - Send prompts to Claude Code\n`/claude-enhanced` - Advanced Claude with options\n`/resume` - Resume conversation\n`/claude-cancel` - Cancel running operation\n`/fast` - Toggle fast mode (Opus ↔ Sonnet)",
                 inline: false
               },
               {
@@ -881,7 +897,7 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
               },
               {
                 name: "⚙️ Advanced Settings",
-                value: "`/settings` - Unified bot settings (NEW)\n`/claude-settings` - Claude preferences\n`/output-settings` - Display settings\n`/quick-model` - Switch Claude model",
+                value: "`/settings` - Unified bot settings (NEW)\n`/claude-settings` - Claude preferences\n`/output-settings` - Display settings\n`/quick-model` - Switch Claude model\n`/fast` - Toggle fast mode",
                 inline: false
               },
               {
