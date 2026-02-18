@@ -142,6 +142,11 @@ export async function sendToClaudeCode(
   // Load MCP servers from .claude/mcp.json
   const mcpServers = await loadMcpServers(workDir);
 
+  // Build set of MCP server name prefixes for auto-allowing MCP tools
+  const mcpToolPrefixes = mcpServers
+    ? Object.keys(mcpServers).map(name => `mcp__${name}__`)
+    : [];
+
   // Wrap with comprehensive error handling
   const executeWithErrorHandling = async (overrideModel?: string) => {
     try {
@@ -199,6 +204,18 @@ export async function sendToClaudeCode(
           ...(modelOptions?.outputFormat && { outputFormat: modelOptions.outputFormat }),
           // MCP servers from .claude/mcp.json
           ...(mcpServers && { mcpServers }),
+          // Auto-allow MCP tools from configured servers.
+          // The dontAsk permission mode blocks MCP tools because they aren't "pre-approved".
+          // canUseTool handles permission prompts — built-in tools that dontAsk
+          // auto-approves (Read, Edit, Bash, etc.) won't trigger this callback.
+          ...(mcpToolPrefixes.length > 0 && {
+            canUseTool: async (toolName: string) => {
+              if (mcpToolPrefixes.some(prefix => toolName.startsWith(prefix))) {
+                return { behavior: 'allow' as const };
+              }
+              return { behavior: 'deny' as const, message: `Tool ${toolName} not pre-approved` };
+            },
+          }),
           env: envVars,
         },
       };
