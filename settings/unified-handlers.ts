@@ -11,6 +11,7 @@ import {
   getTodosManager, 
   type TodoItem as PersistenceTodoItem
 } from "../util/persistence.ts";
+import { toggleMcpServerActive, reconnectMcpServerActive, getMcpServerStatus } from "../claude/query-manager.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 
 // .claude/mcp.json file format types (Claude Code standard format)
@@ -260,7 +261,8 @@ export function createUnifiedSettingsHandlers(deps: UnifiedSettingsHandlerDeps) 
       action: string,
       serverName?: string,
       command?: string,
-      description?: string
+      description?: string,
+      value?: string
     ) {
       try {
         await ctx.deferReply();
@@ -290,6 +292,28 @@ export function createUnifiedSettingsHandlers(deps: UnifiedSettingsHandlerDeps) 
               return;
             }
             await removeMCPServer(ctx, workDir, serverName);
+            break;
+          
+          case 'toggle':
+            if (!serverName) {
+              await ctx.editReply({
+                content: 'Server name is required for toggling. Use `/mcp action:toggle server_name:[name] value:[on/off]`',
+                ephemeral: true
+              });
+              return;
+            }
+            await handleMcpToggle(ctx, serverName, value);
+            break;
+          
+          case 'reconnect':
+            if (!serverName) {
+              await ctx.editReply({
+                content: 'Server name is required for reconnecting.',
+                ephemeral: true
+              });
+              return;
+            }
+            await handleMcpReconnect(ctx, serverName);
             break;
             
           case 'test':
@@ -2029,4 +2053,94 @@ async function showMCPStatus(ctx: any, workDir: string) {
       timestamp: true
     }]
   });
+}
+
+// ================================
+// MCP Mid-Session Management (SDK Query methods)
+// ================================
+
+/**
+ * Toggle an MCP server on/off mid-session via the SDK.
+ * Requires an active Claude query.
+ */
+// deno-lint-ignore no-explicit-any
+async function handleMcpToggle(ctx: any, serverName: string, value?: string): Promise<void> {
+  // Determine desired state: "on"/"off" or auto-detect from current status
+  let enabled: boolean;
+  if (value === 'on') {
+    enabled = true;
+  } else if (value === 'off') {
+    enabled = false;
+  } else {
+    // Default to toggling — check current status first
+    const statuses = await getMcpServerStatus();
+    if (!statuses) {
+      await ctx.editReply({
+        embeds: [{
+          color: 0xff0000,
+          title: '❌ No Active Session',
+          description: 'MCP toggle requires an active Claude session. Start a query first with `/claude`.',
+        }]
+      });
+      return;
+    }
+    const server = statuses.find(s => s.name === serverName);
+    if (!server) {
+      await ctx.editReply({
+        embeds: [{
+          color: 0xff0000,
+          title: '❌ Server Not Found',
+          description: `No MCP server named **${serverName}** found in the active session.\n\nAvailable: ${statuses.map(s => `\`${s.name}\``).join(', ') || 'none'}`,
+        }]
+      });
+      return;
+    }
+    // Toggle: if currently connected/pending → disable, if disabled/failed → enable
+    enabled = server.status === 'disabled' || server.status === 'failed';
+  }
+
+  const success = await toggleMcpServerActive(serverName, enabled);
+  if (success) {
+    await ctx.editReply({
+      embeds: [{
+        color: enabled ? 0x00ff00 : 0xffaa00,
+        title: enabled ? '✅ MCP Server Enabled' : '⏸️ MCP Server Disabled',
+        description: `**${serverName}** has been ${enabled ? 'enabled' : 'disabled'} mid-session.`,
+      }]
+    });
+  } else {
+    await ctx.editReply({
+      embeds: [{
+        color: 0xff0000,
+        title: '❌ Toggle Failed',
+        description: `Could not toggle **${serverName}**. Ensure an active Claude session exists and the server name is correct.`,
+      }]
+    });
+  }
+}
+
+/**
+ * Reconnect a failed MCP server mid-session via the SDK.
+ * Requires an active Claude query.
+ */
+// deno-lint-ignore no-explicit-any
+async function handleMcpReconnect(ctx: any, serverName: string): Promise<void> {
+  const success = await reconnectMcpServerActive(serverName);
+  if (success) {
+    await ctx.editReply({
+      embeds: [{
+        color: 0x00ff00,
+        title: '🔄 MCP Server Reconnected',
+        description: `**${serverName}** has been reconnected successfully.`,
+      }]
+    });
+  } else {
+    await ctx.editReply({
+      embeds: [{
+        color: 0xff0000,
+        title: '❌ Reconnect Failed',
+        description: `Could not reconnect **${serverName}**. Ensure an active Claude session exists and the server name is correct.`,
+      }]
+    });
+  }
 }

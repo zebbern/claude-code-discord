@@ -9,10 +9,10 @@
  * @module claude/query-manager
  */
 
-import { query as claudeQuery, type Query, type AccountInfo, type ModelInfo, type McpServerStatus, type SlashCommand, type RewindFilesResult, type PermissionMode } from "@anthropic-ai/claude-agent-sdk";
+import { query as claudeQuery, type Query, type AccountInfo, type ModelInfo, type McpServerStatus, type SlashCommand, type RewindFilesResult, type PermissionMode, type McpSetServersResult, type McpServerConfig } from "@anthropic-ai/claude-agent-sdk";
 
 // Re-export SDK types for consumers
-export type { Query, AccountInfo, ModelInfo as SDKModelInfoFull, McpServerStatus, SlashCommand as SDKSlashCommand, RewindFilesResult };
+export type { Query, AccountInfo, ModelInfo as SDKModelInfoFull, McpServerStatus, SlashCommand as SDKSlashCommand, RewindFilesResult, McpSetServersResult, McpServerConfig };
 
 /**
  * Full initialization result from the SDK.
@@ -216,6 +216,58 @@ export async function stopActiveTask(taskId: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+// ================================
+// MCP Server Management
+// ================================
+
+/**
+ * Toggle an MCP server on/off mid-session via the SDK Query.
+ * 
+ * @param serverName - The name of the MCP server to toggle
+ * @param enabled - Whether the server should be enabled
+ */
+export async function toggleMcpServerActive(serverName: string, enabled: boolean): Promise<boolean> {
+  if (!activeQuery) return false;
+  try {
+    await activeQuery.toggleMcpServer(serverName, enabled);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reconnect an MCP server mid-session via the SDK Query.
+ * Useful when a server has failed or disconnected.
+ * 
+ * @param serverName - The name of the MCP server to reconnect
+ */
+export async function reconnectMcpServerActive(serverName: string): Promise<boolean> {
+  if (!activeQuery) return false;
+  try {
+    await activeQuery.reconnectMcpServer(serverName);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Dynamically set MCP servers mid-session via the SDK Query.
+ * Replaces the current set of dynamically-added servers.
+ * Servers from settings files are not affected.
+ * 
+ * @param servers - Record of server name to configuration
+ */
+export async function setMcpServersActive(servers: Record<string, McpServerConfig>): Promise<McpSetServersResult | null> {
+  if (!activeQuery) return null;
+  try {
+    return await activeQuery.setMcpServers(servers);
+  } catch {
+    return null;
   }
 }
 

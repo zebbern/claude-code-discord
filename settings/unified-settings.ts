@@ -3,6 +3,39 @@ import { CLAUDE_MODELS } from "../claude/enhanced-client.ts";
 
 // Unified settings interface combining all bot settings
 // NOTE: Temperature and maxTokens are NOT supported by Claude Code CLI
+
+/**
+ * Granular sandbox configuration matching the SDK's SandboxSettings type.
+ * Controls command execution isolation for safer operation.
+ */
+export interface SandboxConfig {
+  enabled: boolean;
+  /** Auto-allow Bash commands when sandboxed — useful for dev workflows */
+  autoAllowBashIfSandboxed?: boolean;
+  /** Allow commands that would otherwise be blocked by sandbox restrictions */
+  allowUnsandboxedCommands?: boolean;
+  /** Network access configuration */
+  network?: {
+    allowedDomains?: string[];
+    allowManagedDomainsOnly?: boolean;
+    allowUnixSockets?: string[];
+    allowAllUnixSockets?: boolean;
+    allowLocalBinding?: boolean;
+    httpProxyPort?: number;
+    socksProxyPort?: number;
+  };
+  /** Filesystem access configuration */
+  filesystem?: {
+    allowWrite?: string[];
+    denyWrite?: string[];
+    denyRead?: string[];
+  };
+  /** Per-tool violation ignoring — Record<toolName, violationTypes[]> */
+  ignoreViolations?: Record<string, string[]>;
+  /** Commands excluded from sandbox restrictions */
+  excludedCommands?: string[];
+}
+
 export interface UnifiedBotSettings {
   // Basic bot settings (formerly /settings)
   mentionEnabled: boolean;
@@ -36,10 +69,22 @@ export interface UnifiedBotSettings {
   enableFileCheckpointing: boolean;
   /** Enable sandbox mode for safer command execution */
   enableSandbox: boolean;
+  /** Granular sandbox configuration (overrides enableSandbox when provided) */
+  sandboxConfig: SandboxConfig | null;
   /** Enable experimental Agent Teams (multi-agent collaboration) */
   enableAgentTeams: boolean;
   /** JSON schema for structured output (null = unstructured text) */
   outputJsonSchema: Record<string, unknown> | null;
+  /** Additional directories Claude can access beyond cwd (absolute paths) */
+  additionalDirectories: string[];
+  
+  // Hook settings — SDK event callbacks for deep integration
+  /** Log tool usage (PreToolUse + PostToolUse) events to Discord */
+  hooksLogToolUse: boolean;
+  /** Forward Claude notification events to Discord */
+  hooksLogNotifications: boolean;
+  /** Notify on background task completions */
+  hooksLogTaskCompletions: boolean;
   
   // Output settings
   codeHighlighting: boolean;
@@ -98,8 +143,15 @@ export const UNIFIED_DEFAULT_SETTINGS: UnifiedBotSettings = {
   enable1MContext: false,
   enableFileCheckpointing: false,
   enableSandbox: false,
+  sandboxConfig: null,
   enableAgentTeams: false,
   outputJsonSchema: null,
+  additionalDirectories: [],
+  
+  // Hooks — disabled by default (enable for tool transparency/debugging)
+  hooksLogToolUse: false,
+  hooksLogNotifications: false,
+  hooksLogTaskCompletions: false,
   
   // Output
   codeHighlighting: true,
@@ -352,6 +404,8 @@ export const mcpCommand = new SlashCommandBuilder()
         { name: 'List Servers', value: 'list' },
         { name: 'Add Server', value: 'add' },
         { name: 'Remove Server', value: 'remove' },
+        { name: 'Toggle Server — Enable/disable mid-session', value: 'toggle' },
+        { name: 'Reconnect Server — Reconnect a failed server', value: 'reconnect' },
         { name: 'Test Connection', value: 'test' },
         { name: 'Server Status', value: 'status' }
       ))
@@ -362,6 +416,10 @@ export const mcpCommand = new SlashCommandBuilder()
   .addStringOption(option =>
     option.setName('command')
       .setDescription('Full command to run (e.g. "npx -y @anthropic-ai/filesystem-mcp")')
+      .setRequired(false))
+  .addStringOption(option =>
+    option.setName('value')
+      .setDescription('For toggle: "on" or "off" (default: toggle)')
       .setRequired(false))
   .addStringOption(option =>
     option.setName('description')

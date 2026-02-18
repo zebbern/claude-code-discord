@@ -30,6 +30,8 @@ import { infoCommands, createInfoCommandHandlers } from "../claude/index.ts";
 import { cleanSessionId, ClaudeSessionManager } from "../claude/index.ts";
 import type { ClaudeModelOptions } from "../claude/index.ts";
 import type { AskUserCallback } from "../claude/index.ts";
+import { buildHooks } from "../claude/hooks.ts";
+import type { HookEvent_Discord } from "../claude/hooks.ts";
 import { THINKING_MODES, OPERATION_MODES, EFFORT_LEVELS } from "../settings/index.ts";
 
 import type { ShellManager } from "../shell/index.ts";
@@ -433,7 +435,10 @@ export function createAllHandlers(
     if (s.enableFileCheckpointing) {
       opts.enableFileCheckpointing = true;
     }
-    if (s.enableSandbox) {
+    // Sandbox — granular config takes precedence over simple enableSandbox toggle
+    if (s.sandboxConfig) {
+      opts.sandbox = s.sandboxConfig;
+    } else if (s.enableSandbox) {
       opts.sandbox = { enabled: true, autoAllowBashIfSandboxed: true };
     }
     if (s.enableAgentTeams) {
@@ -441,6 +446,44 @@ export function createAllHandlers(
     }
     if (s.outputJsonSchema) {
       opts.outputFormat = { type: 'json_schema', schema: s.outputJsonSchema };
+    }
+    // Additional directories for multi-repo access
+    if (s.additionalDirectories && s.additionalDirectories.length > 0) {
+      opts.additionalDirectories = s.additionalDirectories;
+    }
+    
+    // Hooks — passive SDK callbacks for tool/notification/task observability
+    if (s.hooksLogToolUse || s.hooksLogNotifications || s.hooksLogTaskCompletions) {
+      const hookEventToMessage = (event: HookEvent_Discord): void => {
+        const prefix = '🪝';
+        let content = '';
+        switch (event.type) {
+          case 'tool_start':
+            content = `${prefix} Tool started: **${event.toolName}**`;
+            break;
+          case 'tool_complete':
+            content = `${prefix} Tool completed: **${event.toolName}**`;
+            break;
+          case 'tool_failure':
+            content = `${prefix} Tool failed: **${event.toolName}** — ${event.error ?? 'unknown error'}`;
+            break;
+          case 'notification':
+            content = `${prefix} Notification: ${event.title ? `**${event.title}** — ` : ''}${event.message ?? ''}`;
+            break;
+          case 'task_completed':
+            content = `${prefix} Task completed: ${event.taskSubject ?? event.taskId ?? 'unknown'}`;
+            break;
+        }
+        if (content) {
+          sendClaudeMessages([{ type: 'system', content }]);
+        }
+      };
+      opts.hooks = buildHooks({
+        logToolUse: s.hooksLogToolUse,
+        logNotifications: s.hooksLogNotifications,
+        logTaskCompletions: s.hooksLogTaskCompletions,
+        onHookEvent: hookEventToMessage,
+      });
     }
     
     // AskUserQuestion — interactive question flow (late-bound from index.ts)

@@ -1,4 +1,4 @@
-import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgentDefinition, type ModelInfo as SDKModelInfo, type SdkBeta, type McpServerConfig } from "@anthropic-ai/claude-agent-sdk";
+import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgentDefinition, type ModelInfo as SDKModelInfo, type SdkBeta, type McpServerConfig, type HookEvent, type HookCallbackMatcher } from "@anthropic-ai/claude-agent-sdk";
 import { setActiveQuery, trackMessageId, clearTrackedMessages } from "./query-manager.ts";
 import type { AskUserQuestionInput, AskUserCallback } from "./user-question.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
@@ -111,10 +111,36 @@ export interface ClaudeModelOptions {
   betas?: SdkBeta[];
   /** Enable file checkpointing for undo/rewind */
   enableFileCheckpointing?: boolean;
-  /** Sandbox settings for safer command execution */
-  sandbox?: { enabled: boolean; autoAllowBashIfSandboxed?: boolean };
+  /** Sandbox settings for safer command execution — full SDK SandboxSettings */
+  sandbox?: {
+    enabled?: boolean;
+    autoAllowBashIfSandboxed?: boolean;
+    allowUnsandboxedCommands?: boolean;
+    network?: {
+      allowedDomains?: string[];
+      allowManagedDomainsOnly?: boolean;
+      allowUnixSockets?: string[];
+      allowAllUnixSockets?: boolean;
+      allowLocalBinding?: boolean;
+      httpProxyPort?: number;
+      socksProxyPort?: number;
+    };
+    filesystem?: {
+      allowWrite?: string[];
+      denyWrite?: string[];
+      denyRead?: string[];
+    };
+    ignoreViolations?: Record<string, string[]>;
+    excludedCommands?: string[];
+  };
   /** Enable experimental Agent Teams (multi-agent collaboration) */
   enableAgentTeams?: boolean;
+  /** Additional directories Claude can access beyond cwd (absolute paths) */
+  additionalDirectories?: string[];
+  /** Fork a resumed session into a new session instead of continuing the original */
+  forkSession?: boolean;
+  /** SDK hooks — deep integration callbacks for tool use, notifications, etc. */
+  hooks?: Partial<Record<HookEvent, HookCallbackMatcher[]>>;
   /** Structured output format (JSON schema) */
   outputFormat?: { type: 'json_schema'; schema: Record<string, unknown> };
   /** Callback for AskUserQuestion tool — Claude asks the user mid-session.
@@ -212,10 +238,14 @@ export async function sendToClaudeCode(
           // Native SDK agent support
           ...(modelOptions?.agents && { agents: modelOptions.agents }),
           ...(modelOptions?.agent && { agent: modelOptions.agent }),
-          // Advanced features: betas, file checkpointing, sandbox
+          // Advanced features: betas, file checkpointing, sandbox, additional dirs, fork
           ...(modelOptions?.betas && modelOptions.betas.length > 0 && { betas: modelOptions.betas }),
           ...(modelOptions?.enableFileCheckpointing && { enableFileCheckpointing: true }),
           ...(modelOptions?.sandbox && { sandbox: modelOptions.sandbox }),
+          ...(modelOptions?.additionalDirectories && modelOptions.additionalDirectories.length > 0 && { additionalDirectories: modelOptions.additionalDirectories }),
+          ...(modelOptions?.forkSession && { forkSession: true }),
+          // SDK hooks — deep integration callbacks
+          ...(modelOptions?.hooks && Object.keys(modelOptions.hooks).length > 0 && { hooks: modelOptions.hooks }),
           ...(modelOptions?.outputFormat && { outputFormat: modelOptions.outputFormat }),
           // MCP servers from .claude/mcp.json
           ...(mcpServers && { mcpServers }),

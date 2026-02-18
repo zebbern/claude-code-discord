@@ -46,8 +46,14 @@ export {
   getSupportedModels,
   getMcpServerStatus,
   fetchClaudeInfo,
+  toggleMcpServerActive,
+  reconnectMcpServerActive,
+  setMcpServersActive,
 } from "./query-manager.ts";
 export type { ClaudeInitInfo, RewindFilesResult } from "./query-manager.ts";
+// Hooks — passive SDK callbacks for tool/notification/task observability
+export { buildHooks } from "./hooks.ts";
+export type { HookConfig, HookEvent_Discord } from "./hooks.ts";
 // AskUserQuestion — interactive question flow (SDK v0.1.71+)
 export { buildQuestionMessages, parseAskUserButtonId, parseAskUserConfirmId } from "./user-question.ts";
 export type { AskUserCallback, AskUserQuestionInput, AskUserQuestionItem, AskUserOption } from "./user-question.ts";

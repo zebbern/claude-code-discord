@@ -863,6 +863,27 @@ export const COMMAND_HELP = {
       "Stop-task halts a running background task by its ID",
       "Status shows active session info"
     ]
+  },
+  mcp: {
+    title: "🔌 MCP Server Management",
+    description: "Manage Model Context Protocol (MCP) servers — view status, toggle, or reconnect",
+    usage: "/mcp action: [status/toggle/reconnect] value: [server name]",
+    examples: [
+      "/mcp action: status",
+      "/mcp action: toggle value: my-mcp-server",
+      "/mcp action: reconnect value: my-mcp-server"
+    ],
+    parameters: [
+      { name: "action", description: "MCP action (status, toggle, reconnect)", required: true },
+      { name: "value", description: "Server name for toggle/reconnect actions", required: false }
+    ],
+    notes: [
+      "Status shows all connected MCP servers and their state",
+      "Toggle enables or disables an MCP server mid-session",
+      "Reconnect re-establishes a failed connection",
+      "Requires an active Claude session",
+      "Server names must match the configured MCP server name"
+    ]
   }
 };
 
@@ -956,7 +977,7 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
               },
               {
                 name: "🆕 New Features",
-                value: "`/todos` - Development task management\n`/mcp` - Model Context Protocol servers\n`/agent` - Specialized AI agents",
+                value: "`/todos` - Development task management\n`/mcp` - MCP server management (status, toggle, reconnect)\n`/agent` - Specialized AI agents\n`/claude-control` - Mid-session controls (interrupt, stop-task, set-model)",
                 inline: false
               },
               {

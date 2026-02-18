@@ -462,7 +462,8 @@ export function createSettingsCommandHandlers(
         const serverName = ctx.getString('server_name');
         const command = ctx.getString('command');
         const description = ctx.getString('description');
-        await unifiedSettingsHandlers.onMCP(ctx, action, serverName || undefined, command || undefined, description || undefined);
+        const value = ctx.getString('value');
+        await unifiedSettingsHandlers.onMCP(ctx, action, serverName || undefined, command || undefined, description || undefined, value || undefined);
       }
     }],
     ['agent', {
