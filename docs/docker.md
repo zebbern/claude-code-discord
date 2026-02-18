@@ -16,7 +16,7 @@ The included `docker-compose.yml` supports two modes:
 
 ```yaml
 services:
-  claude-code-discord:
+  devonz:
     build: .
     env_file: .env
     environment:
@@ -36,8 +36,8 @@ Pre-built images are published to GitHub Container Registry on every push to `ma
 
 ```yaml
 services:
-  claude-code-discord:
-    image: ghcr.io/zebbern/claude-code-discord:latest
+  devonz:
+    image: ghcr.io/zebbern/devonz:latest
     env_file: .env
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -72,7 +72,7 @@ services:
     image: containrrr/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 claude-code-discord
+    command: --interval 300 devonz
     restart: unless-stopped
 ```
 
@@ -82,8 +82,7 @@ This checks for new images every 5 minutes and restarts the bot automatically.
 
 The Dockerfile builds on `denoland/deno:latest` and adds:
 
-- **Node.js 20** (required for Claude CLI)
-- **`@anthropic-ai/claude-code`** CLI (installed globally via npm)
+- **Git** (required for branch tracking and version checks)
 - **Deno cached dependencies** from `deno.json`
 
 ## Resource Limits
@@ -92,7 +91,7 @@ For production, consider setting resource limits:
 
 ```yaml
 services:
-  claude-code-discord:
+  devonz:
     # ...
     deploy:
       resources:

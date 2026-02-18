@@ -9,6 +9,7 @@ import type { CommandHandlers, InteractionContext } from "../discord/index.ts";
 import { formatShellOutput, formatGitOutput, formatError, createFormattedEmbed, cleanupPaginationStates } from "../discord/index.ts";
 import type { AllHandlers } from "./handler-registry.ts";
 import type { ProcessCrashHandler, ProcessHealthMonitor } from "../process/index.ts";
+import { BOT_VERSION, getLastCheckResult } from "../util/version-check.ts";
 
 // ================================
 // Types
@@ -549,12 +550,18 @@ export function createUtilityCommandHandlers(
         const gitStatusInfo = await gitHandlers.getStatus();
         const runningCount = shellHandlers.onShellList(ctx).size;
         const worktreeStatus = gitHandlers.onWorktreeBots(ctx);
+        const lastCheck = getLastCheckResult();
+        const updateStatus = lastCheck
+          ? (lastCheck.behind ? `⚠️ Update available (${lastCheck.remoteCommit})` : "✅ Up to date")
+          : "⏳ Checking...";
         
         await ctx.editReply({
           embeds: [{
             color: 0x00ffff,
             title: 'Status',
             fields: [
+              { name: 'Version', value: `v${BOT_VERSION}`, inline: true },
+              { name: 'Updates', value: updateStatus, inline: true },
               { name: 'Claude Code', value: sessionStatus, inline: true },
               { name: 'Git Branch', value: gitStatusInfo.branch, inline: true },
               { name: 'Shell Processes', value: `${runningCount} running`, inline: true },

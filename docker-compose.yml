@@ -1,4 +1,4 @@
-# Claude Code Discord Bot - Docker Compose Configuration
+# Devonz - Docker Compose Configuration
 # Quick start: docker compose up -d
 #
 # To use the pre-built image from GitHub Container Registry (recommended):
@@ -13,8 +13,8 @@ services:
       context: .
       dockerfile: Dockerfile
     # Option B: Use pre-built image from GHCR (uncomment and remove build above)
-    # image: ghcr.io/zebbern/claude-code-discord:latest
-    container_name: claude-code-discord
+    # image: ghcr.io/zebbern/devonz:latest
+    container_name: devonz
     restart: unless-stopped
     
     # Environment variables (use .env file or set here)

@@ -3,7 +3,7 @@
 ## Project Structure
 
 ```
-claude-code-discord/
+Devonz/
 ├── index.ts                    # Entry point, Discord client setup
 ├── deno.json                   # Deno configuration
 ├── .env                        # Environment variables (not committed)

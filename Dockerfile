@@ -1,4 +1,4 @@
-# Claude Code Discord Bot
+# Devonz - Claude Code Discord Bot
 # Multi-stage build for optimized production image
 
 FROM denoland/deno:latest
@@ -9,16 +9,11 @@ WORKDIR /app
 # Set environment variable to indicate Docker container
 ENV DOCKER_CONTAINER=true
 
-# Install git and Node.js (required for Claude CLI and branch tracking)
+# Install git (required for branch tracking and version checks)
 USER root
 RUN apt-get update && \
-    apt-get install -y git curl && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
+    apt-get install -y git && \
     rm -rf /var/lib/apt/lists/*
-
-# Install Claude CLI globally
-RUN npm install -g @anthropic-ai/claude-code
 
 # Create non-root user for security
 RUN groupadd -r claude && useradd -r -g claude claude
@@ -49,6 +44,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 CMD ["deno", "run", "--allow-all", "--no-lock", "index.ts"]
 
 # Labels for image metadata
-LABEL org.opencontainers.image.source="https://github.com/zebbern/claude-code-discord"
-LABEL org.opencontainers.image.description="Claude Code Discord Bot - Use Claude AI via Discord"
+LABEL org.opencontainers.image.source="https://github.com/zebbern/Devonz"
+LABEL org.opencontainers.image.description="Devonz - Use Claude AI via Discord"
 LABEL org.opencontainers.image.licenses="MIT"
