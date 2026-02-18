@@ -140,3 +140,35 @@ Example schema:
 ```
 
 When enabled, responses follow `json_schema` output format through the SDK.
+
+## Role-Based Access Control (RBAC)
+
+Restrict dangerous commands to authorized users and roles:
+
+### Restricted Command Categories
+
+| Category | Commands |
+| -------- | -------- |
+| Shell | `/shell`, `/exec`, `/run`, `/terminal` |
+| Git | `/git`, `/commit`, `/push`, `/pull`, `/branch` |
+| System | `/shutdown`, `/restart`, `/config` |
+| Admin | `/admin` |
+
+### Configuration
+
+Set via environment variables in `.env`:
+
+```env
+# Comma-separated Discord Role IDs
+ADMIN_ROLE_IDS=123456789,987654321
+
+# Comma-separated Discord User IDs (bypass role checks)
+ADMIN_USER_IDS=111111111,222222222
+```
+
+### Behavior
+
+- **Neither variable set**: RBAC disabled — all commands open (default)
+- **One or both set**: Only users with a listed role or user ID can run restricted commands
+- **Denied users**: Receive an ephemeral "Permission Denied" message (only they can see it)
+- **Unrestricted commands**: Always available to everyone (e.g., `/claude`, `/settings`, `/help`)

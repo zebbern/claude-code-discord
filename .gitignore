@@ -3,8 +3,14 @@
 # Bot runtime data (persistence files)
 .bot-data/
 
+# Claude session data
+.claude/
+
 # Plan files (development only)
 plan/
+
+# Temporary files
+test.txt
 
 # IDE and editors
 .idea/

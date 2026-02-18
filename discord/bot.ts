@@ -16,6 +16,7 @@ import {
 
 import { sanitizeChannelName } from "./utils.ts";
 import { handlePaginationInteraction } from "./pagination.ts";
+import { checkCommandPermission } from "../core/rbac.ts";
 import type { 
   BotConfig, 
   CommandHandlers, 
@@ -217,6 +218,22 @@ export async function createDiscordBot(
           return (interaction as any).options.getBoolean(name, required ?? false);
         }
         return null;
+      },
+
+      getMemberRoleIds(): Set<string> {
+        const member = interaction.member;
+        if (member && 'roles' in member && member.roles && 'cache' in member.roles) {
+          // deno-lint-ignore no-explicit-any
+          const cache = (member.roles as any).cache;
+          if (cache && typeof cache.keys === 'function') {
+            return new Set([...cache.keys()]);
+          }
+        }
+        return new Set();
+      },
+
+      getUserId(): string {
+        return interaction.user?.id ?? '';
       }
     };
   }
@@ -228,6 +245,11 @@ export async function createDiscordBot(
     }
     
     const ctx = createInteractionContext(interaction);
+
+    // RBAC check for restricted commands
+    const allowed = await checkCommandPermission(interaction.commandName, ctx);
+    if (!allowed) return;
+
     const handler = handlers.get(interaction.commandName);
     
     if (!handler) {
