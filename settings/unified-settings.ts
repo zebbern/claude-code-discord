@@ -345,11 +345,13 @@ export const unifiedSettingsCommand = new SlashCommandBuilder()
   .addStringOption(option =>
     option.setName('action')
       .setDescription('Specific action to perform')
-      .setRequired(false))
+      .setRequired(false)
+      .setAutocomplete(true))
   .addStringOption(option =>
     option.setName('value')
       .setDescription('New value for the setting')
-      .setRequired(false));
+      .setRequired(false)
+      .setAutocomplete(true));
 
 // New todos command
 export const todosCommand = new SlashCommandBuilder()
@@ -425,6 +427,93 @@ export const mcpCommand = new SlashCommandBuilder()
     option.setName('description')
       .setDescription('Server description')
       .setRequired(false));
+
+// ── Autocomplete mappings for /settings action & value fields ──
+
+/** Actions available per category */
+export const SETTINGS_ACTIONS: Record<string, { name: string; value: string }[]> = {
+  bot: [
+    { name: 'mention-on — Enable mention forwarding', value: 'mention-on' },
+    { name: 'mention-off — Disable mention forwarding', value: 'mention-off' },
+  ],
+  claude: [
+    { name: 'set-model — Change the Claude model', value: 'set-model' },
+    { name: 'toggle-git-context — Toggle auto git context', value: 'toggle-git-context' },
+    { name: 'toggle-system-info — Toggle auto system info', value: 'toggle-system-info' },
+    { name: 'set-system-prompt — Set a custom system prompt', value: 'set-system-prompt' },
+  ],
+  modes: [
+    { name: 'set-thinking — Change thinking mode', value: 'set-thinking' },
+    { name: 'set-operation — Change operation/permission mode', value: 'set-operation' },
+    { name: 'set-effort — Change effort level', value: 'set-effort' },
+    { name: 'set-budget — Set max budget per query (USD)', value: 'set-budget' },
+    { name: 'toggle-1m — Toggle 1M context beta', value: 'toggle-1m' },
+    { name: 'toggle-checkpoint — Toggle file checkpointing', value: 'toggle-checkpoint' },
+    { name: 'toggle-sandbox — Toggle sandbox mode', value: 'toggle-sandbox' },
+    { name: 'toggle-structured-output — Toggle structured JSON output', value: 'toggle-structured-output' },
+    { name: 'set-output-schema — Set custom JSON output schema', value: 'set-output-schema' },
+  ],
+  output: [
+    { name: 'toggle-highlighting — Toggle code syntax highlighting', value: 'toggle-highlighting' },
+    { name: 'set-max-length — Set max output length', value: 'set-max-length' },
+    { name: 'set-timestamp — Set timestamp format', value: 'set-timestamp' },
+  ],
+  proxy: [
+    { name: 'enable — Enable proxy', value: 'enable' },
+    { name: 'disable — Disable proxy', value: 'disable' },
+    { name: 'set-url — Set proxy URL', value: 'set-url' },
+    { name: 'add-bypass — Add a bypass domain', value: 'add-bypass' },
+    { name: 'remove-bypass — Remove a bypass domain', value: 'remove-bypass' },
+    { name: 'list-bypass — List bypass domains', value: 'list-bypass' },
+  ],
+  developer: [
+    { name: 'toggle-debug — Toggle debug mode', value: 'toggle-debug' },
+    { name: 'toggle-verbose — Toggle verbose error reporting', value: 'toggle-verbose' },
+    { name: 'toggle-metrics — Toggle performance metrics', value: 'toggle-metrics' },
+    { name: 'show-debug — Show debug information', value: 'show-debug' },
+  ],
+  reset: [
+    { name: 'all — Reset all settings', value: 'all' },
+    { name: 'bot — Reset bot settings', value: 'bot' },
+    { name: 'claude — Reset Claude settings', value: 'claude' },
+    { name: 'modes — Reset mode settings', value: 'modes' },
+    { name: 'output — Reset output settings', value: 'output' },
+    { name: 'proxy — Reset proxy settings', value: 'proxy' },
+    { name: 'developer — Reset developer settings', value: 'developer' },
+  ],
+};
+
+/** Values available per action (only for actions that have a known set of choices) */
+export const SETTINGS_VALUES: Record<string, { name: string; value: string }[]> = {
+  'set-thinking': Object.entries(THINKING_MODES).map(([key, mode]) => ({
+    name: `${key} — ${mode.description}`,
+    value: key,
+  })),
+  'set-operation': Object.entries(OPERATION_MODES).map(([key, mode]) => ({
+    name: `${key} — ${mode.name}`,
+    value: key,
+  })),
+  'set-effort': Object.entries(EFFORT_LEVELS).map(([key, level]) => ({
+    name: `${key} — ${level.description}`,
+    value: key,
+  })),
+  'set-model': Object.entries(CLAUDE_MODELS).map(([key, model]) => ({
+    name: `${key} — ${model.name}`,
+    value: key,
+  })),
+  'set-timestamp': [
+    { name: 'relative — e.g. "2 minutes ago"', value: 'relative' },
+    { name: 'absolute — e.g. "2025-01-15 14:30"', value: 'absolute' },
+    { name: 'both — Show both formats', value: 'both' },
+  ],
+  'set-budget': [
+    { name: '$0.50', value: '0.50' },
+    { name: '$1.00', value: '1.00' },
+    { name: '$5.00', value: '5.00' },
+    { name: '$10.00', value: '10.00' },
+    { name: 'none — Remove budget limit', value: 'none' },
+  ],
+};
 
 export const unifiedSettingsCommands = [
   unifiedSettingsCommand,

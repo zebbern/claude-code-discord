@@ -10,6 +10,7 @@ import {
   Routes,
   CommandInteraction,
   ButtonInteraction,
+  AutocompleteInteraction,
   TextChannel,
   EmbedBuilder
 } from "npm:discord.js@14.14.1";
@@ -17,6 +18,7 @@ import {
 import { sanitizeChannelName } from "./utils.ts";
 import { handlePaginationInteraction } from "./pagination.ts";
 import { checkCommandPermission } from "../core/rbac.ts";
+import { SETTINGS_ACTIONS, SETTINGS_VALUES } from "../settings/unified-settings.ts";
 import type { 
   BotConfig, 
   CommandHandlers, 
@@ -281,6 +283,31 @@ export async function createDiscordBot(
       }
     }
   }
+
+  // Autocomplete handler for /settings action & value fields
+  async function handleAutocomplete(interaction: AutocompleteInteraction) {
+    if (interaction.commandName !== 'settings') return;
+
+    const focused = interaction.options.getFocused(true);
+    const category = interaction.options.getString('category') ?? '';
+    const action = interaction.options.getString('action') ?? '';
+    const typed = focused.value.toLowerCase();
+
+    let choices: { name: string; value: string }[] = [];
+
+    if (focused.name === 'action') {
+      choices = SETTINGS_ACTIONS[category] ?? [];
+    } else if (focused.name === 'value') {
+      choices = SETTINGS_VALUES[action] ?? [];
+    }
+
+    // Filter by what the user has typed so far
+    const filtered = choices
+      .filter(c => c.name.toLowerCase().includes(typed) || c.value.toLowerCase().includes(typed))
+      .slice(0, 25); // Discord max 25 choices
+
+    await interaction.respond(filtered);
+  }
   
   // Button handler - completely generic
   async function handleButton(interaction: ButtonInteraction) {
@@ -514,6 +541,8 @@ export async function createDiscordBot(
   client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isCommand()) {
       await handleCommand(interaction as CommandInteraction);
+    } else if (interaction.isAutocomplete()) {
+      await handleAutocomplete(interaction as AutocompleteInteraction);
     } else if (interaction.isButton()) {
       await handleButton(interaction as ButtonInteraction);
     }
