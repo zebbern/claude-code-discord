@@ -7,7 +7,7 @@ claude-code-discord/
 ├── index.ts                    # Entry point, Discord client setup
 ├── deno.json                   # Deno configuration
 ├── .env                        # Environment variables (not committed)
-├── .mcp.json                   # MCP server configuration
+├── .claude/mcp.json            # MCP server configuration
 │
 ├── claude/                     # Claude SDK integration
 │   ├── client.ts               # SDK query execution, streaming

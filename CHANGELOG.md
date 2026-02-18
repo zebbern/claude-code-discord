@@ -69,7 +69,7 @@ This is the first stable release of Claude Code Discord Bot - a Discord bot that
 
 #### Task Management
 - `/todos` - Task management with priorities and persistence
-- `/mcp` - Model Context Protocol server management (reads from `.mcp.json`)
+- `/mcp` - Model Context Protocol server management (reads from `.claude/mcp.json`)
 - `/agent` - 7 specialized AI agents
 
 #### Settings
@@ -129,7 +129,7 @@ This is the first stable release of Claude Code Discord Bot - a Discord bot that
 - **Secure** - Runs as non-root user in Docker, resource limits
 
 ### MCP (Model Context Protocol) Support
-- Reads server configurations from standard `.mcp.json` file
+- Reads server configurations from standard `.claude/mcp.json` file
 - Add/remove/test/list MCP servers via Discord commands
 - Cross-platform command testing (Windows `where` / Unix `which`)
 

@@ -13,7 +13,7 @@ import {
 } from "../util/persistence.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 
-// .mcp.json file format types (Claude Code standard format)
+// .claude/mcp.json file format types (Claude Code standard format)
 export interface MCPJsonServerEntry {
   command: string;
   args?: string[];
@@ -69,7 +69,7 @@ async function ensurePersistence(): Promise<void> {
       rateLimitTier: undefined
     }));
     
-    // NOTE: MCP servers are now read from .mcp.json on-demand, not loaded here
+    // NOTE: MCP servers are now read from .claude/mcp.json on-demand, not loaded here
     
     persistenceInitialized = true;
     console.log(`Persistence: Loaded ${todos.length} todos`);
@@ -92,11 +92,12 @@ async function saveTodos(): Promise<void> {
   await todosManager.save(persistenceTodos);
 }
 
-// .mcp.json file operations
-const MCP_JSON_FILENAME = ".mcp.json";
+// MCP config file operations (Claude Code standard location)
+const MCP_JSON_DIR = ".claude";
+const MCP_JSON_FILENAME = "mcp.json";
 
 async function readMCPJsonConfig(workDir: string): Promise<MCPJsonConfig> {
-  const filePath = path.join(workDir, MCP_JSON_FILENAME);
+  const filePath = path.join(workDir, MCP_JSON_DIR, MCP_JSON_FILENAME);
   try {
     const content = await Deno.readTextFile(filePath);
     return JSON.parse(content) as MCPJsonConfig;
@@ -111,14 +112,16 @@ async function readMCPJsonConfig(workDir: string): Promise<MCPJsonConfig> {
 }
 
 async function writeMCPJsonConfig(workDir: string, config: MCPJsonConfig): Promise<boolean> {
-  const filePath = path.join(workDir, MCP_JSON_FILENAME);
+  const filePath = path.join(workDir, MCP_JSON_DIR, MCP_JSON_FILENAME);
   try {
+    // Ensure .claude directory exists
+    await Deno.mkdir(path.join(workDir, MCP_JSON_DIR), { recursive: true });
     const content = JSON.stringify(config, null, 2);
     await Deno.writeTextFile(filePath, content);
-    console.log(`MCP: Saved ${Object.keys(config.mcpServers).length} server(s) to ${MCP_JSON_FILENAME}`);
+    console.log(`MCP: Saved ${Object.keys(config.mcpServers).length} server(s) to ${MCP_JSON_DIR}/${MCP_JSON_FILENAME}`);
     return true;
   } catch (error) {
-    console.error(`Failed to write ${MCP_JSON_FILENAME}:`, error);
+    console.error(`Failed to write ${MCP_JSON_DIR}/${MCP_JSON_FILENAME}:`, error);
     return false;
   }
 }
@@ -1031,7 +1034,7 @@ async function showRateStatus(ctx: any, rateTier?: string) {
   });
 }
 
-// MCP management functions (reads from .mcp.json)
+// MCP management functions (reads from .claude/mcp.json)
 async function listMCPServers(ctx: any, workDir: string) {
   const config = await readMCPJsonConfig(workDir);
   const serverNames = Object.keys(config.mcpServers);
@@ -1041,7 +1044,7 @@ async function listMCPServers(ctx: any, workDir: string) {
       embeds: [{
         color: 0xffaa00,
         title: '🔌 No MCP Servers',
-        description: `No MCP servers configured in \`.mcp.json\`.\n\nUse \`/mcp action:add\` to add your first server.`,
+        description: `No MCP servers configured in \`.claude/mcp.json\`.\n\nUse \`/mcp action:add\` to add your first server.`,
         footer: { text: `📁 ${path.join(workDir, MCP_JSON_FILENAME)}` },
         timestamp: true
       }]
@@ -1076,7 +1079,7 @@ async function listMCPServers(ctx: any, workDir: string) {
     embeds: [{
       color: 0x0099ff,
       title: '🔌 MCP Servers',
-      description: `Found **${serverNames.length}** server(s) configured in \`.mcp.json\``,
+      description: `Found **${serverNames.length}** server(s) configured in \`.claude/mcp.json\``,
       fields: fields.slice(0, 25), // Discord limit
       footer: {
         text: `📁 ${path.join(workDir, MCP_JSON_FILENAME)}`
@@ -1095,7 +1098,7 @@ async function addMCPServer(ctx: any, workDir: string, name: string, commandOrUr
       embeds: [{
         color: 0xff0000,
         title: '❌ Server Exists',
-        description: `MCP server with name "${name}" already exists in \`.mcp.json\`.`,
+        description: `MCP server with name "${name}" already exists in \`.claude/mcp.json\`.`,
         timestamp: true
       }]
     });
@@ -1117,7 +1120,7 @@ async function addMCPServer(ctx: any, workDir: string, name: string, commandOrUr
   // Add to config
   config.mcpServers[name] = serverEntry;
   
-  // Save to .mcp.json
+  // Save to .claude/mcp.json
   const saved = await writeMCPJsonConfig(workDir, config);
   
   if (!saved) {
@@ -1125,7 +1128,7 @@ async function addMCPServer(ctx: any, workDir: string, name: string, commandOrUr
       embeds: [{
         color: 0xff0000,
         title: '❌ Save Failed',
-        description: `Failed to save server to \`.mcp.json\`. Check file permissions.`,
+        description: `Failed to save server to \`.claude/mcp.json\`. Check file permissions.`,
         timestamp: true
       }]
     });
@@ -1823,7 +1826,7 @@ async function prioritizeTodos(ctx: any, rateTier?: string) {
   });
 }
 
-// Remove an MCP server configuration (from .mcp.json)
+// Remove an MCP server configuration (from .claude/mcp.json)
 async function removeMCPServer(ctx: any, workDir: string, serverName: string) {
   const config = await readMCPJsonConfig(workDir);
   const serverNames = Object.keys(config.mcpServers);
@@ -1860,7 +1863,7 @@ async function removeMCPServer(ctx: any, workDir: string, serverName: string) {
       embeds: [{
         color: 0xff0000,
         title: '❌ Save Failed',
-        description: `Failed to save changes to \`.mcp.json\`.`,
+        description: `Failed to save changes to \`.claude/mcp.json\`.`,
         timestamp: true
       }]
     });
@@ -1886,7 +1889,7 @@ async function removeMCPServer(ctx: any, workDir: string, serverName: string) {
   });
 }
 
-// Test MCP server connection (from .mcp.json)
+// Test MCP server connection (from .claude/mcp.json)
 async function testMCPConnection(ctx: any, workDir: string, serverName: string) {
   const config = await readMCPJsonConfig(workDir);
   const serverNames = Object.keys(config.mcpServers);
@@ -1966,7 +1969,7 @@ async function testMCPConnection(ctx: any, workDir: string, serverName: string) 
   });
 }
 
-// Show MCP server status overview (from .mcp.json)
+// Show MCP server status overview (from .claude/mcp.json)
 async function showMCPStatus(ctx: any, workDir: string) {
   const config = await readMCPJsonConfig(workDir);
   const serverNames = Object.keys(config.mcpServers);
@@ -1976,7 +1979,7 @@ async function showMCPStatus(ctx: any, workDir: string) {
       embeds: [{
         color: 0xffaa00,
         title: '📊 MCP Status',
-        description: `No MCP servers configured in \`.mcp.json\`.\n\nUse \`/mcp action:add server_name:[name] command:[command]\` to add a server.`,
+        description: `No MCP servers configured in \`.claude/mcp.json\`.\n\nUse \`/mcp action:add server_name:[name] command:[command]\` to add a server.`,
         footer: { text: `📁 ${path.join(workDir, MCP_JSON_FILENAME)}` },
         timestamp: true
       }]

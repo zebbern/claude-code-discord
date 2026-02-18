@@ -51,7 +51,7 @@
 | Command | Description |
 |---------|-------------|
 | `/todos` | Task management. Actions: `list`, `add`, `complete`, `generate`, `prioritize`. Priority levels: low/medium/high/critical. Persists to disk. |
-| `/mcp` | MCP (Model Context Protocol) server management. Actions: `list`, `add`, `remove`, `test`, `status`. Reads from `.mcp.json`. |
+| `/mcp` | MCP (Model Context Protocol) server management. Actions: `list`, `add`, `remove`, `test`, `status`. Reads from `.claude/mcp.json`. |
 | `/agent` | Run specialized AI agents. Actions: `list`, `start`, `stop`, `status`. 7 built-in agents. |
 
 ## Git Operations (6)

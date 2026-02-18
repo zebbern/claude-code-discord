@@ -80,7 +80,7 @@ Manage Model Context Protocol servers for Claude:
 /mcp test       # Test a server connection
 ```
 
-MCP configuration is stored in `.mcp.json`:
+MCP configuration is stored in `.claude/mcp.json`:
 
 ```json
 {
