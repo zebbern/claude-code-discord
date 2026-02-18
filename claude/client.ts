@@ -213,10 +213,12 @@ export async function sendToClaudeCode(
           // The dontAsk permission mode blocks MCP tools because they aren't "pre-approved".
           // canUseTool handles permission prompts — built-in tools that dontAsk
           // auto-approves (Read, Edit, Bash, etc.) won't trigger this callback.
+          // NOTE: The SDK's runtime Zod schema requires `updatedInput` on allow responses
+          // even though the TypeScript types mark it optional — pass through original input.
           ...(mcpToolPrefixes.length > 0 && {
-            canUseTool: async (toolName: string) => {
+            canUseTool: async (toolName: string, input: Record<string, unknown>) => {
               if (mcpToolPrefixes.some(prefix => toolName.startsWith(prefix))) {
-                return { behavior: 'allow' as const };
+                return { behavior: 'allow' as const, updatedInput: input };
               }
               return { behavior: 'deny' as const, message: `Tool ${toolName} not pre-approved` };
             },
