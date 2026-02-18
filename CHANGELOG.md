@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-07-17
+
+### Added
+- **Fast Mode** (`/fast`): Toggle Opus 4.6 speed-optimized API config (2.5x faster, same quality)
+- **AskUserQuestion Handler**: Claude can now ask clarifying questions mid-session via Discord buttons
+- **Startup Buttons**: Quick-action buttons on the startup embed (Status, Sessions, Help, Shutdown)
+- **MCP Mid-Session Management** (`/mcp toggle`, `/mcp reconnect`): Enable/disable or reconnect MCP servers without restarting
+- **Granular Sandbox Config**: Full SDK SandboxSettings support (network rules, filesystem ACLs, excluded commands, violation ignoring)
+- **Additional Directories**: Multi-repo access via `additionalDirectories` setting
+- **Fork Session**: Branch conversations into new sessions via `forkSession` option
+- **Hooks System**: Passive SDK callbacks for tool use, notification, and task completion observability
+- **stopTask()**: Stop background tasks mid-session via `/claude-control action:stop-task`
+- **Agent Teams**: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` env var support with `delegate` permission mode
+- **stop_reason Display**: Shows why Claude stopped (end_turn, max_tokens, stop_sequence) in completion embeds
+- **Tasks Env Var**: `CLAUDE_CODE_ENABLE_TASKS=1` automatically set for background task support
+- **Known Issues Documentation**: `docs/known-issues.md` documenting 22 accepted risks
+
+### Changed
+- `/continue` renamed to `/resume` for clarity
+- Button UX overhaul: consistent styling, proper disabled states, contextual labels
+- Settings display now shows SDK features (hooks, agent teams, sandbox config, additional dirs)
+- Help system updated with all new command documentation
+
+### Fixed
+- Getter pattern for `claudeController` prevents stale abort controller references
+- Abort state checks prevent sending to cancelled sessions
+- Continue button properly resumes the last session
+- Pagination titles show correct page info
+- Unicode-safe message splitting prevents mid-codepoint truncation
+
 ## [2.0.0] - 2026-02-18
 
 ### Breaking Changes

@@ -381,6 +381,16 @@ async function showAllSettings(ctx: any, settings: UnifiedBotSettings) {
       name: '🔧 Developer Settings',
       value: `Debug: ${settings.enableDebugMode ? 'On' : 'Off'}\nVerbose Errors: ${settings.verboseErrorReporting ? 'On' : 'Off'}\nMetrics: ${settings.enablePerformanceMetrics ? 'On' : 'Off'}`,
       inline: true
+    },
+    {
+      name: '🔌 SDK Features',
+      value: `Agent Teams: ${settings.enableAgentTeams ? '✅' : '❌'}\nSandbox: ${settings.sandboxConfig ? '✅ Custom' : settings.enableSandbox ? '✅ Basic' : '❌'}\nAdditional Dirs: ${settings.additionalDirectories.length > 0 ? settings.additionalDirectories.join(', ') : 'None'}\n1M Context: ${settings.enable1MContext ? '✅' : '❌'}\nCheckpointing: ${settings.enableFileCheckpointing ? '✅' : '❌'}`,
+      inline: true
+    },
+    {
+      name: '🪝 Hooks',
+      value: `Tool Use: ${settings.hooksLogToolUse ? '✅' : '❌'}\nNotifications: ${settings.hooksLogNotifications ? '✅' : '❌'}\nTask Completions: ${settings.hooksLogTaskCompletions ? '✅' : '❌'}`,
+      inline: true
     }
   ];
 

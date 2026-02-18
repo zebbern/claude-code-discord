@@ -12,8 +12,13 @@
 | Full SDK Integration | Built on `@anthropic-ai/claude-agent-sdk` v0.2.45 with native agent support | ✅ |
 | Centralized collaboration | Run commands and discuss results where your team already communicates | ✅ |
 | Branch-aware organization | Maps Git branches to channels/categories so feature work stays separated | ✅ |
-| Mid-session controls | Interrupt, change model, change permissions, and rewind without restarting | ✅ |
+| Mid-session controls | Interrupt, change model, change permissions, stop tasks, and rewind without restarting | ✅ |
+| Fast mode | Toggle Opus 4.6 speed-optimized API (2.5x faster, same quality) via `/fast` | ✅ |
 | 7 Specialized AI Agents | Code reviewer, architect, debugger, security analyst, performance engineer, DevOps, general | ✅ |
+| MCP server management | View status, toggle, and reconnect MCP servers mid-session | ✅ |
+| Hooks system | Passive SDK callbacks for tool use, notification, and task completion observability | ✅ |
+| Granular sandbox config | Full SDK sandbox with network rules, filesystem ACLs, and excluded commands | ✅ |
+| AskUserQuestion | Claude can ask clarifying questions mid-session via Discord buttons | ✅ |
 | Dynamic model discovery | Auto-fetches available models from Anthropic API and CLI | ✅ |
 | Structured output mode | Get JSON responses matching a configurable schema | ✅ |
 | Advanced thinking modes | Standard, think, think-hard, ultrathink with configurable effort and budget | ✅ |
