@@ -9,8 +9,22 @@ export function sanitizeChannelName(name: string): string {
 
 export function splitText(text: string, maxLength: number): string[] {
   const chunks: string[] = [];
-  for (let i = 0; i < text.length; i += maxLength) {
-    chunks.push(text.substring(i, i + maxLength));
+  let current = '';
+
+  for (const codePoint of text) {
+    if ((current + codePoint).length > maxLength) {
+      if (current) {
+        chunks.push(current);
+      }
+      current = codePoint;
+    } else {
+      current += codePoint;
+    }
   }
+
+  if (current) {
+    chunks.push(current);
+  }
+
   return chunks;
 }

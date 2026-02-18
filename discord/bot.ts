@@ -337,13 +337,20 @@ export async function createDiscordBot(
     // Handle continue with session ID pattern: "continue:sessionId"
     if (buttonId.startsWith('continue:')) {
       const sessionId = buttonId.split(':')[1];
-      const continueHandler = buttonHandlers.get('continue');
-      if (continueHandler) {
-        try {
-          await continueHandler(ctx);
-        } catch (error) {
-          console.error(`Error handling continue button:`, error);
-        }
+      try {
+        await ctx.update({
+          embeds: [{
+            color: 0xffff00,
+            title: '\u27a1\ufe0f Continue Session',
+            description: `Use \`/continue\` or \`/claude session_id:${sessionId}\` to continue this conversation.`,
+            fields: [
+              { name: 'Session ID', value: `\`${sessionId}\``, inline: false }
+            ],
+            timestamp: true
+          }]
+        });
+      } catch (error) {
+        console.error(`Error handling continue button:`, error);
       }
       return;
     }

@@ -18,6 +18,7 @@ export interface PaginationState {
   totalPages: number;
   content: string[];
   options: PaginationOptions;
+  title: string;
   messageId?: string;
 }
 
@@ -203,7 +204,8 @@ export function initializePagination(
     currentPage: 0,
     totalPages: paginatedContent.totalPages,
     content: smartSplit(content, options.pageSize || 4000),
-    options
+    options,
+    title
   };
 
   paginationStates.set(paginationId, paginationState);
@@ -259,7 +261,7 @@ export function handlePaginationInteraction(
 
   // Create new embed for the current page
   const paginatedContent = createPaginatedEmbeds(
-    'Content', // We'll update this with the original title
+    state.title,
     state.content[newPage],
     { ...state.options, includePageInfo: true }
   );
@@ -269,9 +271,9 @@ export function handlePaginationInteraction(
   return {
     embed: {
       ...paginatedContent.embeds[0],
-      title: state.options.includePageInfo 
-        ? `Content (Page ${newPage + 1}/${state.totalPages})`
-        : 'Content'
+      title: state.options.includePageInfo !== false
+        ? `${state.title} (Page ${newPage + 1}/${state.totalPages})`
+        : state.title
     },
     components: buttons.length > 0 ? buttons : undefined
   };
