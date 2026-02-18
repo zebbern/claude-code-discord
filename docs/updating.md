@@ -30,7 +30,7 @@ This check is non-blocking and compares your local git commit against the latest
 
 ## GHCR Image Tags
 
-Images are published to `ghcr.io/zebbern/devonz` with these tags:
+Images are published to `ghcr.io/zebbern/claude-code-discord` with these tags:
 
 | Tag | Description |
 |-----|-------------|

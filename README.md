@@ -1,6 +1,6 @@
 <div align="center">
 
-# Devonz
+# claude-code-discord
 
 **Run Claude Code from Discord with full SDK integration, agents, rewind, mid-session controls and more.**
 
@@ -38,8 +38,8 @@
 ## Quick Start
 
 ```bash
-git clone https://github.com/zebbern/Devonz.git
-cd Devonz
+git clone https://github.com/zebbern/claude-code-discord.git
+cd claude-code-discord
 cp .env.example .env
 # Edit .env with your DISCORD_TOKEN and APPLICATION_ID
 docker compose up -d

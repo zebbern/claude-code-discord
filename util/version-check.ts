@@ -1,21 +1,14 @@
 /**
  * Version checker - compares local commit hash against GitHub's latest.
  * Notifies at startup if the bot is behind.
- * Also provides periodic update checks and semver display.
  *
  * @module util/version-check
  */
 
-// Read version from deno.json at startup
-const denoConfig = JSON.parse(Deno.readTextFileSync("deno.json"));
-
-/** Current bot version from deno.json */
-export const BOT_VERSION: string = denoConfig.version ?? "unknown";
-
 const REPO_OWNER = "zebbern";
-const REPO_NAME = "Devonz";
+const REPO_NAME = "claude-code-discord";
 
-export interface VersionCheckResult {
+interface VersionCheckResult {
   upToDate: boolean;
   localCommit: string;
   remoteCommit: string;
@@ -116,10 +109,10 @@ export async function runVersionCheck(): Promise<{
     embed: {
       color: 0xFFA500, // Orange
       title: "Update Available",
-      description: `A newer version of Devonz is available on GitHub. You are running **v${BOT_VERSION}**.`,
+      description: "A newer version of claude-code-discord is available on GitHub.",
       fields: [
-        { name: "Your Commit", value: `\`${result.localCommit}\``, inline: true },
-        { name: "Latest Commit", value: `\`${result.remoteCommit}\``, inline: true },
+        { name: "Your Version", value: `\`${result.localCommit}\``, inline: true },
+        { name: "Latest Version", value: `\`${result.remoteCommit}\``, inline: true },
         {
           name: "How to Update",
           value: Deno.env.get("DOCKER_CONTAINER")
@@ -130,39 +123,4 @@ export async function runVersionCheck(): Promise<{
       ],
     },
   };
-}
-
-/** Cached update check result for use in /status and periodic checks */
-let lastCheckResult: VersionCheckResult | null = null;
-
-/** Get cached update status (non-blocking, returns last known state) */
-export function getLastCheckResult(): VersionCheckResult | null {
-  return lastCheckResult;
-}
-
-/**
- * Start periodic update checks.
- * Runs checkForUpdates every `intervalMs` (default: 12 hours).
- * Calls `onUpdateAvailable` when an update is detected.
- */
-export function startPeriodicUpdateCheck(
-  onUpdateAvailable: (result: VersionCheckResult) => void,
-  intervalMs = 12 * 60 * 60 * 1000
-): number {
-  const check = async () => {
-    try {
-      const result = await checkForUpdates();
-      lastCheckResult = result;
-      if (result.behind) {
-        onUpdateAvailable(result);
-      }
-    } catch {
-      // Silently ignore periodic check failures
-    }
-  };
-
-  // Run initial check to populate cache
-  check();
-
-  return setInterval(check, intervalMs) as unknown as number;
 }

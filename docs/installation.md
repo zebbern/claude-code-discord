@@ -5,8 +5,8 @@
 Works on all platforms with Docker installed.
 
 ```bash
-git clone https://github.com/zebbern/Devonz.git
-cd Devonz
+git clone https://github.com/zebbern/claude-code-discord.git
+cd claude-code-discord
 cp .env.example .env
 # Edit .env with your DISCORD_TOKEN and APPLICATION_ID
 docker compose up -d
@@ -21,16 +21,16 @@ See [Docker Guide](docker.md) for full Docker usage, GHCR images, and auto-updat
 ### Linux / macOS
 
 ```bash
-git clone https://github.com/zebbern/Devonz.git
-cd Devonz
+git clone https://github.com/zebbern/claude-code-discord.git
+cd claude-code-discord
 chmod +x setup.sh && ./setup.sh
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-git clone https://github.com/zebbern/Devonz.git
-cd Devonz
+git clone https://github.com/zebbern/claude-code-discord.git
+cd claude-code-discord
 .\setup.ps1
 ```
 
@@ -74,8 +74,8 @@ claude /login
 ### Clone and Configure
 
 ```bash
-git clone https://github.com/zebbern/Devonz.git
-cd Devonz
+git clone https://github.com/zebbern/claude-code-discord.git
+cd claude-code-discord
 cp .env.example .env
 ```
 
@@ -146,5 +146,5 @@ Environment variables override `.env` file settings. CLI flags override environm
 ### Docker (all platforms)
 
 - Docker Desktop required on Windows/macOS, Docker Engine on Linux
-- The image bundles Deno and Claude CLI so no local installs needed
+- The image bundles Deno, Node.js, and Claude CLI so no local installs needed
 - See [Docker Guide](docker.md) for volumes, GHCR, and Watchtower
