@@ -1,5 +1,39 @@
-import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgentDefinition, type ModelInfo as SDKModelInfo, type SdkBeta } from "@anthropic-ai/claude-agent-sdk";
+import { query as claudeQuery, type SDKMessage, type AgentDefinition as SDKAgentDefinition, type ModelInfo as SDKModelInfo, type SdkBeta, type McpServerConfig } from "@anthropic-ai/claude-agent-sdk";
 import { setActiveQuery, trackMessageId, clearTrackedMessages } from "./query-manager.ts";
+import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
+
+// Load MCP server configs from .claude/mcp.json
+async function loadMcpServers(workDir: string): Promise<Record<string, McpServerConfig> | undefined> {
+  try {
+    const mcpPath = path.join(workDir, ".claude", "mcp.json");
+    const raw = await Deno.readTextFile(mcpPath);
+    const parsed = JSON.parse(raw);
+    const servers = parsed?.mcpServers;
+    if (!servers || typeof servers !== "object") return undefined;
+
+    // Clean configs to match SDK's McpStdioServerConfig shape and resolve placeholders
+    const result: Record<string, McpServerConfig> = {};
+    for (const [name, cfg] of Object.entries(servers)) {
+      // deno-lint-ignore no-explicit-any
+      const raw = cfg as any;
+      // Resolve ${workspaceFolder:-.} placeholder in args
+      const args = Array.isArray(raw.args)
+        ? raw.args.map((a: string) => a.replace(/\$\{workspaceFolder:-\.?\}/g, workDir))
+        : undefined;
+      result[name] = {
+        type: "stdio" as const,
+        command: raw.command,
+        ...(args && { args }),
+        ...(raw.env && { env: raw.env }),
+      };
+    }
+    console.log(`[MCP] Loaded ${Object.keys(result).length} MCP server(s): ${Object.keys(result).join(", ")}`);
+    return result;
+  } catch {
+    // File doesn't exist or is invalid — no MCP servers
+    return undefined;
+  }
+}
 
 export type { SDKAgentDefinition, SDKModelInfo };
 
@@ -105,6 +139,9 @@ export async function sendToClaudeCode(
   // Clean up session ID
   const cleanedSessionId = sessionId ? cleanSessionId(sessionId) : undefined;
   
+  // Load MCP servers from .claude/mcp.json
+  const mcpServers = await loadMcpServers(workDir);
+
   // Wrap with comprehensive error handling
   const executeWithErrorHandling = async (overrideModel?: string) => {
     try {
@@ -160,6 +197,8 @@ export async function sendToClaudeCode(
           ...(modelOptions?.enableFileCheckpointing && { enableFileCheckpointing: true }),
           ...(modelOptions?.sandbox && { sandbox: modelOptions.sandbox }),
           ...(modelOptions?.outputFormat && { outputFormat: modelOptions.outputFormat }),
+          // MCP servers from .claude/mcp.json
+          ...(mcpServers && { mcpServers }),
           env: envVars,
         },
       };
