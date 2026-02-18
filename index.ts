@@ -327,7 +327,6 @@ function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) =>
 
     const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = await import("npm:discord.js@14.14.1");
     const answers: Record<string, string> = {};
-    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
     for (let qi = 0; qi < input.questions.length; qi++) {
       const q = input.questions[qi];
@@ -337,7 +336,7 @@ function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) =>
         .setColor(0xff9900)
         .setTitle(`❓ Claude needs your input — ${q.header}`)
         .setDescription(q.question)
-        .setFooter({ text: q.multiSelect ? 'Select option(s), then click ✅ Confirm' : 'Click an option to answer' })
+        .setFooter({ text: q.multiSelect ? 'Select option(s), then click ✅ Confirm — Claude is waiting' : 'Click an option to answer — Claude is waiting' })
         .setTimestamp();
 
       for (let oi = 0; oi < q.options.length; oi++) {
@@ -373,7 +372,6 @@ function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) =>
         const selected: string[] = [];
         const collector = questionMsg.createMessageComponentCollector({
           componentType: ComponentType.Button,
-          time: TIMEOUT_MS,
         });
 
         await new Promise<void>((resolve, reject) => {
@@ -402,7 +400,7 @@ function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) =>
 
           collector.on('end', (_: unknown, reason: string) => {
             if (reason !== 'confirmed') {
-              reject(new Error(`Question "${q.header}" timed out waiting for response`));
+              reject(new Error(`Question "${q.header}" was cancelled`));
             }
           });
         });
@@ -411,12 +409,7 @@ function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) =>
         // deno-lint-ignore no-explicit-any
         const interaction: any = await questionMsg.awaitMessageComponent({
           componentType: ComponentType.Button,
-          time: TIMEOUT_MS,
-        }).catch(() => null);
-
-        if (!interaction) {
-          throw new Error(`Question "${q.header}" timed out waiting for response`);
-        }
+        });
 
         const parsed = parseAskUserButtonId(interaction.customId);
         if (parsed && parsed.questionIndex === qi) {
