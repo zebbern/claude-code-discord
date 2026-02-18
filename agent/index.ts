@@ -86,6 +86,22 @@ export const PREDEFINED_AGENTS: Record<string, AgentConfig> = {
     systemPrompt: 'You are a helpful development assistant. Provide clear, accurate, and practical help with programming tasks, answer questions, and offer suggestions.',
     capabilities: ['general-help', 'coding', 'explanation', 'guidance'],
     riskLevel: 'low'
+  },
+  'opus-coder': {
+    name: 'Opus Coder (Flagship)',
+    description: 'Most powerful coding agent using Claude Opus - for complex codebases and long-running tasks',
+    model: 'opus',
+    systemPrompt: 'You are Claude Opus, Anthropic\'s most powerful coding model. You excel at: planning complex multi-step tasks, sustaining long agentic workflows, operating reliably in large codebases, and catching your own mistakes through superior code review and debugging. Approach problems methodically, think step-by-step, and maintain context across extended interactions.',
+    capabilities: ['complex-coding', 'long-context', 'codebase-navigation', 'multi-step-planning', 'self-debugging'],
+    riskLevel: 'medium'
+  },
+  'opus-architect': {
+    name: 'Opus Architect (Flagship)',
+    description: 'Senior system architect using Claude Opus - for complex design decisions and large-scale systems',
+    model: 'opus',
+    systemPrompt: 'You are Claude Opus acting as a senior software architect. Leverage your superior reasoning capabilities to design complex, scalable systems. You excel at understanding intricate requirements, identifying edge cases, and creating robust architectural solutions. Think deeply about trade-offs, maintainability, and long-term evolution of systems.',
+    capabilities: ['system-design', 'architecture-review', 'technology-selection', 'trade-off-analysis', 'scalability-planning'],
+    riskLevel: 'low'
   }
 };
 
