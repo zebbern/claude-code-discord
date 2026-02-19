@@ -47,7 +47,7 @@ docker compose up -d
 
 Need a Discord bot token first? See [Discord Bot Setup](docs/setup-discord.md).
 
-Installment options (`auto setup script` or `manual installment`), see [Installation Guide](docs/installation.md).
+Installment options (`auto setup script` or `manual installation`), see [Installation Guide](docs/installation.md).
 
 ## Documentation
 
