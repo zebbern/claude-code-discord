@@ -88,6 +88,15 @@ export interface SlashCommand {
   toJSON(): any;
 }
 
+export interface MonitorConfig {
+  /** Discord channel ID to watch for messages */
+  channelId: string;
+  /** Bot/webhook user IDs whose messages trigger auto-response */
+  botIds: string[];
+  /** Callback invoked with batched alert content and a reply function */
+  onAlertMessage: (content: string, replyFn: (text: string) => Promise<void>) => Promise<void>;
+}
+
 export interface BotDependencies {
   commands: SlashCommand[];
   cleanSessionId?: (sessionId: string) => string;
@@ -95,4 +104,6 @@ export interface BotDependencies {
   botSettings?: BotSettings;
   /** Callback to actually continue a Claude session from a button click */
   onContinueSession?: (ctx: InteractionContext) => Promise<void>;
+  /** Optional channel monitoring config for auto-responding to messages */
+  monitorConfig?: MonitorConfig;
 }

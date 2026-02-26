@@ -12,7 +12,8 @@ import {
   ButtonInteraction,
   AutocompleteInteraction,
   TextChannel,
-  EmbedBuilder
+  EmbedBuilder,
+  Message,
 } from "npm:discord.js@14.14.1";
 
 import { sanitizeChannelName } from "./utils.ts";
@@ -112,7 +113,11 @@ export async function createDiscordBot(
   };
   
   const client = new Client({
-    intents: [GatewayIntentBits.Guilds],
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+    ],
   });
   
   // Use commands from dependencies
@@ -548,6 +553,56 @@ export async function createDiscordBot(
       await handleButton(interaction as ButtonInteraction);
     }
   });
+
+  // Channel monitoring -- auto-respond to messages from specific bots/webhooks
+  if (dependencies.monitorConfig) {
+    const { channelId, botIds, onAlertMessage } = dependencies.monitorConfig;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let pendingAlerts: string[] = [];
+
+    client.on(Events.MessageCreate, async (message: Message) => {
+      if (message.author.id === client.user?.id) return;
+      if (message.channelId !== channelId) return;
+      if (!botIds.includes(message.author.id)) return;
+
+      const content = message.content;
+      if (!content) return;
+
+      console.log(`[Monitor] Alert detected from ${message.author.id}: ${content.substring(0, 100)}...`);
+
+      pendingAlerts.push(content);
+
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      debounceTimer = setTimeout(async () => {
+        const alertBatch = [...pendingAlerts];
+        pendingAlerts = [];
+        debounceTimer = null;
+
+        const combined = alertBatch.join('\n---\n');
+        const channel = message.channel as TextChannel;
+
+        try {
+          await onAlertMessage(combined, async (reply: string) => {
+            const chunks = [];
+            for (let i = 0; i < reply.length; i += 1900) {
+              chunks.push(reply.substring(i, i + 1900));
+            }
+            for (const chunk of chunks) {
+              await channel.send(chunk);
+            }
+          });
+        } catch (error) {
+          console.error('[Monitor] Error handling alert:', error);
+          await channel.send(`Failed to investigate alert: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }, 30_000);
+    });
+
+    console.log(`[Monitor] Watching channel ${channelId} for messages from ${botIds.join(', ')}`);
+  }
   
   // Login
   await client.login(discordToken);

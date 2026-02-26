@@ -26,6 +26,7 @@ export type {
   MessageContent, 
   InteractionContext, 
   BotDependencies,
+  MonitorConfig,
   EmbedData,
   ComponentData
 } from "./types.ts";

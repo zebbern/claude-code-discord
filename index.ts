@@ -19,7 +19,7 @@ import {
 } from "./discord/index.ts";
 
 import { getGitInfo } from "./git/index.ts";
-import { createClaudeSender, expandableContent, type DiscordSender, type ClaudeMessage } from "./claude/index.ts";
+import { createClaudeSender, expandableContent, sendToClaudeCode, convertToClaudeMessages, type DiscordSender, type ClaudeMessage } from "./claude/index.ts";
 import { buildQuestionMessages, parseAskUserButtonId, parseAskUserConfirmId, type AskUserQuestionInput } from "./claude/index.ts";
 import { buildPermissionEmbed, parsePermissionButtonId, type PermissionRequestCallback } from "./claude/index.ts";
 import { claudeCommands, enhancedClaudeCommands } from "./claude/index.ts";
@@ -210,6 +210,10 @@ export async function createClaudeCodeBot(config: BotConfig) {
     expandableContent
   );
 
+  // Channel monitoring for auto-responding to bot/webhook messages
+  const monitorChannelId = Deno.env.get("MONITOR_CHANNEL_ID");
+  const monitorBotIds = Deno.env.get("MONITOR_BOT_IDS")?.split(",").map(s => s.trim()).filter(Boolean);
+
   // Create dependencies object for Discord bot
   const dependencies: BotDependencies = {
     commands: getAllCommands(),
@@ -218,6 +222,42 @@ export async function createClaudeCodeBot(config: BotConfig) {
     onContinueSession: async (ctx) => {
       await allHandlers.claude.onContinue(ctx);
     },
+    ...(monitorChannelId && monitorBotIds?.length && {
+      monitorConfig: {
+        channelId: monitorChannelId,
+        botIds: monitorBotIds,
+        onAlertMessage: async (content: string, replyFn: (text: string) => Promise<void>) => {
+          const prompt = [
+            "A monitoring alert notification was just received. Investigate this alert.",
+            "Identify the alert, check severity, gather diagnostics, analyze the root cause, and report findings.",
+            "If a config change is needed, describe what should change. If it's a transient issue, report findings.",
+            "",
+            "Alert content:",
+            content,
+          ].join("\n");
+
+          const controller = new AbortController();
+          const result = await sendToClaudeCode(
+            workDir,
+            prompt,
+            controller,
+            undefined,
+            undefined,
+            (jsonData) => {
+              const claudeMessages = convertToClaudeMessages(jsonData);
+              if (claudeMessages.length > 0) {
+                sendClaudeMessages(claudeMessages).catch(() => {});
+              }
+            },
+            false,
+          );
+
+          if (result.response) {
+            await replyFn(result.response);
+          }
+        },
+      },
+    }),
   };
 
   // Create Discord bot
