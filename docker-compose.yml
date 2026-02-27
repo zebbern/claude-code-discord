@@ -1,6 +1,10 @@
 # Claude Code Discord Bot - Docker Compose Configuration
 # Quick start: docker compose up -d
 #
+# IMPORTANT: The ANTHROPIC_API_KEY in your .env file is required for Docker.
+# The Claude CLI inside the container uses it to authenticate with Anthropic.
+# (Unlike native installs, you cannot run `claude /login` inside the container.)
+#
 # To use the pre-built image from GitHub Container Registry (recommended):
 #   1. Comment out the 'build' section below
 #   2. Uncomment the 'image' line
@@ -18,10 +22,11 @@ services:
     restart: unless-stopped
     
     # Environment variables (use .env file or set here)
+    # ANTHROPIC_API_KEY is required in Docker — it authenticates the Claude CLI
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - APPLICATION_ID=${APPLICATION_ID}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - WORK_DIR=${WORK_DIR:-/app/workspace}
       - USER_ID=${USER_ID:-}
       - CATEGORY_NAME=${CATEGORY_NAME:-claude-code}

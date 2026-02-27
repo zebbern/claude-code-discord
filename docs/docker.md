@@ -6,7 +6,12 @@
 docker compose up -d
 ```
 
-Make sure your `.env` file is in the project root with all required variables. See [Installation](installation.md) for `.env` setup.
+Make sure your `.env` file is in the project root with **all required variables**:
+- `DISCORD_TOKEN` — your Discord bot token
+- `APPLICATION_ID` — your Discord application ID  
+- `ANTHROPIC_API_KEY` — **required in Docker** (the Claude CLI inside the container uses this to authenticate)
+
+See [Installation](installation.md) for full `.env` setup.
 
 ## Docker Compose
 
@@ -82,8 +87,24 @@ This checks for new images every 5 minutes and restarts the bot automatically.
 
 The Dockerfile builds on `denoland/deno:latest` and adds:
 
+- **Claude Code CLI** (`@anthropic-ai/claude-code`) — required for Claude interactions
 - **Git** (required for branch tracking and version checks)
+- **Node.js / npm** (used to install the Claude CLI)
 - **Deno cached dependencies** from `deno.json`
+
+## Authentication in Docker
+
+Unlike native installs where you can run `claude /login` interactively, Docker containers authenticate via the `ANTHROPIC_API_KEY` environment variable.
+
+**`ANTHROPIC_API_KEY` is required when running in Docker.** The Claude CLI inside the container reads this key to authenticate with Anthropic. Without it, any `/claude` or `/ask` command will fail with a `ProcessTransport is not ready for writing` error.
+
+Make sure your `.env` file includes a valid key:
+
+```env
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Get your API key from [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys).
 
 ## Resource Limits
 
