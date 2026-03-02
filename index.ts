@@ -2,10 +2,10 @@
 
 /**
  * Claude Code Discord Bot - Main Entry Point
- * 
+ *
  * This file bootstraps the Discord bot with Claude Code integration.
  * Most command handlers are now extracted to core modules for maintainability.
- * 
+ *
  * @module index
  */
 
@@ -17,11 +17,12 @@ import {
   type ButtonHandlers,
   type BotDependencies,
   type MessageContent,
+  SessionThreadManager,
 } from "./discord/index.ts";
 import type { TextChannel } from "npm:discord.js@14.14.1";
 
 import { getGitInfo } from "./git/index.ts";
-import { createClaudeSender, expandableContent, sendToClaudeCode, convertToClaudeMessages, type DiscordSender, type ClaudeMessage } from "./claude/index.ts";
+import { createClaudeSender, expandableContent, sendToClaudeCode, convertToClaudeMessages, type DiscordSender, type ClaudeMessage, type SessionThreadCallbacks } from "./claude/index.ts";
 import { buildQuestionMessages, parseAskUserButtonId, parseAskUserConfirmId, type AskUserQuestionInput } from "./claude/index.ts";
 import { buildPermissionEmbed, parsePermissionButtonId, type PermissionRequestCallback } from "./claude/index.ts";
 import { claudeCommands, enhancedClaudeCommands } from "./claude/index.ts";
@@ -38,11 +39,11 @@ import { cleanupPaginationStates } from "./discord/index.ts";
 import { runVersionCheck, startPeriodicUpdateCheck, BOT_VERSION } from "./util/version-check.ts";
 
 // Core modules - now handle most of the heavy lifting
-import { 
-  parseArgs, 
-  createMessageHistory, 
-  createBotManagers, 
-  setupPeriodicCleanup, 
+import {
+  parseArgs,
+  createMessageHistory,
+  createBotManagers,
+  setupPeriodicCleanup,
   createBotSettings,
   createAllHandlers,
   getAllCommands,
@@ -67,17 +68,17 @@ export { sendToClaudeCode } from "./claude/index.ts";
  */
 export async function createClaudeCodeBot(config: BotConfig) {
   const { discordToken, applicationId, workDir, repoName, branchName, categoryName, defaultMentionUserId } = config;
-  
+
   // Determine category name (use repository name if not specified)
   const actualCategoryName = categoryName || repoName;
-  
+
   // Claude Code session management (closures needed for handler state)
   let claudeController: AbortController | null = null;
   let claudeSessionId: string | undefined;
-  
+
   // Message history for navigation
   const messageHistoryOps: MessageHistoryOps = createMessageHistory(50);
-  
+
   // Create all managers using bot-factory
   const managers: BotManagers = createBotManagers({
     config: {
@@ -99,25 +100,91 @@ export async function createClaudeCodeBot(config: BotConfig) {
       },
     },
   });
-  
+
   const { shellManager, worktreeBotManager, crashHandler, healthMonitor, claudeSessionManager } = managers;
-  
+
   // Initialize dynamic model fetching (uses ANTHROPIC_API_KEY if available)
   initModels();
 
   // Setup periodic cleanup tasks
-  const cleanupInterval = setupPeriodicCleanup(managers, 3600000, [cleanupPaginationStates]);
-  
+  const cleanupInterval = setupPeriodicCleanup(managers, 3600000, [
+    cleanupPaginationStates,
+    () => { sessionThreadManager.cleanup(); },
+  ]);
+
   // Initialize bot settings
   const settingsOps = createBotSettings(defaultMentionUserId, DEFAULT_SETTINGS, UNIFIED_DEFAULT_SETTINGS);
   const currentSettings = settingsOps.getSettings();
   const botSettings = currentSettings.legacy;
-  
+
   // Bot instance placeholder
   // deno-lint-ignore no-explicit-any prefer-const
   let bot: any;
   let claudeSender: ((messages: ClaudeMessage[]) => Promise<void>) | null = null;
-  
+
+  // Session thread manager — maps each Claude session to a dedicated Discord thread
+  const sessionThreadManager = new SessionThreadManager();
+
+  // Session thread callbacks — used by claude/command.ts for /claude-thread and /resume.
+  // The callbacks are closures over `bot` (late-bound) and `sessionThreadManager`.
+  const sessionThreadCallbacks: SessionThreadCallbacks = {
+    async createThreadSender(prompt: string, sessionId?: string, threadName?: string) {
+      const channel = bot?.getChannel() as TextChannel | null;
+      if (!channel) throw new Error('Bot channel not ready');
+
+      // If a session ID was provided, check for an existing thread to reuse
+      if (sessionId) {
+        const existingThread = sessionThreadManager.getThread(sessionId);
+        if (existingThread) {
+          if (existingThread.archived) {
+            await existingThread.setArchived(false);
+          }
+          sessionThreadManager.recordActivity(sessionId);
+          const threadSender = createClaudeSender(createChannelSenderAdapter(existingThread));
+          return { sender: threadSender, threadSessionKey: sessionId, threadChannelId: existingThread.id };
+        }
+      }
+
+      // Generate a placeholder key until the real SDK session ID arrives
+      const placeholderKey = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      // Create a thread in the main channel
+      const thread = await sessionThreadManager.createSessionThread(channel, placeholderKey, prompt, threadName);
+
+      // Post a summary embed in the main channel pointing to the thread
+      await sendMessageContent(channel, {
+        embeds: [{
+          color: 0x5865F2,
+          title: '🧵 New Claude Session',
+          description: `A new session thread has been created.\n\n**Prompt:** \`${prompt.substring(0, 200)}${prompt.length > 200 ? '...' : ''}\``,
+          fields: [
+            { name: 'Thread', value: `<#${thread.id}>`, inline: true },
+          ],
+          timestamp: true,
+        }],
+      });
+
+      const threadSender = createClaudeSender(createChannelSenderAdapter(thread));
+      return { sender: threadSender, threadSessionKey: placeholderKey, threadChannelId: thread.id };
+    },
+
+    async getThreadSender(sessionId: string) {
+      const existingThread = sessionThreadManager.getThread(sessionId);
+      if (!existingThread) return undefined;
+
+      if (existingThread.archived) {
+        await existingThread.setArchived(false);
+      }
+      sessionThreadManager.recordActivity(sessionId);
+      const threadSender = createClaudeSender(createChannelSenderAdapter(existingThread));
+      return { sender: threadSender, threadSessionKey: sessionId };
+    },
+
+    updateSessionId(oldKey: string, newSessionId: string) {
+      sessionThreadManager.updateSessionId(oldKey, newSessionId);
+    },
+  };
+
   // Late-bound AskUserQuestion handler — set after bot is created.
   // When Claude needs clarification mid-session, this sends buttons to Discord
   // and waits for the user's click.
@@ -128,14 +195,14 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // When Claude wants to use a tool that isn't pre-approved, this shows
   // Allow/Deny buttons in Discord and returns the user's decision.
   const permReqState: { handler: PermissionRequestCallback | null } = { handler: null };
-  
+
   // Create sendClaudeMessages function that uses the sender when available
   const sendClaudeMessages = async (messages: ClaudeMessage[]) => {
     if (claudeSender) {
       await claudeSender(messages);
     }
   };
-  
+
   // Create onAskUser wrapper — delegates to askUserState.handler once bot is ready
   const onAskUser = async (input: AskUserQuestionInput): Promise<Record<string, string>> => {
     if (!askUserState.handler) {
@@ -178,6 +245,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
           bot.updateBotSettings(settings);
         }
       },
+      sessionThreads: sessionThreadCallbacks,
     },
     {
       getController: () => claudeController,
@@ -263,16 +331,35 @@ export async function createClaudeCodeBot(config: BotConfig) {
 
   // Create Discord bot
   bot = await createDiscordBot(config, handlers, buttonHandlers, dependencies, crashHandler);
-  
+
   // Create Discord sender for Claude messages
   claudeSender = createClaudeSender(createDiscordSenderAdapter(bot));
-  
+
+  // Helper: resolve the target channel for the currently active session.
+  // If there's an active session thread, use that; otherwise fall back to main channel.
+  const getActiveSessionChannel = () => {
+    // Try to find the thread for the current session
+    if (claudeSessionId) {
+      const thread = sessionThreadManager.getThread(claudeSessionId);
+      if (thread) return thread;
+    }
+    // Also check for any pending (placeholder-keyed) threads
+    const allThreads = sessionThreadManager.getAllSessionThreads();
+    for (const meta of allThreads) {
+      if (meta.sessionId.startsWith('pending_')) {
+        const thread = sessionThreadManager.getThread(meta.sessionId);
+        if (thread) return thread;
+      }
+    }
+    return bot.getChannel();
+  };
+
   // Initialize AskUserQuestion handler — sends questions to Discord, waits for button clicks
-  askUserState.handler = createAskUserDiscordHandler(bot);
+  askUserState.handler = createAskUserDiscordHandler(bot, getActiveSessionChannel);
 
   // Initialize PermissionRequest handler — shows Allow/Deny buttons for unapproved tools
-  permReqState.handler = createPermissionRequestHandler(bot);
-  
+  permReqState.handler = createPermissionRequestHandler(bot, getActiveSessionChannel);
+
   // Check for updates (non-blocking)
   runVersionCheck().then(async ({ updateAvailable, embed }) => {
     if (updateAvailable && embed) {
@@ -317,7 +404,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       // Periodic notification is best-effort
     }
   });
-  
+
   // Setup signal handlers for graceful shutdown
   setupSignalHandlers({
     managers,
@@ -331,7 +418,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
     // deno-lint-ignore no-explicit-any
     bot: bot as any,
   });
-  
+
   return bot;
 }
 
@@ -422,14 +509,14 @@ function createChannelSenderAdapter(channel: any): DiscordSender {
  *
  * When Claude calls the AskUserQuestion tool:
  * 1. Builds embeds with option buttons for each question
- * 2. Sends them to the bot's channel
+ * 2. Sends them to the bot's channel (or session thread if available)
  * 3. Waits up to 5 minutes for button clicks
  * 4. Returns answers to the SDK so Claude can continue
  */
 // deno-lint-ignore no-explicit-any
-function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) => Promise<Record<string, string>> {
+function createAskUserDiscordHandler(bot: any, getTargetChannel?: () => any): (input: AskUserQuestionInput) => Promise<Record<string, string>> {
   return async (input: AskUserQuestionInput): Promise<Record<string, string>> => {
-    const channel = bot.getChannel();
+    const channel = getTargetChannel?.() ?? bot.getChannel();
     if (!channel) {
       throw new Error('Discord channel not available');
     }
@@ -551,12 +638,12 @@ function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) =>
  * 5. Returns true (allow) or false (deny)
  */
 // deno-lint-ignore no-explicit-any
-function createPermissionRequestHandler(bot: any): PermissionRequestCallback {
+function createPermissionRequestHandler(bot: any, getTargetChannel?: () => any): PermissionRequestCallback {
   // Simple incrementing nonce to disambiguate concurrent requests
   let nonce = 0;
 
   return async (toolName: string, toolInput: Record<string, unknown>): Promise<boolean> => {
-    const channel = bot.getChannel();
+    const channel = getTargetChannel?.() ?? bot.getChannel();
     if (!channel) {
       console.warn('[PermissionRequest] No channel — auto-denying');
       return false;
@@ -632,21 +719,21 @@ function setupSignalHandlers(ctx: {
   const { managers, allHandlers, getClaudeController, claudeSender, actualCategoryName, repoName, branchName, cleanupInterval, bot } = ctx;
   const { crashHandler, healthMonitor } = managers;
   const { shell: shellHandlers, git: gitHandlers } = allHandlers;
-  
+
   const handleSignal = async (signal: string) => {
     console.log(`\n${signal} signal received. Stopping bot...`);
-    
+
     try {
       // Stop all processes
       shellHandlers.killAllProcesses();
       gitHandlers.killAllWorktreeBots();
-      
+
       // Cancel Claude Code session
       const claudeController = getClaudeController();
       if (claudeController) {
         claudeController.abort();
       }
-      
+
       // Send shutdown message
       if (claudeSender) {
         await claudeSender([{
@@ -661,13 +748,13 @@ function setupSignalHandlers(ctx: {
           }
         }]);
       }
-      
+
       // Cleanup
       healthMonitor.stopAll();
       crashHandler.cleanup();
       cleanupPaginationStates();
       clearInterval(cleanupInterval);
-      
+
       setTimeout(() => {
         bot.client.destroy();
         Deno.exit(0);
@@ -677,13 +764,13 @@ function setupSignalHandlers(ctx: {
       Deno.exit(1);
     }
   };
-  
+
   // Cross-platform signal handling
   const platform = Deno.build.os;
-  
+
   try {
     Deno.addSignalListener("SIGINT", () => handleSignal("SIGINT"));
-    
+
     if (platform === "windows") {
       try {
         Deno.addSignalListener("SIGBREAK", () => handleSignal("SIGBREAK"));
@@ -717,37 +804,37 @@ async function loadEnvFile(): Promise<void> {
   try {
     const envPath = `${Deno.cwd()}/.env`;
     const stat = await Deno.stat(envPath).catch(() => null);
-    
+
     if (!stat?.isFile) return;
-    
+
     const content = await Deno.readTextFile(envPath);
     const lines = content.split('\n');
-    
+
     for (const line of lines) {
       const trimmed = line.trim();
-      
+
       // Skip comments and empty lines
       if (!trimmed || trimmed.startsWith('#')) continue;
-      
+
       // Parse KEY=VALUE format
       const eqIndex = trimmed.indexOf('=');
       if (eqIndex === -1) continue;
-      
+
       const key = trimmed.substring(0, eqIndex).trim();
       let value = trimmed.substring(eqIndex + 1).trim();
-      
+
       // Remove surrounding quotes if present
       if ((value.startsWith('"') && value.endsWith('"')) ||
           (value.startsWith("'") && value.endsWith("'"))) {
         value = value.slice(1, -1);
       }
-      
+
       // Only set if not already defined (env vars take precedence)
       if (!Deno.env.get(key) && key && value) {
         Deno.env.set(key, value);
       }
     }
-    
+
     console.log('✓ Loaded configuration from .env file');
   } catch (error) {
     // Silently ignore .env loading errors
@@ -764,14 +851,14 @@ if (import.meta.main) {
   try {
     // Auto-load .env file (if present)
     await loadEnvFile();
-    
+
     // Get environment variables and command line arguments
     const discordToken = Deno.env.get("DISCORD_TOKEN");
     const applicationId = Deno.env.get("APPLICATION_ID");
     const envCategoryName = Deno.env.get("CATEGORY_NAME");
     const envMentionUserId = Deno.env.get("USER_ID") || Deno.env.get("DEFAULT_MENTION_USER_ID");
     const envWorkDir = Deno.env.get("WORK_DIR");
-    
+
     if (!discordToken || !applicationId) {
       console.error("╔═══════════════════════════════════════════════════════════╗");
       console.error("║  Error: Missing required configuration                    ║");
@@ -785,16 +872,16 @@ if (import.meta.main) {
       console.error("╚═══════════════════════════════════════════════════════════╝");
       Deno.exit(1);
     }
-    
+
     // Parse command line arguments
     const args = parseArgs(Deno.args);
     const categoryName = args.category || envCategoryName;
     const defaultMentionUserId = args.userId || envMentionUserId;
     const workDir = envWorkDir || Deno.cwd();
-    
+
     // Get Git information
     const gitInfo = await getGitInfo();
-    
+
     // Create and start bot
     await createClaudeCodeBot({
       discordToken,
@@ -805,7 +892,7 @@ if (import.meta.main) {
       categoryName,
       defaultMentionUserId,
     });
-    
+
     console.log("✓ Bot has started. Press Ctrl+C to stop.");
   } catch (error) {
     console.error("Failed to start bot:", error);

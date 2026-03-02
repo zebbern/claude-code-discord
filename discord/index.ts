@@ -1,10 +1,10 @@
 // Discord utilities and components
 export { createDiscordBot } from "./bot.ts";
 export { sanitizeChannelName, splitText } from "./utils.ts";
-export { 
-  createPaginatedEmbeds, 
-  createPaginationButtons, 
-  initializePagination, 
+export {
+  createPaginatedEmbeds,
+  createPaginationButtons,
+  initializePagination,
   handlePaginationInteraction,
   cleanupPaginationStates,
   smartSplit,
@@ -12,24 +12,26 @@ export {
 } from "./pagination.ts";
 export {
   formatText,
-  formatFileContent, 
+  formatFileContent,
   formatShellOutput,
   formatGitOutput,
   formatError,
   needsFormatting,
   createFormattedEmbed
 } from "./formatting.ts";
-export type { 
-  BotConfig, 
-  CommandHandlers, 
-  ButtonHandlers, 
-  MessageContent, 
-  InteractionContext, 
+export type {
+  BotConfig,
+  CommandHandlers,
+  ButtonHandlers,
+  MessageContent,
+  InteractionContext,
   BotDependencies,
   MonitorConfig,
+  SessionThread,
   EmbedData,
   ComponentData
 } from "./types.ts";
+export { SessionThreadManager, threadNameFromPrompt } from "./session-threads.ts";
 // Re-export shared types for convenience
 export type { BotSettings, BotSettingsUpdater } from "../types/shared.ts";
 export type {

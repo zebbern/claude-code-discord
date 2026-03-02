@@ -1,14 +1,14 @@
 /**
  * Handler registry for Discord bot commands and button interactions.
  * Centralizes all handler registration and state management.
- * 
+ *
  * @module core/handler-registry
  */
 
-import type { 
-  CommandHandlers, 
-  ButtonHandlers, 
-  BotDependencies 
+import type {
+  CommandHandlers,
+  ButtonHandlers,
+  BotDependencies
 } from "../discord/index.ts";
 
 import type { ClaudeMessage } from "../claude/index.ts";
@@ -28,6 +28,7 @@ import { agentCommand, createAgentHandlers } from "../agent/index.ts";
 import { screenshotCommands, createScreenshotHandlers } from "../screenshot/index.ts";
 import { infoCommands, createInfoCommandHandlers } from "../claude/index.ts";
 import { cleanSessionId, ClaudeSessionManager } from "../claude/index.ts";
+import type { SessionThreadCallbacks } from "../claude/index.ts";
 import type { ClaudeModelOptions } from "../claude/index.ts";
 import type { AskUserCallback } from "../claude/index.ts";
 import type { PermissionRequestCallback } from "../claude/index.ts";
@@ -177,6 +178,9 @@ export interface HandlerRegistryDeps {
   /** Late-bound callback for interactive permission requests — replaces auto-deny.
    *  Shows Allow/Deny buttons in Discord when Claude wants to use an unapproved tool. */
   onPermissionRequest?: PermissionRequestCallback;
+  /** Thread-per-session callbacks (optional). When provided, each /claude
+   *  invocation creates a dedicated Discord thread for its output. */
+  sessionThreads?: SessionThreadCallbacks;
 }
 
 /**
@@ -207,7 +211,7 @@ export interface HandlerRegistry {
 
 /**
  * Create message history state and operations.
- * 
+ *
  * @param maxSize - Maximum history size (default: 50)
  * @returns Message history operations
  */
@@ -232,19 +236,19 @@ export function createMessageHistory(maxSize: number = 50): MessageHistoryOps {
 
     getPreviousMessage(): string | null {
       if (state.history.length === 0) return null;
-      
+
       if (state.currentIndex === -1) {
         state.currentIndex = state.history.length - 1;
       } else if (state.currentIndex > 0) {
         state.currentIndex--;
       }
-      
+
       return state.history[state.currentIndex] || null;
     },
 
     getNextMessage(): string | null {
       if (state.history.length === 0 || state.currentIndex === -1) return null;
-      
+
       if (state.currentIndex < state.history.length - 1) {
         state.currentIndex++;
         return state.history[state.currentIndex];
@@ -262,7 +266,7 @@ export function createMessageHistory(maxSize: number = 50): MessageHistoryOps {
 
 /**
  * Create Claude session state and operations.
- * 
+ *
  * @returns Claude session operations
  */
 export function createClaudeSession(): ClaudeSessionOps {
@@ -281,7 +285,7 @@ export function createClaudeSession(): ClaudeSessionOps {
 
 /**
  * Create bot settings state and operations.
- * 
+ *
  * @param defaultMentionUserId - Default user ID to mention
  * @param defaultAdvanced - Default advanced settings
  * @param defaultUnified - Default unified settings
@@ -364,7 +368,7 @@ export function createBotSettings(
 
 /**
  * Create all handler modules.
- * 
+ *
  * @param deps - Handler dependencies
  * @param claudeSession - Claude session operations
  * @param settings - Bot settings operations
@@ -375,7 +379,7 @@ export function createAllHandlers(
   claudeSession: ClaudeSessionOps,
   settings: BotSettingsOps
 ): AllHandlers {
-  const { 
+  const {
     workDir, repoName, branchName, categoryName, discordToken, applicationId,
     shellManager, worktreeBotManager, crashHandler, claudeSessionManager,
     sendClaudeMessages, onBotSettingsUpdate
@@ -388,39 +392,39 @@ export function createAllHandlers(
   function getQueryOptions(): ClaudeModelOptions {
     const s = settings.getSettings().unified;
     const opts: ClaudeModelOptions = {};
-    
+
     // Model — fast mode is handled by CLI via .claude/settings.local.json (not a model switch)
     if (s.defaultModel) {
       opts.model = s.defaultModel;
     }
-    
+
     // Operation mode → SDK permissionMode
     const opMode = OPERATION_MODES[s.operationMode];
     if (opMode) {
       opts.permissionMode = opMode.permissionMode;
     }
-    
+
     // Thinking mode → native SDK thinking config
     const thinkMode = THINKING_MODES[s.thinkingMode];
     if (thinkMode) {
       opts.thinking = thinkMode.thinking;
     }
-    
+
     // Effort level → native SDK effort option
     if (s.effortLevel) {
       opts.effort = s.effortLevel;
     }
-    
+
     // Budget cap
     if (s.maxBudgetUsd != null) {
       opts.maxBudgetUsd = s.maxBudgetUsd;
     }
-    
+
     // System prompt
     if (s.defaultSystemPrompt) {
       opts.appendSystemPrompt = s.defaultSystemPrompt;
     }
-    
+
     // Proxy settings → env vars
     if (s.proxyEnabled && s.proxyUrl) {
       opts.extraEnv = {
@@ -431,7 +435,7 @@ export function createAllHandlers(
         opts.extraEnv.NO_PROXY = s.noProxyDomains.join(',');
       }
     }
-    
+
     // Advanced features
     if (s.enable1MContext) {
       opts.betas = ['context-1m-2025-08-07'];
@@ -455,7 +459,7 @@ export function createAllHandlers(
     if (s.additionalDirectories && s.additionalDirectories.length > 0) {
       opts.additionalDirectories = s.additionalDirectories;
     }
-    
+
     // Hooks — passive SDK callbacks for tool/notification/task observability
     if (s.hooksLogToolUse || s.hooksLogNotifications || s.hooksLogTaskCompletions) {
       const hookEventToMessage = (event: HookEvent_Discord): void => {
@@ -489,7 +493,7 @@ export function createAllHandlers(
         onHookEvent: hookEventToMessage,
       });
     }
-    
+
     // AskUserQuestion — interactive question flow (late-bound from index.ts)
     if (deps.onAskUser) {
       opts.onAskUser = deps.onAskUser;
@@ -499,17 +503,30 @@ export function createAllHandlers(
     if (deps.onPermissionRequest) {
       opts.onPermissionRequest = deps.onPermissionRequest;
     }
-    
+
     return opts;
   }
+
+  // Per-channel session tracking — maps channelId/threadId to active sessionId
+  const channelSessionMap = new Map<string, string>();
 
   const claudeHandlers = createClaudeHandlers({
     workDir,
     getClaudeController: claudeSession.getController,
     setClaudeController: claudeSession.setController,
+    getSessionForChannel: (channelId: string) => channelSessionMap.get(channelId),
+    setSessionForChannel: (channelId: string, sessionId: string | undefined) => {
+      if (sessionId) {
+        channelSessionMap.set(channelId, sessionId);
+      } else {
+        channelSessionMap.delete(channelId);
+      }
+    },
+    getClaudeSessionId: claudeSession.getSessionId,
     setClaudeSessionId: claudeSession.setSessionId,
     sendClaudeMessages,
     getQueryOptions,
+    sessionThreads: deps.sessionThreads,
   });
 
   const gitHandlers = createGitHandlers({
@@ -624,7 +641,7 @@ export function createAllHandlers(
 
 /**
  * Get all command definitions for bot registration.
- * 
+ *
  * @returns Array of all command definitions
  */
 export function getAllCommands() {

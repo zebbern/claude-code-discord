@@ -1,7 +1,7 @@
 /**
  * Command handler wrappers for Discord bot commands.
  * Provides factory functions to create command handlers with standardized error handling.
- * 
+ *
  * @module core/command-wrappers
  */
 
@@ -63,7 +63,7 @@ function createDeferredHandler<T>(
         const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), crashContext || errorTitle);
         const { embed } = createFormattedEmbed(`❌ ${errorTitle}`, errorFormatted.formatted, 0xff0000);
         await ctx.editReply({ embeds: [embed] });
-        
+
         if (crashHandler && crashContext) {
           await crashHandler.reportCrash('main', error instanceof Error ? error : new Error(String(error)), crashContext);
         }
@@ -84,7 +84,7 @@ export function createSystemCommandHandlers(
   crashHandler: ProcessCrashHandler
 ): Map<string, { execute: (ctx: InteractionContext) => Promise<void> }> {
   const { system: systemHandlers } = handlers;
-  
+
   return new Map([
     ['system-info', createDeferredHandler(
       async () => await systemHandlers.onSystemInfo({} as InteractionContext),
@@ -122,7 +122,7 @@ export function createParameterizedSystemHandlers(
   crashHandler: ProcessCrashHandler
 ): Map<string, { execute: (ctx: InteractionContext) => Promise<void> }> {
   const { system: systemHandlers } = handlers;
-  
+
   return new Map([
     ['processes', {
       execute: async (ctx: InteractionContext) => {
@@ -206,7 +206,7 @@ export function createParameterizedSystemHandlers(
 }
 
 // ================================
-// Claude Command Wrappers  
+// Claude Command Wrappers
 // ================================
 
 /**
@@ -225,14 +225,15 @@ export function createClaudeCommandHandlers(
       execute: async (ctx: InteractionContext) => {
         const prompt = ctx.getString('prompt', true)!;
         const sessionId = ctx.getString('session_id');
+        const channelId = ctx.getChannelId();
         addToHistory(prompt);
-        await claudeHandlers.onClaude(ctx, prompt, sessionId || undefined);
+        await claudeHandlers.onClaude(ctx, prompt, channelId, sessionId || undefined);
       },
       handleButton: async (ctx: InteractionContext, customId: string) => {
         if (customId.startsWith('expand:')) {
           const expandId = customId.substring(7);
           const fullContent = expandableContent.get(expandId);
-          
+
           if (!fullContent) {
             await ctx.update({
               embeds: [{
@@ -245,15 +246,15 @@ export function createClaudeCommandHandlers(
             });
             return;
           }
-          
+
           const maxLength = 4090 - "```\n\n```".length;
           if (fullContent.length <= maxLength) {
             await ctx.update({
               embeds: [{
                 color: 0x0099ff,
                 title: '📖 Full Content',
-                description: expandId.startsWith('result-') ? 
-                  `\`\`\`\n${fullContent}\n\`\`\`` : 
+                description: expandId.startsWith('result-') ?
+                  `\`\`\`\n${fullContent}\n\`\`\`` :
                   `\`\`\`json\n${fullContent}\n\`\`\``,
                 timestamp: true
               }],
@@ -273,8 +274,8 @@ export function createClaudeCommandHandlers(
               embeds: [{
                 color: 0x0099ff,
                 title: '📖 Full Content (Large - Showing First Part)',
-                description: expandId.startsWith('result-') ? 
-                  `\`\`\`\n${chunk}...\n\`\`\`` : 
+                description: expandId.startsWith('result-') ?
+                  `\`\`\`\n${chunk}...\n\`\`\`` :
                   `\`\`\`json\n${chunk}...\n\`\`\``,
                 fields: [
                   { name: 'Note', value: 'Content is very large. This shows the first portion.', inline: false }
@@ -293,6 +294,14 @@ export function createClaudeCommandHandlers(
             });
           }
         }
+      }
+    }],
+    ['claude-thread', {
+      execute: async (ctx: InteractionContext) => {
+        const prompt = ctx.getString('prompt', true)!;
+        const threadName = ctx.getString('name') || undefined;
+        addToHistory(prompt);
+        await claudeHandlers.onClaudeThread(ctx, prompt, threadName);
       }
     }],
     ['resume', {
@@ -325,7 +334,7 @@ export function createClaudeCommandHandlers(
         const includeGitContext = ctx.getBoolean('include_git_context');
         const contextFiles = ctx.getString('context_files');
         const sessionId = ctx.getString('session_id');
-        
+
         await enhancedClaudeHandlers.onClaudeEnhanced(
           ctx, prompt, model || undefined, template || undefined,
           includeSystemInfo || undefined, includeGitContext || undefined,

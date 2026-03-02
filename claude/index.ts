@@ -1,12 +1,13 @@
 // Claude Code integration exports
 export { claudeCommands, createClaudeHandlers } from "./command.ts";
+export type { SessionThreadCallbacks } from "./command.ts";
 export { cleanSessionId, sendToClaudeCode } from "./client.ts";
 export type { ClaudeModelOptions, SDKPermissionMode, ThinkingConfig, EffortLevel, SDKAgentDefinition, SDKModelInfo } from "./client.ts";
 export { createClaudeSender, expandableContent } from "./discord-sender.ts";
 export { convertToClaudeMessages } from "./message-converter.ts";
-export { 
-  enhancedClaudeCommands, 
-  createEnhancedClaudeHandlers 
+export {
+  enhancedClaudeCommands,
+  createEnhancedClaudeHandlers
 } from "./enhanced-commands.ts";
 export {
   enhancedClaudeQuery,
@@ -21,7 +22,7 @@ export {
 } from "./enhanced-client.ts";
 export type { DiscordSender } from "./discord-sender.ts";
 export type { ClaudeMessage } from "./types.ts";
-export type { 
+export type {
   EnhancedClaudeOptions,
   ClaudeSession,
   ModelInfo
