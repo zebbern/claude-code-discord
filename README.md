@@ -25,6 +25,7 @@
 | Advanced thinking modes | Standard, think, think-hard, ultrathink with configurable effort and budget | ✅ |
 | Role-based access control | Restrict destructive commands (`/shell`, `/git`, worktree ops) to specific Discord roles | ✅ |
 | Local hosting & security | Keep keys and code on your infra while exposing a controlled interface through Discord | ✅ |
+| Channel monitoring | Watch a channel for bot/webhook messages and auto-investigate in a thread | ✅ |
 | Audit trail & accountability | Channel history provides an easy-to-search record of who ran what and when | ✅ |
 
 </kbd>
@@ -88,6 +89,10 @@ WORK_DIR=/path/to/project             # Working directory (default: current dir)
 ADMIN_ROLE_IDS=123456789,987654321    # Comma-separated Discord role IDs
 ADMIN_USER_IDS=111111111              # Comma-separated Discord user IDs
 
+# Channel Monitoring (optional)
+MONITOR_CHANNEL_ID=123456789012345678    # Channel to watch for alerts
+MONITOR_BOT_IDS=987654321,111111111      # Comma-separated bot/webhook IDs to respond to
+
 # Proxy (optional — respected automatically if set)
 # HTTP_PROXY=http://proxy:8080
 # HTTPS_PROXY=http://proxy:8080
@@ -104,6 +109,8 @@ ADMIN_USER_IDS=111111111              # Comma-separated Discord user IDs
 | `WORK_DIR` | No | Working directory for Claude operations (default: current dir) |
 | `ADMIN_ROLE_IDS` | No | Comma-separated role IDs for RBAC (shell, git, system, admin) |
 | `ADMIN_USER_IDS` | No | Comma-separated user IDs for RBAC — grants access regardless of roles |
+| `MONITOR_CHANNEL_ID` | No | Discord channel ID to watch for bot/webhook messages |
+| `MONITOR_BOT_IDS` | No | Comma-separated bot/webhook user IDs that trigger auto-investigation |
 | `HTTP_PROXY` | No | HTTP proxy URL (also reads `http_proxy`) |
 | `HTTPS_PROXY` | No | HTTPS proxy URL (also reads `https_proxy`) |
 | `NO_PROXY` | No | Comma-separated hosts to bypass proxy |
@@ -132,3 +139,20 @@ deno run --allow-all index.ts --category myproject --user-id YOUR_DISCORD_ID
 | `--user-id <id>` | `USER_ID` | Your Discord user ID for mentions when tasks finish |
 
 > CLI flags override environment variables. Environment variables override `.env` file values.
+
+## Channel Monitoring
+
+Automatically investigate alerts from other bots or webhooks. When a monitored bot posts in the configured channel, the bot batches messages over a 30-second debounce window, creates a thread on the alert message, and streams Claude's investigation there.
+
+### Setup
+
+1. **Enable the Message Content intent** — In the [Developer Portal](https://discord.com/developers/applications), go to your app → Bot → enable **Message Content Intent**. The bot needs this to read messages from other bots.
+
+2. **Get the channel ID** — Right-click the channel in Discord (Developer Mode must be on) and copy the ID. Set `MONITOR_CHANNEL_ID` in `.env`.
+
+3. **Get the bot/webhook user IDs** — The easiest way is to look at a message from the bot in the channel, right-click the author, and copy the ID. For webhooks, check the webhook's user ID in the channel's integration settings. Set `MONITOR_BOT_IDS` as a comma-separated list.
+
+4. **Bot permissions** — Ensure the bot has these permissions in the monitored channel:
+   - Read Messages
+   - Create Public Threads
+   - Send Messages in Threads
