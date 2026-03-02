@@ -54,11 +54,12 @@ export class SessionThreadManager {
     channel: TextChannel,
     sessionId: string,
     prompt: string,
+    threadName?: string,
   ): Promise<ThreadChannel> {
-    const threadName = threadNameFromPrompt(prompt);
+    const name = threadName || threadNameFromPrompt(prompt);
 
     const thread = await channel.threads.create({
-      name: `🤖 ${threadName}`,
+      name,
       type: ChannelType.PublicThread,
       autoArchiveDuration: 1440, // 24 hours
       reason: `Claude session ${sessionId}`,
@@ -67,7 +68,7 @@ export class SessionThreadManager {
     const meta: SessionThread = {
       sessionId,
       threadId: thread.id,
-      threadName,
+      threadName: name,
       createdAt: new Date(),
       lastActivity: new Date(),
       messageCount: 0,

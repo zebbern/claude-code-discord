@@ -299,8 +299,9 @@ export function createClaudeCommandHandlers(
     ['claude-thread', {
       execute: async (ctx: InteractionContext) => {
         const prompt = ctx.getString('prompt', true)!;
+        const threadName = ctx.getString('name') || undefined;
         addToHistory(prompt);
-        await claudeHandlers.onClaudeThread(ctx, prompt);
+        await claudeHandlers.onClaudeThread(ctx, prompt, threadName);
       }
     }],
     ['resume', {

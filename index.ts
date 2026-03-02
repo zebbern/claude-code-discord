@@ -128,7 +128,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // Session thread callbacks — used by claude/command.ts for /claude-thread and /resume.
   // The callbacks are closures over `bot` (late-bound) and `sessionThreadManager`.
   const sessionThreadCallbacks: SessionThreadCallbacks = {
-    async createThreadSender(prompt: string, sessionId?: string) {
+    async createThreadSender(prompt: string, sessionId?: string, threadName?: string) {
       const channel = bot?.getChannel() as TextChannel | null;
       if (!channel) throw new Error('Bot channel not ready');
 
@@ -149,7 +149,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       const placeholderKey = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
       // Create a thread in the main channel
-      const thread = await sessionThreadManager.createSessionThread(channel, placeholderKey, prompt);
+      const thread = await sessionThreadManager.createSessionThread(channel, placeholderKey, prompt, threadName);
 
       // Post a summary embed in the main channel pointing to the thread
       await sendMessageContent(channel, {

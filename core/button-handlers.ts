@@ -1,7 +1,7 @@
 /**
  * Button handlers for Discord bot interactions.
  * Extracts button handler logic from index.ts for better organization.
- * 
+ *
  * @module core/button-handlers
  */
 
@@ -31,19 +31,19 @@ async function readRecentSessions(workDir: string): Promise<RecentSession[]> {
       .replace(/^[A-Za-z]:/, (m) => m[0].toUpperCase())
       .replace(/[\\/]/g, '-')
       .replace(/^-/, '');
-    
+
     const homeDir = Deno.env.get('USERPROFILE') || Deno.env.get('HOME') || '';
     const projectDir = `${homeDir}/.claude/projects/${slug}`;
-    
+
     const entries: RecentSession[] = [];
-    
+
     for await (const entry of Deno.readDir(projectDir)) {
       if (!entry.name.endsWith('.jsonl') || entry.isDirectory) continue;
-      
+
       const sessionId = entry.name.replace('.jsonl', '');
       const filePath = `${projectDir}/${entry.name}`;
       const stat = await Deno.stat(filePath);
-      
+
       // Read only the first few bytes to extract the prompt
       let prompt = '(unknown)';
       try {
@@ -73,14 +73,14 @@ async function readRecentSessions(workDir: string): Promise<RecentSession[]> {
           }
         }
       } catch { /* skip unreadable files */ }
-      
+
       entries.push({
         id: sessionId,
         prompt,
         timestamp: stat.mtime ?? new Date(0),
       });
     }
-    
+
     // Sort by most recent first
     entries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     return entries;
@@ -120,7 +120,7 @@ export type ExpandableContentMap = Map<string, string>;
 
 /**
  * Create all button handlers for Discord interactions.
- * 
+ *
  * @param deps - Button handler dependencies
  * @param expandableContent - Map for expandable content storage
  * @returns ButtonHandlers map
@@ -146,11 +146,11 @@ export function createButtonHandlers(
         }]
       });
     }],
-    
+
     // Prompt history — replaces old "jump-previous"
     ['prompt-history', async (ctx: InteractionContext) => {
       const previousMessage = getPreviousMessage();
-      
+
       if (!previousMessage) {
         await ctx.update({
           embeds: [{
@@ -165,11 +165,11 @@ export function createButtonHandlers(
         });
         return;
       }
-      
+
       const historyState = getState();
       const historyPosition = historyState.currentIndex + 1;
       const totalMessages = historyState.history.length;
-      
+
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
@@ -190,18 +190,18 @@ export function createButtonHandlers(
         ]
       });
     }],
-    
+
     // Legacy alias — old messages may still have jump-previous buttons
     ['jump-previous', async (ctx: InteractionContext) => {
       // Delegate to prompt-history handler
       const handler = buttonHandlers.get('prompt-history');
       if (handler) await handler(ctx);
     }],
-    
+
     // History navigation - older
     ['history-previous', async (ctx: InteractionContext) => {
       const olderMessage = getPreviousMessage();
-      
+
       if (!olderMessage) {
         await ctx.update({
           embeds: [{
@@ -214,11 +214,11 @@ export function createButtonHandlers(
         });
         return;
       }
-      
+
       const historyState = getState();
       const historyPosition = historyState.currentIndex + 1;
       const totalMessages = historyState.history.length;
-      
+
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
@@ -239,11 +239,11 @@ export function createButtonHandlers(
         ]
       });
     }],
-    
+
     // History navigation - newer
     ['history-next', async (ctx: InteractionContext) => {
       const newerMessage = getNextMessage();
-      
+
       if (!newerMessage) {
         await ctx.update({
           embeds: [{
@@ -256,11 +256,11 @@ export function createButtonHandlers(
         });
         return;
       }
-      
+
       const historyState = getState();
       const historyPosition = historyState.currentIndex + 1;
       const totalMessages = historyState.history.length;
-      
+
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
@@ -281,7 +281,7 @@ export function createButtonHandlers(
         ]
       });
     }],
-    
+
     // Use selected message from history
     ['history-use', async (ctx: InteractionContext) => {
       const historyState = getState();
@@ -298,7 +298,7 @@ export function createButtonHandlers(
         });
         return;
       }
-      
+
       await ctx.update({
         embeds: [{
           color: 0x00ff00,
@@ -308,14 +308,14 @@ export function createButtonHandlers(
         }],
         components: []
       });
-      
+
       // Add the reused message to history again (as it's being sent again)
       addToHistory(currentMessage);
       // Execute the Claude command with the selected message
       const channelId = ctx.getChannelId();
       await claudeHandlers.onClaude(ctx, currentMessage, channelId);
     }],
-    
+
     // Close history view
     ['history-close', async (ctx: InteractionContext) => {
       await ctx.update({
@@ -328,7 +328,7 @@ export function createButtonHandlers(
         components: []
       });
     }],
-    
+
     // Collapse expanded content
     ['collapse-content', async (ctx: InteractionContext) => {
       await ctx.update({
@@ -341,7 +341,7 @@ export function createButtonHandlers(
         components: []
       });
     }],
-    
+
     // Git status workflow button
     ['workflow:git-status', async (ctx: InteractionContext) => {
       await ctx.deferReply();
@@ -471,7 +471,7 @@ export function createButtonHandlers(
 /**
  * Create the expand content button handler (separate due to shared state needs).
  * This handles the 'expand:' prefixed button IDs.
- * 
+ *
  * @param expandableContent - Map of expandable content
  * @returns Button handler function
  */
@@ -480,10 +480,10 @@ export function createExpandButtonHandler(
 ): (ctx: InteractionContext, customId: string) => Promise<void> {
   return async (ctx: InteractionContext, customId: string) => {
     if (!customId.startsWith('expand:')) return;
-    
+
     const expandId = customId.substring(7);
     const fullContent = expandableContent.get(expandId);
-    
+
     if (!fullContent) {
       await ctx.update({
         embeds: [{
@@ -496,7 +496,7 @@ export function createExpandButtonHandler(
       });
       return;
     }
-    
+
     // Split content into chunks if too large for Discord
     const maxLength = 4090 - "```\n\n```".length;
     if (fullContent.length <= maxLength) {
@@ -504,8 +504,8 @@ export function createExpandButtonHandler(
         embeds: [{
           color: 0x0099ff,
           title: '📖 Full Content',
-          description: expandId.startsWith('result-') ? 
-            `\`\`\`\n${fullContent}\n\`\`\`` : 
+          description: expandId.startsWith('result-') ?
+            `\`\`\`\n${fullContent}\n\`\`\`` :
             `\`\`\`json\n${fullContent}\n\`\`\``,
           timestamp: true
         }],
@@ -526,8 +526,8 @@ export function createExpandButtonHandler(
         embeds: [{
           color: 0x0099ff,
           title: '📖 Full Content (Large - Showing First Part)',
-          description: expandId.startsWith('result-') ? 
-            `\`\`\`\n${chunk}...\n\`\`\`` : 
+          description: expandId.startsWith('result-') ?
+            `\`\`\`\n${chunk}...\n\`\`\`` :
             `\`\`\`json\n${chunk}...\n\`\`\``,
           fields: [
             { name: 'Note', value: 'Content is very large. This shows the first portion.', inline: false }

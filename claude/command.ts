@@ -14,7 +14,7 @@ export interface SessionThreadCallbacks {
    * @param sessionId Optional pre-existing session ID (reuses thread if one exists)
    * @returns Object with the thread-bound sender and a placeholder session key
    */
-  createThreadSender(prompt: string, sessionId?: string): Promise<{
+  createThreadSender(prompt: string, sessionId?: string, threadName?: string): Promise<{
     sender: (messages: ClaudeMessage[]) => Promise<void>;
     threadSessionKey: string;
     threadChannelId: string;
@@ -53,7 +53,11 @@ export const claudeCommands = [
     .addStringOption(option =>
       option.setName('prompt')
         .setDescription('Prompt for Claude Code')
-        .setRequired(true)),
+        .setRequired(true))
+    .addStringOption(option =>
+      option.setName('name')
+        .setDescription('Thread name (defaults to prompt text if not set)')
+        .setRequired(false)),
 
   new SlashCommandBuilder()
     .setName('resume')
@@ -167,7 +171,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
      * /claude-thread — Start a brand-new session in a dedicated Discord thread.
      */
     // deno-lint-ignore no-explicit-any
-    async onClaudeThread(ctx: any, prompt: string): Promise<ClaudeResponse> {
+    async onClaudeThread(ctx: any, prompt: string, threadName?: string): Promise<ClaudeResponse> {
       const existingController = deps.getClaudeController();
       if (existingController) {
         existingController.abort();
@@ -185,7 +189,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
 
       if (deps.sessionThreads) {
         try {
-          const threadResult = await deps.sessionThreads.createThreadSender(prompt);
+          const threadResult = await deps.sessionThreads.createThreadSender(prompt, undefined, threadName);
           activeSender = threadResult.sender;
           threadSessionKey = threadResult.threadSessionKey;
           threadChannelId = threadResult.threadChannelId;
