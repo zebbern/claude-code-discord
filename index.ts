@@ -125,7 +125,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // Session thread manager — maps each Claude session to a dedicated Discord thread
   const sessionThreadManager = new SessionThreadManager();
 
-  // Session thread callbacks — used by claude/command.ts to create threads per session.
+  // Session thread callbacks — used by claude/command.ts for /thread and /resume.
   // The callbacks are closures over `bot` (late-bound) and `sessionThreadManager`.
   const sessionThreadCallbacks: SessionThreadCallbacks = {
     async createThreadSender(prompt: string, sessionId?: string) {
@@ -136,22 +136,17 @@ export async function createClaudeCodeBot(config: BotConfig) {
       if (sessionId) {
         const existingThread = sessionThreadManager.getThread(sessionId);
         if (existingThread) {
-          // Unarchive the thread if it was auto-archived
           if (existingThread.archived) {
             await existingThread.setArchived(false);
           }
-          // Reuse the existing thread — no new summary embed needed
           sessionThreadManager.recordActivity(sessionId);
           const threadSender = createClaudeSender(createChannelSenderAdapter(existingThread));
-          return {
-            sender: threadSender,
-            threadSessionKey: sessionId,
-          };
+          return { sender: threadSender, threadSessionKey: sessionId };
         }
       }
 
       // Generate a placeholder key until the real SDK session ID arrives
-      const placeholderKey = sessionId || `pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const placeholderKey = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
       // Create a thread in the main channel
       const thread = await sessionThreadManager.createSessionThread(channel, placeholderKey, prompt);
@@ -169,13 +164,20 @@ export async function createClaudeCodeBot(config: BotConfig) {
         }],
       });
 
-      // Create a sender bound to the thread (not the main channel)
       const threadSender = createClaudeSender(createChannelSenderAdapter(thread));
+      return { sender: threadSender, threadSessionKey: placeholderKey };
+    },
 
-      return {
-        sender: threadSender,
-        threadSessionKey: placeholderKey,
-      };
+    async getThreadSender(sessionId: string) {
+      const existingThread = sessionThreadManager.getThread(sessionId);
+      if (!existingThread) return undefined;
+
+      if (existingThread.archived) {
+        await existingThread.setArchived(false);
+      }
+      sessionThreadManager.recordActivity(sessionId);
+      const threadSender = createClaudeSender(createChannelSenderAdapter(existingThread));
+      return { sender: threadSender, threadSessionKey: sessionId };
     },
 
     updateSessionId(oldKey: string, newSessionId: string) {

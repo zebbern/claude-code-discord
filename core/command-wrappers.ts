@@ -295,6 +295,13 @@ export function createClaudeCommandHandlers(
         }
       }
     }],
+    ['thread', {
+      execute: async (ctx: InteractionContext) => {
+        const prompt = ctx.getString('prompt', true)!;
+        addToHistory(prompt);
+        await claudeHandlers.onThread(ctx, prompt);
+      }
+    }],
     ['resume', {
       execute: async (ctx: InteractionContext) => {
         const prompt = ctx.getString('prompt');
