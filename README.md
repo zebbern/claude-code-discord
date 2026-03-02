@@ -26,6 +26,7 @@
 | Role-based access control | Restrict destructive commands (`/shell`, `/git`, worktree ops) to specific Discord roles | ✅ |
 | Local hosting & security | Keep keys and code on your infra while exposing a controlled interface through Discord | ✅ |
 | Channel monitoring | Watch a channel for bot/webhook messages and auto-investigate in a thread | ✅ |
+| Thread-per-session | Each `/claude-thread` conversation gets its own Discord thread with custom names | ✅ |
 | Audit trail & accountability | Channel history provides an easy-to-search record of who ran what and when | ✅ |
 
 </kbd>

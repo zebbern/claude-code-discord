@@ -24,6 +24,7 @@ claude-code-discord/
 │
 ├── discord/                    # Discord integration layer
 │   ├── sender.ts               # Message sending, embeds, streaming
+│   ├── session-threads.ts      # Thread-per-session lifecycle management
 │   └── ...
 │
 ├── settings/                   # Settings management

@@ -1,10 +1,11 @@
 # Command Reference
 
-## Core Claude Commands (3)
+## Core Claude Commands (4)
 
 | Command | Description |
 |---------|-------------|
 | `/claude` | Send a prompt to Claude Code. Supports `prompt` and `session_id` options. |
+| `/claude-thread` | Start a new Claude conversation in a dedicated Discord thread. Options: `name` (thread title), `prompt`. |
 | `/resume` | Resume (continue) a previous Claude conversation with an optional follow-up prompt. |
 | `/claude-cancel` | Cancel the currently running Claude operation. |
 | `/fast` | Toggle Opus 4.6 fast mode — 2.5x faster responses, same quality. |

@@ -49,6 +49,8 @@ Set via `/settings` > `claude` > `set-effort`.
 | Fork Session | Branch a conversation into a new independent session |
 | AskUserQuestion | Claude can ask clarifying questions mid-session via Discord buttons |
 | Interactive Permission Requests | Allow/Deny buttons when Claude wants to use unapproved tools (replaces CLI TUI prompt) |
+| Channel Monitoring | Auto-detect bot/webhook messages and trigger Claude investigation in a thread |
+| Thread-per-Session | Dedicated Discord thread for each `/claude-thread` conversation with custom names |
 
 Toggles available via `/settings` > `claude`.
 
@@ -152,6 +154,43 @@ Example schema:
 ```
 
 When enabled, responses follow `json_schema` output format through the SDK.
+
+## Thread-per-Session
+
+Keep conversations organized with dedicated Discord threads:
+
+- **`/claude-thread`** — Start a new Claude session in its own thread
+  - `name` — Custom thread title (required)
+  - `prompt` — Your initial prompt (required)
+- **Per-channel session tracking** — Regular `/claude` commands in the same channel automatically reuse the last session (no need to pass `session_id`)
+- **Thread auto-naming** — Threads are named with your custom title or a truncated version of the prompt
+- **Seamless continuation** — Subsequent `/claude` commands inside a session thread continue that conversation
+
+### How It Works
+
+1. Run `/claude-thread name:"Fix auth bug" prompt:"Review the auth module"`
+2. A new thread titled **Fix auth bug** is created
+3. Claude's response streams into the thread
+4. Any further `/claude` commands in that thread continue the same session
+5. Use `/claude-thread` again in the main channel to start a fresh conversation in a new thread
+
+## Channel Monitoring
+
+Automatically investigate alerts from other bots or webhooks:
+
+1. A monitored bot posts in the configured channel
+2. Messages are batched over a 30-second debounce window
+3. A thread is created on the alert message
+4. Claude analyzes the alert and streams its investigation into the thread
+
+### Setup
+
+```env
+MONITOR_CHANNEL_ID=123456789012345678    # Channel to watch
+MONITOR_BOT_IDS=987654321,111111111      # Bot/webhook user IDs to respond to
+```
+
+Requires the **Message Content** privileged intent enabled in the Discord Developer Portal. The bot needs Read Messages, Create Public Threads, and Send Messages in Threads permissions in the monitored channel.
 
 ## Role-Based Access Control (RBAC)
 

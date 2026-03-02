@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-03-03
+
+### Added
+- **Channel Monitoring** (#17): Watch a Discord channel for bot/webhook messages and auto-trigger a Claude investigation in a thread. Messages are batched over a 30-second debounce window. Requires `MONITOR_CHANNEL_ID` and `MONITOR_BOT_IDS` env vars and the Message Content privileged intent.
+- **Thread-per-Session** (#19): New `/claude-thread` command starts each conversation in a dedicated Discord thread with a custom name.
+- **Per-Channel Session Tracking**: Regular `/claude` commands in the same channel automatically reuse the last session — no need to pass `session_id` manually.
+- **Custom Thread Names**: `/claude-thread name:"Fix auth bug" prompt:"Review the auth module"` creates a thread titled "Fix auth bug".
+- **Thread-Aware Channel Detection**: Commands work correctly inside session threads (bot recognizes the parent channel).
+
+### Changed
+- `discord/session-threads.ts` added — `SessionThreadManager` handles thread creation, lookup, and lifecycle
+- `discord/types.ts` — `InteractionContext` now exposes `getChannelId()` for per-channel session mapping
+- `core/handler-registry.ts` — `channelSessionMap` maintains channel → session mapping
+- `.env.example` updated with Channel Monitoring section
+
 ## [2.2.0] - 2025-07-18
 
 ### Added
@@ -188,6 +203,7 @@ This is the first stable release of Claude Code Discord Bot - a Discord bot that
 
 ---
 
+[2.3.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.3.0
 [2.2.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.2.0
 [2.0.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.0.0
 [1.0.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v1.0.0

@@ -1,6 +1,6 @@
 # Known Issues & Accepted Risks
 
-> Last audited: 2025-02-18  
+> Last audited: 2026-03-03  
 > Context: Single-user personal Discord bot — not a production multi-user service
 
 This document tracks issues identified during a comprehensive code audit that were **intentionally not fixed**. Each entry explains why the issue exists, why it doesn't matter for our use case, and under what conditions (if any) it would need revisiting.

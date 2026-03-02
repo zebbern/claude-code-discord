@@ -123,6 +123,10 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here  # Only needed if not using `claud
 USER_ID=your_discord_user_id                   # Get mentioned when Claude finishes
 CATEGORY_NAME=claude-code                      # Discord category for channels
 WORK_DIR=/path/to/project                      # Working directory (default: current)
+
+# Channel Monitoring (optional)
+MONITOR_CHANNEL_ID=123456789012345678          # Channel to watch for alerts
+MONITOR_BOT_IDS=987654321,111111111            # Bot/webhook user IDs to respond to
 ```
 
 Environment variables override `.env` file settings. CLI flags override environment variables.
