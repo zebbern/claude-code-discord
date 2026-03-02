@@ -55,6 +55,7 @@ export interface ClaudeHandlerDeps {
   workDir: string;
   getClaudeController: () => AbortController | null;
   setClaudeController: (controller: AbortController | null) => void;
+  getClaudeSessionId: () => string | undefined;
   setClaudeSessionId: (sessionId: string | undefined) => void;
   /** Default sender — used when no thread is available (fallback) */
   sendClaudeMessages: (messages: ClaudeMessage[]) => Promise<void>;
@@ -88,6 +89,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
 
       if (deps.sessionThreads) {
         try {
+          // Pass explicit session ID so we reuse the existing thread if one exists
           const threadResult = await deps.sessionThreads.createThreadSender(prompt, sessionId);
           activeSender = threadResult.sender;
           threadSessionKey = threadResult.threadSessionKey;
@@ -95,7 +97,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
           console.warn('[SessionThread] Could not create thread, falling back to main channel:', err);
         }
       }
-      
+
       // Send initial message
       await ctx.editReply({
         embeds: [{
@@ -108,7 +110,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
           timestamp: true
         }]
       });
-      
+
       const result = await sendToClaudeCode(
         workDir,
         prompt,
@@ -125,7 +127,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         false, // continueMode = false
         deps.getQueryOptions?.() // Pass runtime settings (thinking, operation, proxy)
       );
-      
+
       deps.setClaudeSessionId(result.sessionId);
       deps.setClaudeController(null);
 
@@ -133,12 +135,12 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       if (threadSessionKey && result.sessionId && deps.sessionThreads) {
         deps.sessionThreads.updateSessionId(threadSessionKey, result.sessionId);
       }
-      
+
       // Completion message is already sent via SDK streaming (result type → message-converter.ts)
-      
+
       return result;
     },
-    
+
     // deno-lint-ignore no-explicit-any
     async onContinue(ctx: any, prompt?: string): Promise<ClaudeResponse> {
       // Cancel any existing session
@@ -146,45 +148,52 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       if (existingController) {
         existingController.abort();
       }
-      
+
       const controller = new AbortController();
       deps.setClaudeController(controller);
-      
+
       const actualPrompt = prompt || "Please continue.";
-      
+
       // Defer interaction
       await ctx.deferReply();
 
-      // Determine which sender to use — create a thread if supported
+      // Determine which sender to use — reuse existing session thread if possible
       let activeSender = sendClaudeMessages;
       let threadSessionKey: string | undefined;
+      let isReusingThread = false;
 
       if (deps.sessionThreads) {
         try {
-          const threadResult = await deps.sessionThreads.createThreadSender(actualPrompt);
+          // Pass current session ID so we reuse the existing thread
+          const currentSessionId = deps.getClaudeSessionId();
+          const threadResult = await deps.sessionThreads.createThreadSender(actualPrompt, currentSessionId);
           activeSender = threadResult.sender;
           threadSessionKey = threadResult.threadSessionKey;
+          // If we got back the same key as the current session, we're reusing
+          isReusingThread = (currentSessionId !== undefined && threadResult.threadSessionKey === currentSessionId);
         } catch (err) {
           console.warn('[SessionThread] Could not create thread for continue, falling back:', err);
         }
       }
-      
+
       // Send initial message
       const embedData: { color: number; title: string; description: string; timestamp: boolean; fields?: Array<{ name: string; value: string; inline: boolean }> } = {
         color: 0xffff00,
         title: 'Claude Code Continuing Conversation...',
-        description: threadSessionKey
-          ? 'Resuming in a dedicated thread — check below ↓'
-          : 'Loading latest conversation and waiting for response...',
+        description: isReusingThread
+          ? 'Continuing in this thread...'
+          : threadSessionKey
+            ? 'Resuming in a dedicated thread — check below ↓'
+            : 'Loading latest conversation and waiting for response...',
         timestamp: true
       };
-      
+
       if (prompt) {
         embedData.fields = [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }];
       }
-      
+
       await ctx.editReply({ embeds: [embedData] });
-      
+
       const result = await sendToClaudeCode(
         workDir,
         actualPrompt,
@@ -201,7 +210,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         true, // continueMode = true
         deps.getQueryOptions?.() // Pass runtime settings (thinking, operation, proxy)
       );
-      
+
       deps.setClaudeSessionId(result.sessionId);
       deps.setClaudeController(null);
 
@@ -209,9 +218,9 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       if (threadSessionKey && result.sessionId && deps.sessionThreads) {
         deps.sessionThreads.updateSessionId(threadSessionKey, result.sessionId);
       }
-      
+
       // Completion message is already sent via SDK streaming (result type → message-converter.ts)
-      
+
       return result;
     },
 
