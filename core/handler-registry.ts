@@ -28,6 +28,7 @@ import { agentCommand, createAgentHandlers } from "../agent/index.ts";
 import { screenshotCommands, createScreenshotHandlers } from "../screenshot/index.ts";
 import { infoCommands, createInfoCommandHandlers } from "../claude/index.ts";
 import { cleanSessionId, ClaudeSessionManager } from "../claude/index.ts";
+import type { SessionThreadCallbacks } from "../claude/index.ts";
 import type { ClaudeModelOptions } from "../claude/index.ts";
 import type { AskUserCallback } from "../claude/index.ts";
 import type { PermissionRequestCallback } from "../claude/index.ts";
@@ -177,6 +178,9 @@ export interface HandlerRegistryDeps {
   /** Late-bound callback for interactive permission requests — replaces auto-deny.
    *  Shows Allow/Deny buttons in Discord when Claude wants to use an unapproved tool. */
   onPermissionRequest?: PermissionRequestCallback;
+  /** Thread-per-session callbacks (optional). When provided, each /claude
+   *  invocation creates a dedicated Discord thread for its output. */
+  sessionThreads?: SessionThreadCallbacks;
 }
 
 /**
@@ -510,6 +514,7 @@ export function createAllHandlers(
     setClaudeSessionId: claudeSession.setSessionId,
     sendClaudeMessages,
     getQueryOptions,
+    sessionThreads: deps.sessionThreads,
   });
 
   const gitHandlers = createGitHandlers({

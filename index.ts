@@ -17,11 +17,12 @@ import {
   type ButtonHandlers,
   type BotDependencies,
   type MessageContent,
+  SessionThreadManager,
 } from "./discord/index.ts";
 import type { TextChannel } from "npm:discord.js@14.14.1";
 
 import { getGitInfo } from "./git/index.ts";
-import { createClaudeSender, expandableContent, sendToClaudeCode, convertToClaudeMessages, type DiscordSender, type ClaudeMessage } from "./claude/index.ts";
+import { createClaudeSender, expandableContent, sendToClaudeCode, convertToClaudeMessages, type DiscordSender, type ClaudeMessage, type SessionThreadCallbacks } from "./claude/index.ts";
 import { buildQuestionMessages, parseAskUserButtonId, parseAskUserConfirmId, type AskUserQuestionInput } from "./claude/index.ts";
 import { buildPermissionEmbed, parsePermissionButtonId, type PermissionRequestCallback } from "./claude/index.ts";
 import { claudeCommands, enhancedClaudeCommands } from "./claude/index.ts";
@@ -106,7 +107,10 @@ export async function createClaudeCodeBot(config: BotConfig) {
   initModels();
 
   // Setup periodic cleanup tasks
-  const cleanupInterval = setupPeriodicCleanup(managers, 3600000, [cleanupPaginationStates]);
+  const cleanupInterval = setupPeriodicCleanup(managers, 3600000, [
+    cleanupPaginationStates,
+    () => { sessionThreadManager.cleanup(); },
+  ]);
   
   // Initialize bot settings
   const settingsOps = createBotSettings(defaultMentionUserId, DEFAULT_SETTINGS, UNIFIED_DEFAULT_SETTINGS);
@@ -117,6 +121,49 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // deno-lint-ignore no-explicit-any prefer-const
   let bot: any;
   let claudeSender: ((messages: ClaudeMessage[]) => Promise<void>) | null = null;
+
+  // Session thread manager — maps each Claude session to a dedicated Discord thread
+  const sessionThreadManager = new SessionThreadManager();
+
+  // Session thread callbacks — used by claude/command.ts to create threads per session.
+  // The callbacks are closures over `bot` (late-bound) and `sessionThreadManager`.
+  const sessionThreadCallbacks: SessionThreadCallbacks = {
+    async createThreadSender(prompt: string, _sessionId?: string) {
+      const channel = bot?.getChannel() as TextChannel | null;
+      if (!channel) throw new Error('Bot channel not ready');
+
+      // Generate a placeholder key until the real SDK session ID arrives
+      const placeholderKey = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      // Create a thread in the main channel
+      const thread = await sessionThreadManager.createSessionThread(channel, placeholderKey, prompt);
+
+      // Post a summary embed in the main channel pointing to the thread
+      await sendMessageContent(channel, {
+        embeds: [{
+          color: 0x5865F2,
+          title: '🧵 New Claude Session',
+          description: `A new session thread has been created.\n\n**Prompt:** \`${prompt.substring(0, 200)}${prompt.length > 200 ? '...' : ''}\``,
+          fields: [
+            { name: 'Thread', value: `<#${thread.id}>`, inline: true },
+          ],
+          timestamp: true,
+        }],
+      });
+
+      // Create a sender bound to the thread (not the main channel)
+      const threadSender = createClaudeSender(createChannelSenderAdapter(thread));
+
+      return {
+        sender: threadSender,
+        threadSessionKey: placeholderKey,
+      };
+    },
+
+    updateSessionId(oldKey: string, newSessionId: string) {
+      sessionThreadManager.updateSessionId(oldKey, newSessionId);
+    },
+  };
   
   // Late-bound AskUserQuestion handler — set after bot is created.
   // When Claude needs clarification mid-session, this sends buttons to Discord
@@ -178,6 +225,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
           bot.updateBotSettings(settings);
         }
       },
+      sessionThreads: sessionThreadCallbacks,
     },
     {
       getController: () => claudeController,
@@ -266,12 +314,31 @@ export async function createClaudeCodeBot(config: BotConfig) {
   
   // Create Discord sender for Claude messages
   claudeSender = createClaudeSender(createDiscordSenderAdapter(bot));
+
+  // Helper: resolve the target channel for the currently active session.
+  // If there's an active session thread, use that; otherwise fall back to main channel.
+  const getActiveSessionChannel = () => {
+    // Try to find the thread for the current session
+    if (claudeSessionId) {
+      const thread = sessionThreadManager.getThread(claudeSessionId);
+      if (thread) return thread;
+    }
+    // Also check for any pending (placeholder-keyed) threads
+    const allThreads = sessionThreadManager.getAllSessionThreads();
+    for (const meta of allThreads) {
+      if (meta.sessionId.startsWith('pending_')) {
+        const thread = sessionThreadManager.getThread(meta.sessionId);
+        if (thread) return thread;
+      }
+    }
+    return bot.getChannel();
+  };
   
   // Initialize AskUserQuestion handler — sends questions to Discord, waits for button clicks
-  askUserState.handler = createAskUserDiscordHandler(bot);
+  askUserState.handler = createAskUserDiscordHandler(bot, getActiveSessionChannel);
 
   // Initialize PermissionRequest handler — shows Allow/Deny buttons for unapproved tools
-  permReqState.handler = createPermissionRequestHandler(bot);
+  permReqState.handler = createPermissionRequestHandler(bot, getActiveSessionChannel);
   
   // Check for updates (non-blocking)
   runVersionCheck().then(async ({ updateAvailable, embed }) => {
@@ -422,14 +489,14 @@ function createChannelSenderAdapter(channel: any): DiscordSender {
  *
  * When Claude calls the AskUserQuestion tool:
  * 1. Builds embeds with option buttons for each question
- * 2. Sends them to the bot's channel
+ * 2. Sends them to the bot's channel (or session thread if available)
  * 3. Waits up to 5 minutes for button clicks
  * 4. Returns answers to the SDK so Claude can continue
  */
 // deno-lint-ignore no-explicit-any
-function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) => Promise<Record<string, string>> {
+function createAskUserDiscordHandler(bot: any, getTargetChannel?: () => any): (input: AskUserQuestionInput) => Promise<Record<string, string>> {
   return async (input: AskUserQuestionInput): Promise<Record<string, string>> => {
-    const channel = bot.getChannel();
+    const channel = getTargetChannel?.() ?? bot.getChannel();
     if (!channel) {
       throw new Error('Discord channel not available');
     }
@@ -551,12 +618,12 @@ function createAskUserDiscordHandler(bot: any): (input: AskUserQuestionInput) =>
  * 5. Returns true (allow) or false (deny)
  */
 // deno-lint-ignore no-explicit-any
-function createPermissionRequestHandler(bot: any): PermissionRequestCallback {
+function createPermissionRequestHandler(bot: any, getTargetChannel?: () => any): PermissionRequestCallback {
   // Simple incrementing nonce to disambiguate concurrent requests
   let nonce = 0;
 
   return async (toolName: string, toolInput: Record<string, unknown>): Promise<boolean> => {
-    const channel = bot.getChannel();
+    const channel = getTargetChannel?.() ?? bot.getChannel();
     if (!channel) {
       console.warn('[PermissionRequest] No channel — auto-denying');
       return false;

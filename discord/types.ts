@@ -75,7 +75,7 @@ export type CommandHandlers = Map<string, CommandHandler>;
 // Button handler type
 export type ButtonHandler = (ctx: InteractionContext) => Promise<void> | void;
 
-// Button handler registry  
+// Button handler registry
 export type ButtonHandlers = Map<string, ButtonHandler>;
 
 // Interfaces for dependency injection
@@ -96,6 +96,24 @@ export interface MonitorConfig {
   botIds: string[];
   /** Callback invoked with batched alert content and the thread to stream output to */
   onAlertMessage: (content: string, thread: TextChannel) => Promise<void>;
+}
+
+/**
+ * Tracks the mapping between a Claude session and its dedicated Discord thread.
+ */
+export interface SessionThread {
+  /** Claude session ID */
+  sessionId: string;
+  /** Discord thread ID */
+  threadId: string;
+  /** Thread name (derived from the first prompt) */
+  threadName: string;
+  /** When the session thread was created */
+  createdAt: Date;
+  /** When the last message was sent in this thread */
+  lastActivity: Date;
+  /** Number of messages sent in this thread */
+  messageCount: number;
 }
 
 export interface BotDependencies {
