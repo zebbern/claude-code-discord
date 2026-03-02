@@ -507,10 +507,21 @@ export function createAllHandlers(
     return opts;
   }
 
+  // Per-channel session tracking — maps channelId/threadId to active sessionId
+  const channelSessionMap = new Map<string, string>();
+
   const claudeHandlers = createClaudeHandlers({
     workDir,
     getClaudeController: claudeSession.getController,
     setClaudeController: claudeSession.setController,
+    getSessionForChannel: (channelId: string) => channelSessionMap.get(channelId),
+    setSessionForChannel: (channelId: string, sessionId: string | undefined) => {
+      if (sessionId) {
+        channelSessionMap.set(channelId, sessionId);
+      } else {
+        channelSessionMap.delete(channelId);
+      }
+    },
     getClaudeSessionId: claudeSession.getSessionId,
     setClaudeSessionId: claudeSession.setSessionId,
     sendClaudeMessages,

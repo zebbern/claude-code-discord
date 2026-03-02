@@ -312,7 +312,8 @@ export function createButtonHandlers(
       // Add the reused message to history again (as it's being sent again)
       addToHistory(currentMessage);
       // Execute the Claude command with the selected message
-      await claudeHandlers.onClaude(ctx, currentMessage);
+      const channelId = ctx.getChannelId();
+      await claudeHandlers.onClaude(ctx, currentMessage, channelId);
     }],
     
     // Close history view

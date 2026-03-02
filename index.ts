@@ -125,7 +125,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // Session thread manager — maps each Claude session to a dedicated Discord thread
   const sessionThreadManager = new SessionThreadManager();
 
-  // Session thread callbacks — used by claude/command.ts for /thread and /resume.
+  // Session thread callbacks — used by claude/command.ts for /claude-thread and /resume.
   // The callbacks are closures over `bot` (late-bound) and `sessionThreadManager`.
   const sessionThreadCallbacks: SessionThreadCallbacks = {
     async createThreadSender(prompt: string, sessionId?: string) {
@@ -141,7 +141,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
           }
           sessionThreadManager.recordActivity(sessionId);
           const threadSender = createClaudeSender(createChannelSenderAdapter(existingThread));
-          return { sender: threadSender, threadSessionKey: sessionId };
+          return { sender: threadSender, threadSessionKey: sessionId, threadChannelId: existingThread.id };
         }
       }
 
@@ -165,7 +165,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       });
 
       const threadSender = createClaudeSender(createChannelSenderAdapter(thread));
-      return { sender: threadSender, threadSessionKey: placeholderKey };
+      return { sender: threadSender, threadSessionKey: placeholderKey, threadChannelId: thread.id };
     },
 
     async getThreadSender(sessionId: string) {

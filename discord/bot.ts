@@ -1,8 +1,8 @@
-import { 
-  Client, 
-  GatewayIntentBits, 
-  Events, 
-  ChannelType, 
+import {
+  Client,
+  GatewayIntentBits,
+  Events,
+  ChannelType,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -21,11 +21,11 @@ import { handlePaginationInteraction } from "./pagination.ts";
 import { checkCommandPermission } from "../core/rbac.ts";
 import { SETTINGS_ACTIONS, SETTINGS_VALUES } from "../settings/unified-settings.ts";
 import { BOT_VERSION } from "../util/version-check.ts";
-import type { 
-  BotConfig, 
-  CommandHandlers, 
+import type {
+  BotConfig,
+  CommandHandlers,
   ButtonHandlers,
-  MessageContent, 
+  MessageContent,
   InteractionContext,
   BotDependencies
 } from "./types.ts";
@@ -39,9 +39,9 @@ import type {
 function convertMessageContent(content: MessageContent): any {
   // deno-lint-ignore no-explicit-any
   const payload: any = {};
-  
+
   if (content.content) payload.content = content.content;
-  
+
   if (content.embeds) {
     payload.embeds = content.embeds.map(e => {
       const embed = new EmbedBuilder();
@@ -54,7 +54,7 @@ function convertMessageContent(content: MessageContent): any {
       return embed;
     });
   }
-  
+
   if (content.components) {
     payload.components = content.components.map(row => {
       const actionRow = new ActionRowBuilder<ButtonBuilder>();
@@ -62,7 +62,7 @@ function convertMessageContent(content: MessageContent): any {
         const button = new ButtonBuilder()
           .setCustomId(comp.customId)
           .setLabel(comp.label);
-        
+
         switch (comp.style) {
           case 'primary': button.setStyle(ButtonStyle.Primary); break;
           case 'secondary': button.setStyle(ButtonStyle.Secondary); break;
@@ -70,13 +70,13 @@ function convertMessageContent(content: MessageContent): any {
           case 'danger': button.setStyle(ButtonStyle.Danger); break;
           case 'link': button.setStyle(ButtonStyle.Link); break;
         }
-        
+
         actionRow.addComponents(button);
       });
       return actionRow;
     });
   }
-  
+
   // Handle file attachments
   if (content.files && content.files.length > 0) {
     payload.files = content.files.map(f => ({
@@ -85,7 +85,7 @@ function convertMessageContent(content: MessageContent): any {
       description: f.description,
     }));
   }
-  
+
   return payload;
 }
 
@@ -94,7 +94,7 @@ function convertMessageContent(content: MessageContent): any {
 // ================================
 
 export async function createDiscordBot(
-  config: BotConfig, 
+  config: BotConfig,
   handlers: CommandHandlers,
   buttonHandlers: ButtonHandlers,
   dependencies: BotDependencies,
@@ -102,16 +102,16 @@ export async function createDiscordBot(
 ) {
   const { discordToken, applicationId, workDir, repoName, branchName, categoryName } = config;
   const actualCategoryName = categoryName || repoName;
-  
+
   let myChannel: TextChannel | null = null;
   // deno-lint-ignore no-explicit-any no-unused-vars
   let myCategory: any = null;
-  
+
   const botSettings = dependencies.botSettings || {
     mentionEnabled: !!config.defaultMentionUserId,
     mentionUserId: config.defaultMentionUserId || null,
   };
-  
+
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -119,22 +119,22 @@ export async function createDiscordBot(
       GatewayIntentBits.MessageContent,
     ],
   });
-  
+
   // Use commands from dependencies
   const commands = dependencies.commands;
-  
+
   // Channel management
   // deno-lint-ignore no-explicit-any
   async function ensureChannelExists(guild: any): Promise<TextChannel> {
     const channelName = sanitizeChannelName(branchName);
-    
+
     console.log(`Checking category "${actualCategoryName}"...`);
-    
+
     let category = guild.channels.cache.find(
       // deno-lint-ignore no-explicit-any
       (c: any) => c.type === ChannelType.GuildCategory && c.name === actualCategoryName
     );
-    
+
     if (!category) {
       console.log(`Creating category "${actualCategoryName}"...`);
       try {
@@ -148,14 +148,14 @@ export async function createDiscordBot(
         throw new Error(`Cannot create category. Please ensure the bot has "Manage Channels" permission.`);
       }
     }
-    
+
     myCategory = category;
-    
+
     let channel = guild.channels.cache.find(
       // deno-lint-ignore no-explicit-any
       (c: any) => c.type === ChannelType.GuildText && c.name === channelName && c.parentId === category.id
     );
-    
+
     if (!channel) {
       console.log(`Creating channel "${channelName}"...`);
       try {
@@ -171,39 +171,39 @@ export async function createDiscordBot(
         throw new Error(`Cannot create channel. Please ensure the bot has "Manage Channels" permission.`);
       }
     }
-    
+
     return channel as TextChannel;
   }
-  
+
   // Create interaction context wrapper
   function createInteractionContext(interaction: CommandInteraction | ButtonInteraction): InteractionContext {
     return {
       async deferReply(): Promise<void> {
         await interaction.deferReply();
       },
-      
+
       async editReply(content: MessageContent): Promise<void> {
         await interaction.editReply(convertMessageContent(content));
       },
-      
+
       async followUp(content: MessageContent & { ephemeral?: boolean }): Promise<void> {
         const payload = convertMessageContent(content);
         payload.ephemeral = content.ephemeral || false;
         await interaction.followUp(payload);
       },
-      
+
       async reply(content: MessageContent & { ephemeral?: boolean }): Promise<void> {
         const payload = convertMessageContent(content);
         payload.ephemeral = content.ephemeral || false;
         await interaction.reply(payload);
       },
-      
+
       async update(content: MessageContent): Promise<void> {
         if ('update' in interaction) {
           await (interaction as ButtonInteraction).update(convertMessageContent(content));
         }
       },
-      
+
       getString(name: string, required?: boolean): string | null {
         if (interaction.isCommand && interaction.isCommand()) {
           // deno-lint-ignore no-explicit-any
@@ -211,7 +211,7 @@ export async function createDiscordBot(
         }
         return null;
       },
-      
+
       getInteger(name: string, required?: boolean): number | null {
         if (interaction.isCommand && interaction.isCommand()) {
           // deno-lint-ignore no-explicit-any
@@ -219,7 +219,7 @@ export async function createDiscordBot(
         }
         return null;
       },
-      
+
       getBoolean(name: string, required?: boolean): boolean | null {
         if (interaction.isCommand && interaction.isCommand()) {
           // deno-lint-ignore no-explicit-any
@@ -242,16 +242,30 @@ export async function createDiscordBot(
 
       getUserId(): string {
         return interaction.user?.id ?? '';
+      },
+
+      getChannelId(): string {
+        return interaction.channelId ?? '';
       }
     };
   }
-  
+
+  // Helper: check if an interaction belongs to our bot channel or a thread inside it
+  function isOurChannel(channelId: string): boolean {
+    if (!myChannel) return false;
+    if (channelId === myChannel.id) return true;
+    // Check if the interaction is inside a thread whose parent is our channel
+    const channel = client.channels.cache.get(channelId);
+    // deno-lint-ignore no-explicit-any
+    return !!(channel && (channel as any).parentId === myChannel.id);
+  }
+
   // Command handler - completely generic
   async function handleCommand(interaction: CommandInteraction) {
-    if (!myChannel || interaction.channelId !== myChannel.id) {
+    if (!isOurChannel(interaction.channelId)) {
       return;
     }
-    
+
     const ctx = createInteractionContext(interaction);
 
     // RBAC check for restricted commands
@@ -259,7 +273,7 @@ export async function createDiscordBot(
     if (!allowed) return;
 
     const handler = handlers.get(interaction.commandName);
-    
+
     if (!handler) {
       await ctx.reply({
         content: `Unknown command: ${interaction.commandName}`,
@@ -267,7 +281,7 @@ export async function createDiscordBot(
       });
       return;
     }
-    
+
     try {
       await handler.execute(ctx);
     } catch (error) {
@@ -314,15 +328,15 @@ export async function createDiscordBot(
 
     await interaction.respond(filtered);
   }
-  
+
   // Button handler - completely generic
   async function handleButton(interaction: ButtonInteraction) {
-    if (!myChannel || interaction.channelId !== myChannel.id) {
+    if (!isOurChannel(interaction.channelId)) {
       return;
     }
-    
+
     const ctx = createInteractionContext(interaction);
-    
+
     // Handle pagination buttons first
     if (interaction.customId.startsWith('pagination:')) {
       try {
@@ -341,9 +355,9 @@ export async function createDiscordBot(
         }
       }
     }
-    
+
     const handler = buttonHandlers.get(interaction.customId);
-    
+
     if (handler) {
       try {
         await handler(ctx);
@@ -363,10 +377,10 @@ export async function createDiscordBot(
       }
       return;
     }
-    
+
     // Handle dynamic button IDs with patterns
     const buttonId = interaction.customId;
-    
+
     // Handle continue with session ID pattern: "continue:sessionId"
     if (buttonId.startsWith('continue:')) {
       if (dependencies.onContinueSession) {
@@ -402,7 +416,7 @@ export async function createDiscordBot(
       }
       return;
     }
-    
+
     // Handle copy session ID pattern: "copy-session:sessionId" (legacy — kept for old messages)
     if (buttonId.startsWith('copy-session:')) {
       const sessionId = buttonId.split(':')[1];
@@ -423,11 +437,11 @@ export async function createDiscordBot(
       }
       return;
     }
-    
-    // Handle expand content pattern: "expand:contentId" 
+
+    // Handle expand content pattern: "expand:contentId"
     if (buttonId.startsWith('expand:')) {
       const expandId = buttonId.substring(7);
-      
+
       // Try to find a handler that can process expand buttons
       for (const [handlerName, handler] of handlers.entries()) {
         if (handler.handleButton) {
@@ -439,7 +453,7 @@ export async function createDiscordBot(
           }
         }
       }
-      
+
       // If no handler found, show default message
       try {
         await ctx.update({
@@ -456,7 +470,7 @@ export async function createDiscordBot(
       }
       return;
     }
-    
+
     // If no specific handler found, try to delegate to command handlers with handleButton method
     const commandHandler = Array.from(handlers.values()).find(h => h.handleButton);
     if (commandHandler?.handleButton) {
@@ -477,10 +491,10 @@ export async function createDiscordBot(
       console.warn(`No handler found for button: ${interaction.customId}`);
     }
   }
-  
+
   // Register commands
   const rest = new REST({ version: '10' }).setToken(discordToken);
-  
+
   try {
     console.log('Registering slash commands...');
     await rest.put(
@@ -492,30 +506,30 @@ export async function createDiscordBot(
     console.error('Failed to register slash commands:', error);
     throw error;
   }
-  
+
   // Event handlers
   client.once(Events.ClientReady, async () => {
     console.log(`Bot logged in: ${client.user?.tag}`);
     console.log(`Category: ${actualCategoryName}`);
     console.log(`Branch: ${branchName}`);
     console.log(`Working directory: ${workDir}`);
-    
+
     const guilds = client.guilds.cache;
     if (guilds.size === 0) {
       console.error('Error: Bot is not in any servers');
       return;
     }
-    
+
     const guild = guilds.first();
     if (!guild) {
       console.error('Error: Guild not found');
       return;
     }
-    
+
     try {
       myChannel = await ensureChannelExists(guild);
       console.log(`Using channel "${myChannel.name}"`);
-      
+
       await myChannel.send(convertMessageContent({
         embeds: [{
           color: 0x00ff00,
@@ -543,7 +557,7 @@ export async function createDiscordBot(
       console.error('Channel creation/retrieval error:', error);
     }
   });
-  
+
   client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isCommand()) {
       await handleCommand(interaction as CommandInteraction);
@@ -604,10 +618,10 @@ export async function createDiscordBot(
 
     console.log(`[Monitor] Watching channel ${channelId} for messages from ${botIds.join(', ')}`);
   }
-  
+
   // Login
   await client.login(discordToken);
-  
+
   // Return bot control functions
   return {
     client,

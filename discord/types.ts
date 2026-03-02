@@ -49,6 +49,8 @@ export interface InteractionContext {
   getMemberRoleIds(): Set<string>;
   /** Returns the invoking member's user ID */
   getUserId(): string;
+  /** Returns the channel or thread ID the interaction was sent in */
+  getChannelId(): string;
 }
 
 export interface BotConfig {
