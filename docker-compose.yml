@@ -20,9 +20,12 @@ services:
     # image: ghcr.io/zebbern/claude-code-discord:latest
     container_name: claude-code-discord
     restart: unless-stopped
-    
+
     # Environment variables (use .env file or set here)
-    # ANTHROPIC_API_KEY is required in Docker — it authenticates the Claude CLI
+    # Authentication (choose one):
+    #   Option A: Set ANTHROPIC_API_KEY in your .env file (simplest)
+    #   Option B: Run `docker exec -it claude-code-discord claude /login` after starting
+    #             (credentials persist in the claude-config volume)
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - APPLICATION_ID=${APPLICATION_ID}
@@ -35,6 +38,7 @@ services:
     volumes:
       # Persist bot data (todos, sessions, etc.)
       - bot-data:/app/.bot-data
+      - claude-config:/home/claude/.claude
       # Optional: Mount your local workspace for Claude to work on
       # Uncomment and modify path as needed:
       # - /path/to/your/project:/app/workspace
@@ -67,6 +71,8 @@ services:
 # Named volumes for data persistence
 volumes:
   bot-data:
+    driver: local
+  claude-config:
     driver: local
 
 # Network configuration

@@ -43,6 +43,8 @@ cd claude-code-discord
 cp .env.example .env
 # Edit .env with your DISCORD_TOKEN and APPLICATION_ID
 docker compose up -d
+# if not using ANTHROPIC_API_TOKEN:
+docker exec -it claude-code-discord claude /login
 ```
 
 Need a Discord bot token first? See [Discord Bot Setup](docs/setup-discord.md).
