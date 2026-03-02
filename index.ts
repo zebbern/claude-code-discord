@@ -9,14 +9,16 @@
  * @module index
  */
 
-import { 
-  createDiscordBot, 
+import {
+  createDiscordBot,
   type BotConfig,
   type InteractionContext,
   type CommandHandlers,
   type ButtonHandlers,
-  type BotDependencies
+  type BotDependencies,
+  type MessageContent,
 } from "./discord/index.ts";
+import type { TextChannel } from "npm:discord.js@14.14.1";
 
 import { getGitInfo } from "./git/index.ts";
 import { createClaudeSender, expandableContent, sendToClaudeCode, convertToClaudeMessages, type DiscordSender, type ClaudeMessage } from "./claude/index.ts";
@@ -226,7 +228,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       monitorConfig: {
         channelId: monitorChannelId,
         botIds: monitorBotIds,
-        onAlertMessage: async (content: string, replyFn: (text: string) => Promise<void>) => {
+        onAlertMessage: async (content: string, thread: TextChannel) => {
           const prompt = [
             "A monitoring alert notification was just received. Investigate this alert.",
             "Identify the alert, check severity, gather diagnostics, analyze the root cause, and report findings.",
@@ -236,8 +238,11 @@ export async function createClaudeCodeBot(config: BotConfig) {
             content,
           ].join("\n");
 
+          // Create a sender bound to the alert thread, not the bot's main channel
+          const threadSender = createClaudeSender(createChannelSenderAdapter(thread));
+
           const controller = new AbortController();
-          const result = await sendToClaudeCode(
+          await sendToClaudeCode(
             workDir,
             prompt,
             controller,
@@ -246,15 +251,11 @@ export async function createClaudeCodeBot(config: BotConfig) {
             (jsonData) => {
               const claudeMessages = convertToClaudeMessages(jsonData);
               if (claudeMessages.length > 0) {
-                sendClaudeMessages(claudeMessages).catch(() => {});
+                threadSender(claudeMessages).catch(() => {});
               }
             },
             false,
           );
-
-          if (result.response) {
-            await replyFn(result.response);
-          }
         },
       },
     }),
@@ -339,6 +340,57 @@ export async function createClaudeCodeBot(config: BotConfig) {
 // ================================
 
 /**
+ * Build a Discord.js payload from a MessageContent object and send it to a channel.
+ */
+// deno-lint-ignore no-explicit-any
+async function sendMessageContent(channel: any, content: MessageContent): Promise<void> {
+  const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import("npm:discord.js@14.14.1");
+
+  // deno-lint-ignore no-explicit-any
+  const payload: any = {};
+
+  if (content.content) payload.content = content.content;
+
+  if (content.embeds) {
+    payload.embeds = content.embeds.map(e => {
+      const embed = new EmbedBuilder();
+      if (e.color !== undefined) embed.setColor(e.color);
+      if (e.title) embed.setTitle(e.title);
+      if (e.description) embed.setDescription(e.description);
+      if (e.fields) e.fields.forEach(f => embed.addFields(f));
+      if (e.footer) embed.setFooter(e.footer);
+      if (e.timestamp) embed.setTimestamp();
+      return embed;
+    });
+  }
+
+  if (content.components) {
+    payload.components = content.components.map(row => {
+      // deno-lint-ignore no-explicit-any
+      const actionRow = new ActionRowBuilder<any>();
+      row.components.forEach(comp => {
+        const button = new ButtonBuilder()
+          .setCustomId(comp.customId)
+          .setLabel(comp.label);
+
+        switch (comp.style) {
+          case 'primary': button.setStyle(ButtonStyle.Primary); break;
+          case 'secondary': button.setStyle(ButtonStyle.Secondary); break;
+          case 'success': button.setStyle(ButtonStyle.Success); break;
+          case 'danger': button.setStyle(ButtonStyle.Danger); break;
+          case 'link': button.setStyle(ButtonStyle.Link); break;
+        }
+
+        actionRow.addComponents(button);
+      });
+      return actionRow;
+    });
+  }
+
+  await channel.send(payload);
+}
+
+/**
  * Create Discord sender adapter from bot instance.
  */
 // deno-lint-ignore no-explicit-any
@@ -347,51 +399,20 @@ function createDiscordSenderAdapter(bot: any): DiscordSender {
     async sendMessage(content) {
       const channel = bot.getChannel();
       if (channel) {
-        const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import("npm:discord.js@14.14.1");
-        
-        // deno-lint-ignore no-explicit-any
-        const payload: any = {};
-        
-        if (content.content) payload.content = content.content;
-        
-        if (content.embeds) {
-          payload.embeds = content.embeds.map(e => {
-            const embed = new EmbedBuilder();
-            if (e.color !== undefined) embed.setColor(e.color);
-            if (e.title) embed.setTitle(e.title);
-            if (e.description) embed.setDescription(e.description);
-            if (e.fields) e.fields.forEach(f => embed.addFields(f));
-            if (e.footer) embed.setFooter(e.footer);
-            if (e.timestamp) embed.setTimestamp();
-            return embed;
-          });
-        }
-        
-        if (content.components) {
-          payload.components = content.components.map(row => {
-            // deno-lint-ignore no-explicit-any
-            const actionRow = new ActionRowBuilder<any>();
-            row.components.forEach(comp => {
-              const button = new ButtonBuilder()
-                .setCustomId(comp.customId)
-                .setLabel(comp.label);
-              
-              switch (comp.style) {
-                case 'primary': button.setStyle(ButtonStyle.Primary); break;
-                case 'secondary': button.setStyle(ButtonStyle.Secondary); break;
-                case 'success': button.setStyle(ButtonStyle.Success); break;
-                case 'danger': button.setStyle(ButtonStyle.Danger); break;
-                case 'link': button.setStyle(ButtonStyle.Link); break;
-              }
-              
-              actionRow.addComponents(button);
-            });
-            return actionRow;
-          });
-        }
-        
-        await channel.send(payload);
+        await sendMessageContent(channel, content);
       }
+    }
+  };
+}
+
+/**
+ * Create Discord sender adapter that sends to a specific channel (e.g., a thread).
+ */
+// deno-lint-ignore no-explicit-any
+function createChannelSenderAdapter(channel: any): DiscordSender {
+  return {
+    async sendMessage(content) {
+      await sendMessageContent(channel, content);
     }
   };
 }

@@ -1,4 +1,5 @@
 // Discord module types
+import type { TextChannel } from "npm:discord.js@14.14.1";
 import type { BotSettings } from "../types/shared.ts";
 
 export interface EmbedData {
@@ -93,8 +94,8 @@ export interface MonitorConfig {
   channelId: string;
   /** Bot/webhook user IDs whose messages trigger auto-response */
   botIds: string[];
-  /** Callback invoked with batched alert content and a reply function */
-  onAlertMessage: (content: string, replyFn: (text: string) => Promise<void>) => Promise<void>;
+  /** Callback invoked with batched alert content and the thread to stream output to */
+  onAlertMessage: (content: string, thread: TextChannel) => Promise<void>;
 }
 
 export interface BotDependencies {

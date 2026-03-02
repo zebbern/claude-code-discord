@@ -559,6 +559,7 @@ export async function createDiscordBot(
     const { channelId, botIds, onAlertMessage } = dependencies.monitorConfig;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     let pendingAlerts: string[] = [];
+    let lastAlertMessage: Message | null = null;
 
     client.on(Events.MessageCreate, async (message: Message) => {
       if (message.author.id === client.user?.id) return;
@@ -571,6 +572,7 @@ export async function createDiscordBot(
       console.log(`[Monitor] Alert detected from ${message.author.id}: ${content.substring(0, 100)}...`);
 
       pendingAlerts.push(content);
+      lastAlertMessage = message;
 
       if (debounceTimer) {
         clearTimeout(debounceTimer);
@@ -578,22 +580,21 @@ export async function createDiscordBot(
 
       debounceTimer = setTimeout(async () => {
         const alertBatch = [...pendingAlerts];
+        const threadAnchor = lastAlertMessage!;
         pendingAlerts = [];
+        lastAlertMessage = null;
         debounceTimer = null;
 
         const combined = alertBatch.join('\n---\n');
-        const channel = message.channel as TextChannel;
+        const channel = threadAnchor.channel as TextChannel;
 
         try {
-          await onAlertMessage(combined, async (reply: string) => {
-            const chunks = [];
-            for (let i = 0; i < reply.length; i += 1900) {
-              chunks.push(reply.substring(i, i + 1900));
-            }
-            for (const chunk of chunks) {
-              await channel.send(chunk);
-            }
+          const thread = await threadAnchor.startThread({
+            name: `Alert Investigation`,
+            autoArchiveDuration: 60,
           });
+
+          await onAlertMessage(combined, thread as unknown as TextChannel);
         } catch (error) {
           console.error('[Monitor] Error handling alert:', error);
           await channel.send(`Failed to investigate alert: ${error instanceof Error ? error.message : 'Unknown error'}`);
