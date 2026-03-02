@@ -33,7 +33,9 @@ services:
       - WORK_DIR=${WORK_DIR:-/app/workspace}
       - USER_ID=${USER_ID:-}
       - CATEGORY_NAME=${CATEGORY_NAME:-claude-code}
-    
+      - MONITOR_CHANNEL_ID=${MONITOR_CHANNEL_ID:-}
+      - MONITOR_BOT_IDS=${MONITOR_BOT_IDS:-}
+
     # Volume mounts for persistence and workspace access
     volumes:
       # Persist bot data (todos, sessions, etc.)
@@ -42,7 +44,7 @@ services:
       # Optional: Mount your local workspace for Claude to work on
       # Uncomment and modify path as needed:
       # - /path/to/your/project:/app/workspace
-    
+
     # Resource limits (adjust based on your needs)
     deploy:
       resources:
@@ -52,18 +54,18 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-    
+
     # Logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    
+
     # Security options
     security_opt:
       - no-new-privileges:true
-    
+
     # Network mode
     networks:
       - claude-network
