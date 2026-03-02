@@ -1,4 +1,5 @@
 // Discord module types
+import type { TextChannel } from "npm:discord.js@14.14.1";
 import type { BotSettings } from "../types/shared.ts";
 
 export interface EmbedData {
@@ -88,6 +89,15 @@ export interface SlashCommand {
   toJSON(): any;
 }
 
+export interface MonitorConfig {
+  /** Discord channel ID to watch for messages */
+  channelId: string;
+  /** Bot/webhook user IDs whose messages trigger auto-response */
+  botIds: string[];
+  /** Callback invoked with batched alert content and the thread to stream output to */
+  onAlertMessage: (content: string, thread: TextChannel) => Promise<void>;
+}
+
 export interface BotDependencies {
   commands: SlashCommand[];
   cleanSessionId?: (sessionId: string) => string;
@@ -95,4 +105,6 @@ export interface BotDependencies {
   botSettings?: BotSettings;
   /** Callback to actually continue a Claude session from a button click */
   onContinueSession?: (ctx: InteractionContext) => Promise<void>;
+  /** Optional channel monitoring config for auto-responding to messages */
+  monitorConfig?: MonitorConfig;
 }
