@@ -43,7 +43,7 @@ RUN git init && git config user.email "bot@claude.local" && git config user.name
 RUN deno cache --no-lock index.ts
 
 # Create data directory for persistence + workspace dir, set ownership
-RUN mkdir -p .bot-data /app/workspace && \
+RUN mkdir -p .bot-data /app/workspace /home/claude/.claude && \
     cd /app/workspace && git init && git config user.email "bot@claude.local" && git config user.name "Claude Bot" && \
     chown -R claude:claude /app /home/claude
 
