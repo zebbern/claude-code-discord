@@ -51,13 +51,13 @@ export const claudeCommands = [
     .setName('claude-thread')
     .setDescription('Start a new Claude session in a dedicated thread')
     .addStringOption(option =>
-      option.setName('prompt')
-        .setDescription('Prompt for Claude Code')
+      option.setName('name')
+        .setDescription('Thread name')
         .setRequired(true))
     .addStringOption(option =>
-      option.setName('name')
-        .setDescription('Thread name (defaults to prompt text if not set)')
-        .setRequired(false)),
+      option.setName('prompt')
+        .setDescription('Prompt for Claude Code')
+        .setRequired(true)),
 
   new SlashCommandBuilder()
     .setName('resume')
