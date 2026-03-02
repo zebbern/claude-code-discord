@@ -93,8 +93,8 @@ ADMIN_ROLE_IDS=123456789,987654321    # Comma-separated Discord role IDs
 ADMIN_USER_IDS=111111111              # Comma-separated Discord user IDs
 
 # Channel Monitoring (optional)
-MONITOR_CHANNEL_ID=123456789012345678    # Channel to watch for alerts
-MONITOR_BOT_IDS=987654321,111111111      # Comma-separated bot/webhook IDs to respond to
+MONITOR_CHANNEL_ID=123456789012345678    # Channel to monitor for alerts from other bots/webhooks/users
+MONITOR_BOT_IDS=987654321,111111111      # Comma-separated bot/webhook/user IDs to trigger auto-investigation
 
 # Proxy (optional — respected automatically if set)
 # HTTP_PROXY=http://proxy:8080
