@@ -4,38 +4,36 @@
 
 **Run Claude Code from Discord with full SDK integration, agents, rewind, mid-session controls and more.**
 
+Found a bug or have an idea for improvement? Submit it via [GitHub Issues >⩊<](https://github.com/zebbern/claude-code-discord/issues)
+
 <kbd>
 
 | Feature | Details | Status |
 |---------|---------|:------:|
 | Use Claude Code Anywhere | Host locally (VM / Docker / cloud) and send commands via the Discord API | ✅ |
-| Full SDK Integration | Built on `@anthropic-ai/claude-agent-sdk` v0.2.45 with native agent support | ✅ |
+| Thread-per-session | Each `/claude-thread` conversation gets its own Discord thread with custom names | ✅ |
+| Granular sandbox config | Full SDK sandbox with network rules, filesystem ACLs, and excluded commands | ✅ |
+| Local hosting & security | Keep keys and code on your infra while exposing a controlled interface through Discord | ✅ |
 | Centralized collaboration | Run commands and discuss results where your team already communicates | ✅ |
 | Branch-aware organization | Maps Git branches to channels/categories so feature work stays separated | ✅ |
 | Mid-session controls | Interrupt, change model, change permissions, stop tasks, and rewind without restarting | ✅ |
-| Fast mode | Toggle Opus 4.6 speed-optimized API (2.5x faster, same quality) via `/fast` | ✅ |
-| 7 Specialized AI Agents | Code reviewer, architect, debugger, security analyst, performance engineer, DevOps, general | ✅ |
 | MCP server management | View status, toggle, and reconnect MCP servers mid-session | ✅ |
 | Hooks system | Passive SDK callbacks for tool use, notification, and task completion observability | ✅ |
+| Full SDK Integration | Built on `@anthropic-ai/claude-agent-sdk` with native agent support | ✅ |
 | Granular sandbox config | Full SDK sandbox with network rules, filesystem ACLs, and excluded commands | ✅ |
 | AskUserQuestion | Claude can ask clarifying questions mid-session via Discord buttons | ✅ |
 | Interactive permission prompts | Allow/Deny buttons when Claude wants to use unapproved tools | ✅ |
-| Dynamic model discovery | Auto-fetches available models from Anthropic API and CLI | ✅ |
-| Structured output mode | Get JSON responses matching a configurable schema | ✅ |
-| Advanced thinking modes | Standard, think, think-hard, ultrathink with configurable effort and budget | ✅ |
 | Role-based access control | Restrict destructive commands (`/shell`, `/git`, worktree ops) to specific Discord roles | ✅ |
-| Local hosting & security | Keep keys and code on your infra while exposing a controlled interface through Discord | ✅ |
 | Channel monitoring | Watch a channel for bot/webhook messages and auto-investigate in a thread | ✅ |
-| Thread-per-session | Each `/claude-thread` conversation gets its own Discord thread with custom names | ✅ |
 | Audit trail & accountability | Channel history provides an easy-to-search record of who ran what and when | ✅ |
 
 </kbd>
 
+<img width="350" height="350" alt="preview" src="https://github.com/user-attachments/assets/e8091420-d271-48a4-8e55-279f2093d3ae" />
+
 </div>
 
 <br>
-
-<img width="350" height="350" alt="preview" src="https://github.com/user-attachments/assets/e8091420-d271-48a4-8e55-279f2093d3ae" />
 
 ## Quick Start
 
