@@ -32,6 +32,7 @@ Go to **OAuth2 > URL Generator** and select these scopes:
 bot
 applications.commands
 ```
+<img width="800" height="500" alt="oauth2" src="https://github.com/user-attachments/assets/3e1fe004-1ae5-4078-b1a4-882a11bc68cd" />
 
 Then select **all** of the following bot permissions:
 
@@ -46,6 +47,8 @@ Then select **all** of the following bot permissions:
 | **Use External Emojis** | Emoji formatting in status and completion embeds |
 | **Use Application Commands** | All 45+ slash commands |
 
+<img width="800" height="500" alt="botallowcommands" src="https://github.com/user-attachments/assets/9cd92467-2f3d-4c03-abb0-9f10ec979a1b" />
+
 **Quick invite URL** (replace `YOUR_APP_ID`):
 
 ```
@@ -56,8 +59,6 @@ https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot+application
 
 Copy the generated URL, open it in your browser, select your Discord server, and authorize the bot.
 
-<img width="800" height="500" alt="oauth2" src="https://github.com/user-attachments/assets/3e1fe004-1ae5-4078-b1a4-882a11bc68cd" />
-<img width="800" height="500" alt="botallowcommands" src="https://github.com/user-attachments/assets/9cd92467-2f3d-4c03-abb0-9f10ec979a1b" />
 <img width="800" height="500" alt="authorize" src="https://github.com/user-attachments/assets/697f6f52-fe37-4885-b492-5d660f23596d" />
 
 ## Next Steps
