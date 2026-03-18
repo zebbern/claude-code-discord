@@ -166,18 +166,33 @@ export class SessionThreadManager {
   // ───────────────────── Cleanup ─────────────────────
 
   /**
-   * Remove sessions older than the given age.
-   * Does NOT archive the Discord threads — that's handled by autoArchiveDuration.
+   * Remove sessions older than the given age and archive their Discord threads.
+   * This keeps the server tidy by archiving inactive session threads
+   * and cleaning up internal state.
    */
-  cleanup(maxAgeMs = 24 * 3_600_000): number {
+  async cleanup(maxAgeMs = 24 * 3_600_000): Promise<number> {
     const cutoff = Date.now() - maxAgeMs;
     let removed = 0;
     for (const [id, meta] of this.threads) {
       if (meta.lastActivity.getTime() < cutoff) {
+        // Archive the Discord thread if it's still active
+        const thread = this.threadChannels.get(id);
+        if (thread) {
+          try {
+            if (!thread.archived) {
+              await thread.setArchived(true);
+            }
+          } catch {
+            // Thread may already be archived or deleted — ignore
+          }
+        }
         this.threads.delete(id);
         this.threadChannels.delete(id);
         removed++;
       }
+    }
+    if (removed > 0) {
+      console.log(`[SessionThreads] Archived and cleaned up ${removed} inactive session thread(s)`);
     }
     return removed;
   }

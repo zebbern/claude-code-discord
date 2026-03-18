@@ -39,35 +39,58 @@ interface TrackedMessage {
 }
 
 // ================================
-// Active Query State
+// Active Query State (per-channel isolation)
 // ================================
 
-let activeQuery: Query | null = null;
-let trackedMessages: TrackedMessage[] = [];
+/**
+ * Per-channel query state to prevent concurrent commands from colliding.
+ * When no channelId is provided, falls back to the "default" key for
+ * backward compatibility with single-channel usage.
+ */
+const activeQueries = new Map<string, Query>();
+const trackedMessagesByChannel = new Map<string, TrackedMessage[]>();
+
+const DEFAULT_CHANNEL = '__default__';
 
 /**
- * Set the active Query reference.
+ * Set the active Query reference for a channel.
  * Called when a new query starts in sendToClaudeCode().
  */
-export function setActiveQuery(q: Query | null): void {
-  activeQuery = q;
-  if (!q) {
-    trackedMessages = [];
+export function setActiveQuery(q: Query | null, channelId?: string): void {
+  const key = channelId || DEFAULT_CHANNEL;
+  if (q) {
+    activeQueries.set(key, q);
+  } else {
+    activeQueries.delete(key);
+    trackedMessagesByChannel.delete(key);
   }
 }
 
 /**
- * Get the active Query reference.
+ * Get the active Query reference for a channel.
+ * Falls back to the default channel if no channelId is provided.
  */
-export function getActiveQuery(): Query | null {
-  return activeQuery;
+export function getActiveQuery(channelId?: string): Query | null {
+  const key = channelId || DEFAULT_CHANNEL;
+  return activeQueries.get(key) ?? null;
+}
+
+/**
+ * Check if any channel has an active query.
+ */
+export function hasAnyActiveQuery(): boolean {
+  return activeQueries.size > 0;
 }
 
 /**
  * Track a user message ID for rewind support.
  */
-export function trackMessageId(messageId: string, turn: number, summary: string): void {
-  trackedMessages.push({
+export function trackMessageId(messageId: string, turn: number, summary: string, channelId?: string): void {
+  const key = channelId || DEFAULT_CHANNEL;
+  if (!trackedMessagesByChannel.has(key)) {
+    trackedMessagesByChannel.set(key, []);
+  }
+  trackedMessagesByChannel.get(key)!.push({
     messageId,
     turn,
     timestamp: Date.now(),
@@ -78,15 +101,17 @@ export function trackMessageId(messageId: string, turn: number, summary: string)
 /**
  * Get all tracked user message IDs.
  */
-export function getTrackedMessages(): TrackedMessage[] {
-  return [...trackedMessages];
+export function getTrackedMessages(channelId?: string): TrackedMessage[] {
+  const key = channelId || DEFAULT_CHANNEL;
+  return [...(trackedMessagesByChannel.get(key) || [])];
 }
 
 /**
  * Clear tracked messages.
  */
-export function clearTrackedMessages(): void {
-  trackedMessages = [];
+export function clearTrackedMessages(channelId?: string): void {
+  const key = channelId || DEFAULT_CHANNEL;
+  trackedMessagesByChannel.delete(key);
 }
 
 // ================================
@@ -98,9 +123,10 @@ export function clearTrackedMessages(): void {
  * The query will stop processing and return control.
  */
 export async function interruptActiveQuery(): Promise<boolean> {
-  if (!activeQuery) return false;
+  const query = getActiveQuery();
+  if (!query) return false;
   try {
-    await activeQuery.interrupt();
+    await query.interrupt();
     return true;
   } catch {
     return false;
@@ -111,9 +137,10 @@ export async function interruptActiveQuery(): Promise<boolean> {
  * Change the model on the active query mid-session.
  */
 export async function setActiveModel(model?: string): Promise<boolean> {
-  if (!activeQuery) return false;
+  const query = getActiveQuery();
+  if (!query) return false;
   try {
-    await activeQuery.setModel(model);
+    await query.setModel(model);
     return true;
   } catch {
     return false;
@@ -124,9 +151,10 @@ export async function setActiveModel(model?: string): Promise<boolean> {
  * Change the permission mode on the active query mid-session.
  */
 export async function setActivePermissionMode(mode: PermissionMode): Promise<boolean> {
-  if (!activeQuery) return false;
+  const query = getActiveQuery();
+  if (!query) return false;
   try {
-    await activeQuery.setPermissionMode(mode);
+    await query.setPermissionMode(mode);
     return true;
   } catch {
     return false;
@@ -141,9 +169,10 @@ export async function setActivePermissionMode(mode: PermissionMode): Promise<boo
  * @param dryRun - If true, preview changes without modifying files
  */
 export async function rewindToMessage(messageId: string, dryRun = false): Promise<RewindFilesResult | null> {
-  if (!activeQuery) return null;
+  const query = getActiveQuery();
+  if (!query) return null;
   try {
-    return await activeQuery.rewindFiles(messageId, { dryRun });
+    return await query.rewindFiles(messageId, { dryRun });
   } catch {
     return null;
   }
@@ -153,9 +182,10 @@ export async function rewindToMessage(messageId: string, dryRun = false): Promis
  * Get the full initialization result from the active query.
  */
 export async function getInitInfo(): Promise<ClaudeInitInfo | null> {
-  if (!activeQuery) return null;
+  const query = getActiveQuery();
+  if (!query) return null;
   try {
-    const result = await activeQuery.initializationResult();
+    const result = await query.initializationResult();
     return {
       commands: result.commands,
       models: result.models,
@@ -171,9 +201,10 @@ export async function getInitInfo(): Promise<ClaudeInitInfo | null> {
  * Get account info from the active query.
  */
 export async function getAccountInfo(): Promise<AccountInfo | null> {
-  if (!activeQuery) return null;
+  const query = getActiveQuery();
+  if (!query) return null;
   try {
-    return await activeQuery.accountInfo();
+    return await query.accountInfo();
   } catch {
     return null;
   }
@@ -183,9 +214,10 @@ export async function getAccountInfo(): Promise<AccountInfo | null> {
  * Get supported models from the active query.
  */
 export async function getSupportedModels(): Promise<ModelInfo[] | null> {
-  if (!activeQuery) return null;
+  const query = getActiveQuery();
+  if (!query) return null;
   try {
-    return await activeQuery.supportedModels();
+    return await query.supportedModels();
   } catch {
     return null;
   }
@@ -195,9 +227,10 @@ export async function getSupportedModels(): Promise<ModelInfo[] | null> {
  * Get MCP server status from the active query.
  */
 export async function getMcpServerStatus(): Promise<McpServerStatus[] | null> {
-  if (!activeQuery) return null;
+  const query = getActiveQuery();
+  if (!query) return null;
   try {
-    return await activeQuery.mcpServerStatus();
+    return await query.mcpServerStatus();
   } catch {
     return null;
   }
@@ -206,13 +239,14 @@ export async function getMcpServerStatus(): Promise<McpServerStatus[] | null> {
 /**
  * Stop a running background task (subagent).
  * A task_notification with status 'stopped' will be emitted.
- * 
+ *
  * @param taskId - The task ID from task_notification/task_started events
  */
 export async function stopActiveTask(taskId: string): Promise<boolean> {
-  if (!activeQuery) return false;
+  const query = getActiveQuery();
+  if (!query) return false;
   try {
-    await activeQuery.stopTask(taskId);
+    await query.stopTask(taskId);
     return true;
   } catch {
     return false;
@@ -225,14 +259,15 @@ export async function stopActiveTask(taskId: string): Promise<boolean> {
 
 /**
  * Toggle an MCP server on/off mid-session via the SDK Query.
- * 
+ *
  * @param serverName - The name of the MCP server to toggle
  * @param enabled - Whether the server should be enabled
  */
 export async function toggleMcpServerActive(serverName: string, enabled: boolean): Promise<boolean> {
-  if (!activeQuery) return false;
+  const query = getActiveQuery();
+  if (!query) return false;
   try {
-    await activeQuery.toggleMcpServer(serverName, enabled);
+    await query.toggleMcpServer(serverName, enabled);
     return true;
   } catch {
     return false;
@@ -242,13 +277,14 @@ export async function toggleMcpServerActive(serverName: string, enabled: boolean
 /**
  * Reconnect an MCP server mid-session via the SDK Query.
  * Useful when a server has failed or disconnected.
- * 
+ *
  * @param serverName - The name of the MCP server to reconnect
  */
 export async function reconnectMcpServerActive(serverName: string): Promise<boolean> {
-  if (!activeQuery) return false;
+  const query = getActiveQuery();
+  if (!query) return false;
   try {
-    await activeQuery.reconnectMcpServer(serverName);
+    await query.reconnectMcpServer(serverName);
     return true;
   } catch {
     return false;
@@ -259,13 +295,14 @@ export async function reconnectMcpServerActive(serverName: string): Promise<bool
  * Dynamically set MCP servers mid-session via the SDK Query.
  * Replaces the current set of dynamically-added servers.
  * Servers from settings files are not affected.
- * 
+ *
  * @param servers - Record of server name to configuration
  */
 export async function setMcpServersActive(servers: Record<string, McpServerConfig>): Promise<McpSetServersResult | null> {
-  if (!activeQuery) return null;
+  const query = getActiveQuery();
+  if (!query) return null;
   try {
-    return await activeQuery.setMcpServers(servers);
+    return await query.setMcpServers(servers);
   } catch {
     return null;
   }

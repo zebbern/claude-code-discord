@@ -153,6 +153,9 @@ export interface ClaudeModelOptions {
   onPermissionRequest?: PermissionRequestCallback;
 }
 
+// Default query timeout: 10 minutes. Prevents hanging if the SDK stalls.
+const DEFAULT_QUERY_TIMEOUT_MS = 10 * 60 * 1000;
+
 // Wrapper for Claude Code SDK query function
 export async function sendToClaudeCode(
   workDir: string,
@@ -402,9 +405,18 @@ export async function sendToClaudeCode(
     }
   };
   
-  // First try with specified model (or default)
+  // First try with specified model (or default), with a timeout to prevent indefinite hangs
   try {
-    const result = await executeWithErrorHandling();
+    const timeoutMs = DEFAULT_QUERY_TIMEOUT_MS;
+    const result = await Promise.race([
+      executeWithErrorHandling(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => {
+          controller.abort();
+          reject(new Error(`Query timed out after ${timeoutMs / 1000}s`));
+        }, timeoutMs)
+      ),
+    ]);
     
     if (result.aborted) {
       return { response: "Request was cancelled", modelUsed: result.modelUsed };
