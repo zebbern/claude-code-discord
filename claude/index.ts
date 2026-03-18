@@ -50,6 +50,7 @@ export {
   toggleMcpServerActive,
   reconnectMcpServerActive,
   setMcpServersActive,
+  hasAnyActiveQuery,
 } from "./query-manager.ts";
 export type { ClaudeInitInfo, RewindFilesResult } from "./query-manager.ts";
 // Hooks — passive SDK callbacks for tool/notification/task observability

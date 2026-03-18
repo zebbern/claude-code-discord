@@ -2,6 +2,22 @@ import { splitText } from "../discord/utils.ts";
 import type { ClaudeMessage } from "./types.ts";
 import type { MessageContent, EmbedData, ComponentData } from "../discord/types.ts";
 
+// Discord API limits
+const DISCORD_EMBED_DESCRIPTION_LIMIT = 4096;
+const DISCORD_EMBED_FIELD_VALUE_LIMIT = 1024;
+const DISCORD_EMBED_TITLE_LIMIT = 256;
+const DISCORD_EMBED_TOTAL_LIMIT = 6000;
+
+/**
+ * Safely truncate a string to fit within Discord's embed limits.
+ * Appends a truncation indicator if the string was shortened.
+ */
+function safeTruncate(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  const suffix = '\n…[truncated]';
+  return text.substring(0, limit - suffix.length) + suffix;
+}
+
 // Discord sender interface for dependency injection
 export interface DiscordSender {
   sendMessage(content: MessageContent): Promise<void>;
@@ -133,13 +149,13 @@ export function createClaudeSender(sender: DiscordSender) {
   for (const msg of messages) {
     switch (msg.type) {
       case 'text': {
-        const chunks = splitText(msg.content, 4000);
+        const chunks = splitText(msg.content, DISCORD_EMBED_DESCRIPTION_LIMIT - 50);
         for (let i = 0; i < chunks.length; i++) {
           await sender.sendMessage({
             embeds: [{
               color: 0x00ff00,
               title: chunks.length > 1 ? `Assistant (${i + 1}/${chunks.length})` : 'Assistant',
-              description: chunks[i],
+              description: safeTruncate(chunks[i], DISCORD_EMBED_DESCRIPTION_LIMIT),
               timestamp: true
             }]
           });
@@ -269,11 +285,12 @@ export function createClaudeSender(sender: DiscordSender) {
         
         const { preview, isTruncated, totalLines } = truncateContent(cleanContent);
         
+        const resultDescription = safeTruncate(`\`\`\`\n${preview}\n\`\`\``, DISCORD_EMBED_DESCRIPTION_LIMIT);
         const messageContent: MessageContent = {
           embeds: [{
             color: 0x00ffff,
             title: `✅ Tool Result${isTruncated ? ` (+${totalLines - 15} more lines)` : ''}`,
-            description: `\`\`\`\n${preview}\n\`\`\``,
+            description: resultDescription,
             timestamp: true
           }]
         };
@@ -299,13 +316,13 @@ export function createClaudeSender(sender: DiscordSender) {
       }
       
       case 'thinking': {
-        const chunks = splitText(msg.content, 4000);
+        const chunks = splitText(msg.content, DISCORD_EMBED_DESCRIPTION_LIMIT - 50);
         for (let i = 0; i < chunks.length; i++) {
           await sender.sendMessage({
             embeds: [{
               color: 0x9b59b6,
               title: chunks.length > 1 ? `💭 Thinking (${i + 1}/${chunks.length})` : '💭 Thinking',
-              description: chunks[i],
+              description: safeTruncate(chunks[i], DISCORD_EMBED_DESCRIPTION_LIMIT),
               timestamp: true
             }]
           });
