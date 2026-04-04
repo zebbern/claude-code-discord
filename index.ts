@@ -284,6 +284,12 @@ export async function createClaudeCodeBot(config: BotConfig) {
   const monitorChannelId = Deno.env.get("MONITOR_CHANNEL_ID");
   const monitorBotIds = Deno.env.get("MONITOR_BOT_IDS")?.split(",").map(s => s.trim()).filter(Boolean);
 
+  // Queue monitoring for instant notifications when a game/testing queue opens
+  const queueChannelId = Deno.env.get("QUEUE_CHANNEL_ID");
+  const queueBotIds = Deno.env.get("QUEUE_BOT_IDS")?.split(",").map(s => s.trim()).filter(Boolean);
+  const queueNotifyUserIds = Deno.env.get("QUEUE_NOTIFY_USER_IDS")?.split(",").map(s => s.trim()).filter(Boolean);
+  const queueNotifyChannelId = Deno.env.get("QUEUE_NOTIFY_CHANNEL_ID");
+
   // Create dependencies object for Discord bot
   const dependencies: BotDependencies = {
     commands: getAllCommands(),
@@ -292,6 +298,14 @@ export async function createClaudeCodeBot(config: BotConfig) {
     onContinueSession: async (ctx) => {
       await allHandlers.claude.onContinue(ctx);
     },
+    ...(queueChannelId && queueBotIds?.length && queueNotifyUserIds?.length && {
+      queueMonitorConfig: {
+        channelId: queueChannelId,
+        botIds: queueBotIds,
+        notifyUserIds: queueNotifyUserIds,
+        ...(queueNotifyChannelId && { notifyChannelId: queueNotifyChannelId }),
+      },
+    }),
     ...(monitorChannelId && monitorBotIds?.length && {
       monitorConfig: {
         channelId: monitorChannelId,

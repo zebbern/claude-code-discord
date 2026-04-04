@@ -619,6 +619,42 @@ export async function createDiscordBot(
     console.log(`[Monitor] Watching channel ${channelId} for messages from ${botIds.join(', ')}`);
   }
 
+  // Queue monitoring -- instantly notify users when a game/testing queue opens
+  if (dependencies.queueMonitorConfig) {
+    const { channelId: queueChannelId, botIds: queueBotIds, notifyUserIds, notifyChannelId } = dependencies.queueMonitorConfig;
+
+    client.on(Events.MessageCreate, async (message: Message) => {
+      if (message.author.id === client.user?.id) return;
+      if (message.channelId !== queueChannelId) return;
+      if (!queueBotIds.includes(message.author.id)) return;
+
+      console.log(`[QueueMonitor] Queue message detected from ${message.author.id}`);
+
+      const jumpUrl = `https://discord.com/channels/${message.guildId}/${message.channelId}/${message.id}`;
+      const mentions = notifyUserIds.map(id => `<@${id}>`).join(' ');
+      const alertText = `🎮 **Testing queue is open!** ${mentions}\nJump to queue: ${jumpUrl}\nClick the button to join before spots fill up!`;
+
+      try {
+        if (notifyChannelId) {
+          const notifyChannel = await client.channels.fetch(notifyChannelId);
+          if (notifyChannel?.isTextBased()) {
+            await (notifyChannel as TextChannel).send(alertText);
+          }
+        } else {
+          for (const userId of notifyUserIds) {
+            const user = await client.users.fetch(userId);
+            const dm = await user.createDM();
+            await dm.send(alertText);
+          }
+        }
+      } catch (error) {
+        console.error('[QueueMonitor] Error sending notification:', error);
+      }
+    });
+
+    console.log(`[QueueMonitor] Watching channel ${queueChannelId} for queue messages from ${queueBotIds.join(', ')}`);
+  }
+
   // Login
   await client.login(discordToken);
 

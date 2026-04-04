@@ -100,6 +100,17 @@ export interface MonitorConfig {
   onAlertMessage: (content: string, thread: TextChannel) => Promise<void>;
 }
 
+export interface QueueMonitorConfig {
+  /** Discord channel ID to watch for queue-open messages */
+  channelId: string;
+  /** Bot/webhook user IDs whose messages indicate the queue is open */
+  botIds: string[];
+  /** Discord user IDs to @mention when the queue opens */
+  notifyUserIds: string[];
+  /** Channel ID to post the notification in (falls back to DM if omitted) */
+  notifyChannelId?: string;
+}
+
 /**
  * Tracks the mapping between a Claude session and its dedicated Discord thread.
  */
@@ -127,4 +138,6 @@ export interface BotDependencies {
   onContinueSession?: (ctx: InteractionContext) => Promise<void>;
   /** Optional channel monitoring config for auto-responding to messages */
   monitorConfig?: MonitorConfig;
+  /** Optional queue monitoring config for instant notifications when a game queue opens */
+  queueMonitorConfig?: QueueMonitorConfig;
 }
