@@ -52,7 +52,7 @@ else
     if command_exists npm; then
         npm install -g @anthropic-ai/claude-code
         echo -e "${GREEN}✓ Claude CLI installed${NC}"
-        echo -e "${YELLOW}Run 'claude /login' to authenticate with Anthropic${NC}"
+        echo -e "${YELLOW}Run 'claude /login' to authenticate with Anthropic (or set ANTHROPIC_API_KEY in .env)${NC}"
     else
         echo -e "${RED}✗ npm not found. Please install Node.js first: https://nodejs.org${NC}"
         exit 1
@@ -68,11 +68,31 @@ else
     
     # Prompt for tokens
     echo -e "${BLUE}Enter your Discord Bot Token:${NC}"
+    echo -e "${YELLOW}(discord.com/developers/applications -> Your App -> Bot -> Token)${NC}"
     read -r DISCORD_TOKEN
-    
+
     echo -e "${BLUE}Enter your Discord Application ID:${NC}"
+    echo -e "${YELLOW}(discord.com/developers/applications -> Your App -> General Information -> Application ID)${NC}"
     read -r APPLICATION_ID
-    
+
+    echo -e "${BLUE}Enter your Anthropic API Key (press Enter to skip):${NC}"
+    echo -e "${YELLOW}(console.anthropic.com/settings/keys — optional if you run 'claude /login')${NC}"
+    read -r ANTHROPIC_API_KEY_INPUT
+
+    # Generate bot invite URL
+    INVITE_URL="https://discord.com/api/oauth2/authorize?client_id=${APPLICATION_ID}&permissions=536939600&scope=bot+applications.commands"
+    echo ""
+    echo -e "${GREEN}Bot invite URL (open this to add the bot to your server):${NC}"
+    echo -e "${BLUE}${INVITE_URL}${NC}"
+    echo ""
+
+    # Build ANTHROPIC_API_KEY line for .env
+    if [ -n "${ANTHROPIC_API_KEY_INPUT}" ]; then
+        ANTHROPIC_LINE="ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY_INPUT}"
+    else
+        ANTHROPIC_LINE="# ANTHROPIC_API_KEY=your_key_here  (optional for native installs)"
+    fi
+
     # Create .env file
     cat > .env << EOF
 # Claude Code Discord Bot Configuration
@@ -84,6 +104,9 @@ DISCORD_TOKEN=${DISCORD_TOKEN}
 # Required: Discord Application ID (from Discord Developer Portal)
 APPLICATION_ID=${APPLICATION_ID}
 
+# Anthropic API Key (optional for native installs — use 'claude /login' instead)
+${ANTHROPIC_LINE}
+
 # Optional: Default working directory (defaults to current directory)
 # WORK_DIR=/path/to/your/project
 
@@ -93,7 +116,7 @@ APPLICATION_ID=${APPLICATION_ID}
 # Optional: Category name for organizing channels
 # CATEGORY_NAME=claude-code
 EOF
-    
+
     echo -e "${GREEN}✓ .env file created${NC}"
 fi
 
