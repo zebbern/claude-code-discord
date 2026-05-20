@@ -642,6 +642,23 @@ export async function createDiscordBot(
     console.log(`[Monitor] Watching channel ${channelId} for messages from ${botIds.join(', ')}`);
   }
 
+  // Free-form message handling — plain text in the bot's channel/threads triggers Claude
+  if (dependencies.onFreeFormMessage) {
+    client.on(Events.MessageCreate, async (message: Message) => {
+      if (message.author.bot) return;
+      if (message.webhookId) return;
+      if (!message.content?.trim()) return;
+      if (!isOurChannel(message.channelId)) return;
+      try {
+        await dependencies.onFreeFormMessage!(message);
+      } catch (err) {
+        console.error("[FreeForm] Listener error:", err);
+        message.react("❌").catch(() => {});
+      }
+    });
+    console.log("[FreeForm] Free-form message handling enabled");
+  }
+
   // Login
   await client.login(discordToken);
 

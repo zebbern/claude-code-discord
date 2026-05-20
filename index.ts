@@ -19,7 +19,7 @@ import {
   type MessageContent,
   SessionThreadManager,
 } from "./discord/index.ts";
-import type { TextChannel } from "npm:discord.js@14.14.1";
+import type { Message, TextBasedChannel, TextChannel } from "npm:discord.js@14.14.1";
 
 import { getGitInfo } from "./git/index.ts";
 import { createClaudeSender, expandableContent, sendToClaudeCode, convertToClaudeMessages, type DiscordSender, type ClaudeMessage, type SessionThreadCallbacks } from "./claude/index.ts";
@@ -247,6 +247,8 @@ export async function createClaudeCodeBot(config: BotConfig) {
         }
       },
       sessionThreads: sessionThreadCallbacks,
+      createSenderForChannel: (channel: TextBasedChannel) =>
+        createClaudeSender(createChannelSenderAdapter(channel)),
     },
     {
       getController: () => claudeController,
@@ -286,6 +288,9 @@ export async function createClaudeCodeBot(config: BotConfig) {
   const monitorBotIds = Deno.env.get("MONITOR_BOT_IDS")?.split(",").map(s => s.trim()).filter(Boolean);
 
   // Create dependencies object for Discord bot
+  const onFreeFormMessage = (message: Message) =>
+    allHandlers.claude.onFreeFormMessage(message);
+
   const dependencies: BotDependencies = {
     commands: getAllCommands(),
     cleanSessionId,
@@ -293,6 +298,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
     onContinueSession: async (ctx) => {
       await allHandlers.claude.onContinue(ctx);
     },
+    onFreeFormMessage,
     ...(monitorChannelId && monitorBotIds?.length && {
       monitorConfig: {
         channelId: monitorChannelId,

@@ -2,6 +2,7 @@ import type { ClaudeResponse, ClaudeMessage } from "./types.ts";
 import { sendToClaudeCode, type ClaudeModelOptions } from "./client.ts";
 import { convertToClaudeMessages } from "./message-converter.ts";
 import { SlashCommandBuilder } from "npm:discord.js@14.14.1";
+import type { Message, TextBasedChannel } from "npm:discord.js@14.14.1";
 
 // Callback that creates (or retrieves) a session thread and returns a
 // sender function bound to that thread.
@@ -90,6 +91,8 @@ export interface ClaudeHandlerDeps {
   getQueryOptions?: () => ClaudeModelOptions;
   /** Thread-per-session callbacks (optional — when absent, falls back to main channel) */
   sessionThreads?: SessionThreadCallbacks;
+  /** Create a sender bound to an arbitrary channel/thread (for free-form message routing) */
+  createSenderForChannel?: (channel: TextBasedChannel) => (messages: ClaudeMessage[]) => Promise<void>;
 }
 
 export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
@@ -162,7 +165,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         deps.setSessionForChannel(channelId, result.sessionId);
       }
       deps.setClaudeSessionId(result.sessionId);
-      deps.setClaudeController(null);
+      if (deps.getClaudeController() === controller) deps.setClaudeController(null);
 
       return result;
     },
@@ -227,7 +230,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       );
 
       deps.setClaudeSessionId(result.sessionId);
-      deps.setClaudeController(null);
+      if (deps.getClaudeController() === controller) deps.setClaudeController(null);
 
       // Map the thread channel → session so /claude inside the thread auto-continues
       if (threadSessionKey && result.sessionId && deps.sessionThreads) {
@@ -309,9 +312,69 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       );
 
       deps.setClaudeSessionId(result.sessionId);
-      deps.setClaudeController(null);
+      if (deps.getClaudeController() === controller) deps.setClaudeController(null);
 
       return result;
+    },
+
+    async onFreeFormMessage(message: Message): Promise<void> {
+      const channelId = message.channelId;
+      const prompt = message.content;
+
+      // Read existing session BEFORE installing new controller — synchronous, no interleaving.
+      const existingSessionId = deps.getSessionForChannel(channelId);
+
+      const prior = deps.getClaudeController();
+      if (prior) prior.abort();
+      const controller = new AbortController();
+      deps.setClaudeController(controller);
+
+      // Sender: use registered thread sender if the session has one,
+      // else bind directly to message.channel (fixes cold-start-in-thread routing).
+      let activeSender: (messages: ClaudeMessage[]) => Promise<void> = sendClaudeMessages;
+      if (existingSessionId && deps.sessionThreads) {
+        const existing = await deps.sessionThreads
+          .getThreadSender(existingSessionId)
+          .catch(() => undefined);
+        if (existing) activeSender = existing.sender;
+      }
+      if (activeSender === sendClaudeMessages && deps.createSenderForChannel) {
+        activeSender = deps.createSenderForChannel(message.channel as TextBasedChannel);
+      }
+
+      message.react("👀").catch(() => {});
+
+      let result: ClaudeResponse | undefined;
+      try {
+        result = await sendToClaudeCode(
+          workDir,
+          prompt,
+          controller,
+          existingSessionId,
+          undefined,
+          (jsonData) => {
+            const claudeMessages = convertToClaudeMessages(jsonData);
+            if (claudeMessages.length > 0) activeSender(claudeMessages).catch(() => {});
+          },
+          false,
+          deps.getQueryOptions?.()
+        );
+      } catch (err) {
+        console.error("[FreeForm] Claude run failed:", err);
+        message.react("❌").catch(() => {});
+      } finally {
+        // Compare-and-clear — only if we still own the controller slot.
+        if (deps.getClaudeController() === controller) {
+          deps.setClaudeController(null);
+        }
+        // Persist sessionId only if we cleared (i.e. we still owned the slot).
+        if (result?.sessionId && deps.getClaudeController() === null) {
+          deps.setSessionForChannel(channelId, result.sessionId);
+          if (!deps.getClaudeSessionId()) {
+            deps.setClaudeSessionId(result.sessionId);
+          }
+        }
+      }
     },
 
     // deno-lint-ignore no-explicit-any
