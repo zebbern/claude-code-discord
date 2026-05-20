@@ -32,6 +32,11 @@ export interface SessionThreadCallbacks {
    * Update the session key mapping when the real SDK session ID arrives.
    */
   updateSessionId(oldKey: string, newSessionId: string): void;
+  /**
+   * Register an existing Discord channel/thread as the output target for a session.
+   * Used by free-form cold-starts in threads so /resume and Continue route back there.
+   */
+  registerExistingChannelThread?(channelId: string, sessionId: string): void;
 }
 
 // Discord command definitions
@@ -160,12 +165,15 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         deps.getQueryOptions?.()
       );
 
-      // Track session per-channel and globally
-      if (result.sessionId) {
-        deps.setSessionForChannel(channelId, result.sessionId);
+      // Guard all state writes behind ownership — stale aborted runs must not stomp.
+      const stillOwner = deps.getClaudeController() === controller;
+      if (stillOwner) {
+        deps.setClaudeController(null);
+        if (result.sessionId) {
+          deps.setSessionForChannel(channelId, result.sessionId);
+          deps.setClaudeSessionId(result.sessionId);
+        }
       }
-      deps.setClaudeSessionId(result.sessionId);
-      if (deps.getClaudeController() === controller) deps.setClaudeController(null);
 
       return result;
     },
@@ -229,15 +237,19 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         deps.getQueryOptions?.()
       );
 
-      deps.setClaudeSessionId(result.sessionId);
-      if (deps.getClaudeController() === controller) deps.setClaudeController(null);
-
-      // Map the thread channel → session so /claude inside the thread auto-continues
-      if (threadSessionKey && result.sessionId && deps.sessionThreads) {
-        deps.sessionThreads.updateSessionId(threadSessionKey, result.sessionId);
-      }
-      if (threadChannelId && result.sessionId) {
-        deps.setSessionForChannel(threadChannelId, result.sessionId);
+      const stillOwner = deps.getClaudeController() === controller;
+      if (stillOwner) {
+        deps.setClaudeController(null);
+        if (result.sessionId) {
+          deps.setClaudeSessionId(result.sessionId);
+          // Map the thread channel → session so /claude inside the thread auto-continues
+          if (threadSessionKey && deps.sessionThreads) {
+            deps.sessionThreads.updateSessionId(threadSessionKey, result.sessionId);
+          }
+          if (threadChannelId) {
+            deps.setSessionForChannel(threadChannelId, result.sessionId);
+          }
+        }
       }
 
       return result;
@@ -311,8 +323,11 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         deps.getQueryOptions?.()
       );
 
-      deps.setClaudeSessionId(result.sessionId);
-      if (deps.getClaudeController() === controller) deps.setClaudeController(null);
+      const stillOwner = deps.getClaudeController() === controller;
+      if (stillOwner) {
+        deps.setClaudeController(null);
+        if (result.sessionId) deps.setClaudeSessionId(result.sessionId);
+      }
 
       return result;
     },
@@ -370,6 +385,9 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
           if (result?.sessionId) {
             deps.setSessionForChannel(channelId, result.sessionId);
             deps.setClaudeSessionId(result.sessionId);
+            // Register the originating channel as the target for this session so
+            // /resume and Continue buttons route back here, not to the main channel.
+            deps.sessionThreads?.registerExistingChannelThread?.(channelId, result.sessionId);
           }
         }
       }

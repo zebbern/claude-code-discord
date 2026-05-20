@@ -184,6 +184,16 @@ export async function createClaudeCodeBot(config: BotConfig) {
     updateSessionId(oldKey: string, newSessionId: string) {
       sessionThreadManager.updateSessionId(oldKey, newSessionId);
     },
+
+    registerExistingChannelThread(channelId: string, sessionId: string) {
+      // Register an existing Discord thread as the routing target for this session
+      // so /resume and Continue buttons send output there, not to the main channel.
+      // Only register actual threads (not the main TextChannel) to satisfy ThreadChannel typing.
+      const channel = bot?.client.channels.cache.get(channelId);
+      if (channel?.isThread()) {
+        sessionThreadManager.setThreadChannel(sessionId, channel);
+      }
+    },
   };
 
   // Late-bound AskUserQuestion handler — set after bot is created.
