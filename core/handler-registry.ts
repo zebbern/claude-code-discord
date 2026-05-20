@@ -12,6 +12,7 @@ import type {
 } from "../discord/index.ts";
 
 import type { ClaudeMessage } from "../claude/index.ts";
+import type { TextBasedChannel } from "npm:discord.js@14.14.1";
 
 // Import command definitions
 import { claudeCommands, createClaudeHandlers } from "../claude/index.ts";
@@ -166,6 +167,8 @@ export interface HandlerRegistryDeps {
   crashHandler: ProcessCrashHandler;
   /** Health monitor instance */
   healthMonitor: ProcessHealthMonitor;
+  /** Factory that creates a sender bound to any channel/thread */
+  createSenderForChannel?: (channel: TextBasedChannel) => (messages: ClaudeMessage[]) => Promise<void>;
   /** Claude session manager instance */
   claudeSessionManager: ClaudeSessionManager;
   /** Function to send Claude messages */
@@ -530,6 +533,7 @@ export function createAllHandlers(
     sendClaudeMessages,
     getQueryOptions,
     sessionThreads: deps.sessionThreads,
+    createSenderForChannel: deps.createSenderForChannel,
   });
 
   const gitHandlers = createGitHandlers({

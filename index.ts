@@ -19,7 +19,7 @@ import {
   type MessageContent,
   SessionThreadManager,
 } from "./discord/index.ts";
-import type { TextChannel } from "npm:discord.js@14.14.1";
+import type { Message, TextBasedChannel, TextChannel } from "npm:discord.js@14.14.1";
 
 import { getGitInfo } from "./git/index.ts";
 import { createClaudeSender, expandableContent, sendToClaudeCode, convertToClaudeMessages, type DiscordSender, type ClaudeMessage, type SessionThreadCallbacks } from "./claude/index.ts";
@@ -184,6 +184,16 @@ export async function createClaudeCodeBot(config: BotConfig) {
     updateSessionId(oldKey: string, newSessionId: string) {
       sessionThreadManager.updateSessionId(oldKey, newSessionId);
     },
+
+    registerExistingChannelThread(channelId: string, sessionId: string) {
+      // Register an existing Discord thread as the routing target for this session
+      // so /resume and Continue buttons send output there, not to the main channel.
+      // Only register actual threads (not the main TextChannel) to satisfy ThreadChannel typing.
+      const channel = bot?.client.channels.cache.get(channelId);
+      if (channel?.isThread()) {
+        sessionThreadManager.setThreadChannel(sessionId, channel);
+      }
+    },
   };
 
   // Late-bound AskUserQuestion handler — set after bot is created.
@@ -247,6 +257,8 @@ export async function createClaudeCodeBot(config: BotConfig) {
         }
       },
       sessionThreads: sessionThreadCallbacks,
+      createSenderForChannel: (channel: TextBasedChannel) =>
+        createClaudeSender(createChannelSenderAdapter(channel)),
     },
     {
       getController: () => claudeController,
@@ -286,6 +298,9 @@ export async function createClaudeCodeBot(config: BotConfig) {
   const monitorBotIds = Deno.env.get("MONITOR_BOT_IDS")?.split(",").map(s => s.trim()).filter(Boolean);
 
   // Create dependencies object for Discord bot
+  const onFreeFormMessage = (message: Message) =>
+    allHandlers.claude.onFreeFormMessage(message);
+
   const dependencies: BotDependencies = {
     commands: getAllCommands(),
     cleanSessionId,
@@ -293,6 +308,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
     onContinueSession: async (ctx) => {
       await allHandlers.claude.onContinue(ctx);
     },
+    onFreeFormMessage,
     ...(monitorChannelId && monitorBotIds?.length && {
       monitorConfig: {
         channelId: monitorChannelId,
