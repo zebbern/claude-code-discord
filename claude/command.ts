@@ -363,14 +363,12 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         console.error("[FreeForm] Claude run failed:", err);
         message.react("❌").catch(() => {});
       } finally {
-        // Compare-and-clear — only if we still own the controller slot.
-        if (deps.getClaudeController() === controller) {
+        // Capture ownership once — use it for both the clear and the session write.
+        const stillOwner = deps.getClaudeController() === controller;
+        if (stillOwner) {
           deps.setClaudeController(null);
-        }
-        // Persist sessionId only if we cleared (i.e. we still owned the slot).
-        if (result?.sessionId && deps.getClaudeController() === null) {
-          deps.setSessionForChannel(channelId, result.sessionId);
-          if (!deps.getClaudeSessionId()) {
+          if (result?.sessionId) {
+            deps.setSessionForChannel(channelId, result.sessionId);
             deps.setClaudeSessionId(result.sessionId);
           }
         }
