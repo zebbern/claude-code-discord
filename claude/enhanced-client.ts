@@ -440,6 +440,77 @@ export let CLAUDE_MODELS: Record<string, ModelInfo> = {
   }
 };
 
+// Bedrock cross-region inference profile IDs (us.* prefix by default).
+// Users in other regions can override via /quick-model with eu.* or ap.* IDs.
+export const BEDROCK_MODELS: Record<string, ModelInfo> = {
+  // === Aliases ===
+  'opus': {
+    name: 'Claude Opus (Latest)',
+    description: 'Most powerful model — Bedrock global inference',
+    contextWindow: 200000,
+    recommended: true,
+    supportsThinking: true,
+    tier: 'flagship',
+    aliasFor: 'global.anthropic.claude-opus-4-6-v1'
+  },
+  'sonnet': {
+    name: 'Claude Sonnet (Latest)',
+    description: 'High-performance model — Bedrock cross-region inference',
+    contextWindow: 200000,
+    recommended: true,
+    supportsThinking: true,
+    tier: 'balanced',
+    aliasFor: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
+  },
+  'haiku': {
+    name: 'Claude Haiku (Latest)',
+    description: 'Fast model — Bedrock cross-region inference',
+    contextWindow: 200000,
+    recommended: true,
+    supportsThinking: false,
+    tier: 'fast',
+    aliasFor: 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
+  },
+
+  // === Opus Family ===
+  'global.anthropic.claude-opus-4-6-v1': {
+    name: 'Claude Opus 4.6 (Bedrock)',
+    description: 'Latest flagship — standard context, global Bedrock inference',
+    contextWindow: 200000,
+    recommended: true,
+    supportsThinking: true,
+    tier: 'flagship'
+  },
+
+  // === Sonnet Family ===
+  'us.anthropic.claude-sonnet-4-5-20250929-v1:0': {
+    name: 'Claude Sonnet 4.5 (Bedrock)',
+    description: 'Latest Sonnet — balanced speed/cost, Bedrock inference',
+    contextWindow: 200000,
+    recommended: true,
+    supportsThinking: true,
+    tier: 'balanced'
+  },
+  'us.anthropic.claude-sonnet-4-20250514-v1:0': {
+    name: 'Claude Sonnet 4 (Bedrock)',
+    description: 'Previous Sonnet',
+    contextWindow: 200000,
+    recommended: false,
+    supportsThinking: true,
+    tier: 'balanced'
+  },
+
+  // === Haiku Family ===
+  'us.anthropic.claude-haiku-4-5-20251001-v1:0': {
+    name: 'Claude Haiku 4.5 (Bedrock)',
+    description: 'Fast and efficient, Bedrock inference',
+    contextWindow: 200000,
+    recommended: false,
+    supportsThinking: false,
+    tier: 'fast'
+  },
+};
+
 // Resolve model alias to full model ID
 // If the input is an alias, returns the resolved ID; otherwise returns the input unchanged
 export function resolveModelId(modelInput: string): string {
@@ -465,11 +536,16 @@ export function isValidModel(modelInput: string): boolean {
 
 /**
  * Initialize dynamic model fetching.
- * Call once at startup. If ANTHROPIC_API_KEY is set, fetches models
- * from the Anthropic API and refreshes every hour.
- * Falls back to the hardcoded defaults above if unavailable.
+ * When CLAUDE_CODE_USE_BEDROCK=1, switches to BEDROCK_MODELS immediately and
+ * skips the Anthropic API refresh loop. Otherwise fetches from Anthropic API
+ * hourly and falls back to hardcoded defaults if unavailable.
  */
 export function initModels(): void {
+  if (Deno.env.get("CLAUDE_CODE_USE_BEDROCK") === "1") {
+    CLAUDE_MODELS = { ...BEDROCK_MODELS };
+    console.log(`[Models] Bedrock backend — using ${Object.keys(BEDROCK_MODELS).length} Bedrock model IDs`);
+    return;
+  }
   startModelRefresh((newModels) => {
     CLAUDE_MODELS = newModels;
     console.log(`[Models] Dynamically updated to ${Object.keys(CLAUDE_MODELS).length} models from Anthropic API`);

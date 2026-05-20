@@ -27,7 +27,7 @@ import { helpCommand, createHelpHandlers } from "../help/index.ts";
 import { agentCommand, createAgentHandlers } from "../agent/index.ts";
 import { screenshotCommands, createScreenshotHandlers } from "../screenshot/index.ts";
 import { infoCommands, createInfoCommandHandlers } from "../claude/index.ts";
-import { cleanSessionId, ClaudeSessionManager } from "../claude/index.ts";
+import { cleanSessionId, ClaudeSessionManager, resolveModelId } from "../claude/index.ts";
 import type { SessionThreadCallbacks } from "../claude/index.ts";
 import type { ClaudeModelOptions } from "../claude/index.ts";
 import type { AskUserCallback } from "../claude/index.ts";
@@ -393,9 +393,12 @@ export function createAllHandlers(
     const s = settings.getSettings().unified;
     const opts: ClaudeModelOptions = {};
 
-    // Model — fast mode is handled by CLI via .claude/settings.local.json (not a model switch)
+    // Model — fast mode is handled by CLI via .claude/settings.local.json (not a model switch).
+    // resolveModelId expands aliases (opus/sonnet/haiku) to their full model IDs.
+    // On Bedrock, CLAUDE_MODELS is swapped to BEDROCK_MODELS so aliases resolve to
+    // Bedrock profile IDs (e.g. opus → global.anthropic.claude-opus-4-6-v1[1m]).
     if (s.defaultModel) {
-      opts.model = s.defaultModel;
+      opts.model = resolveModelId(s.defaultModel);
     }
 
     // Operation mode → SDK permissionMode

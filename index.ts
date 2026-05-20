@@ -103,7 +103,8 @@ export async function createClaudeCodeBot(config: BotConfig) {
 
   const { shellManager, worktreeBotManager, crashHandler, healthMonitor, claudeSessionManager } = managers;
 
-  // Initialize dynamic model fetching (uses ANTHROPIC_API_KEY if available)
+  const useBedrock = Deno.env.get("CLAUDE_CODE_USE_BEDROCK") === "1";
+  console.log(`[Backend] LLM provider: ${useBedrock ? `AWS Bedrock (region: ${Deno.env.get("AWS_REGION") ?? "default"})` : "Anthropic API"}`);
   initModels();
 
   // Setup periodic cleanup tasks

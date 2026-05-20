@@ -1,9 +1,11 @@
 # Claude Code Discord Bot - Docker Compose Configuration
 # Quick start: docker compose up -d
 #
-# IMPORTANT: The ANTHROPIC_API_KEY in your .env file is required for Docker.
-# The Claude CLI inside the container uses it to authenticate with Anthropic.
-# (Unlike native installs, you cannot run `claude /login` inside the container.)
+# Authentication (choose one):
+#   Option A: Set ANTHROPIC_API_KEY in your .env file (Anthropic API)
+#   Option B: Run `docker exec -it claude-code-discord claude /login` after starting
+#             (credentials persist in the claude-config volume)
+#   Option C: Set CLAUDE_CODE_USE_BEDROCK=1 + AWS credentials in your .env file (AWS Bedrock)
 #
 # To use the pre-built image from GitHub Container Registry (recommended):
 #   1. Comment out the 'build' section below
@@ -29,7 +31,14 @@ services:
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - APPLICATION_ID=${APPLICATION_ID}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # AWS Bedrock backend (set CLAUDE_CODE_USE_BEDROCK=1 in .env to enable)
+      - CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK:-}
+      - AWS_REGION=${AWS_REGION:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - AWS_PROFILE=${AWS_PROFILE:-}
       - WORK_DIR=${WORK_DIR:-/app/workspace}
       - USER_ID=${USER_ID:-}
       - CATEGORY_NAME=${CATEGORY_NAME:-claude-code}
@@ -44,6 +53,8 @@ services:
       # Optional: Mount your local workspace for Claude to work on
       # Uncomment and modify path as needed:
       # - /path/to/your/project:/app/workspace
+      # Optional: Mount AWS credentials for Bedrock when using AWS_PROFILE
+      # - ${HOME}/.aws:/home/claude/.aws:ro
 
     # Resource limits (adjust based on your needs)
     deploy:

@@ -274,7 +274,11 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
     async onQuickModel(ctx: any, model: string) {
       try {
         const selectedModel = CLAUDE_MODELS[model as keyof typeof CLAUDE_MODELS];
-        if (!selectedModel) {
+        // Also accept any Bedrock cross-region inference profile ID (any lowercase geo prefix
+        // followed by .anthropic.) — e.g. us.*, eu.*, ap.*, au.*, jp.*, global.*
+        // The SDK validates the exact profile ID at runtime; we just avoid false rejections.
+        const isBedrockProfile = /^[a-z]+\.anthropic\./i.test(model);
+        if (!selectedModel && !isBedrockProfile) {
           const modelList = Object.entries(CLAUDE_MODELS)
             .map(([key, m]) => `\`${key}\` — ${m.name}${m.recommended ? ' ⭐' : ''}`)
             .join('\n');
@@ -294,15 +298,16 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
 
         updateSettings({ defaultModel: model });
 
+        const modelName = selectedModel?.name ?? model;
         await ctx.reply({
           embeds: [{
             color: 0x00ff00,
             title: '🚀 Model Switched',
-            description: `Now using **${selectedModel.name}** for Claude conversations`,
+            description: `Now using **${modelName}** for Claude conversations`,
             fields: [
               { name: 'Model ID', value: `\`${model}\``, inline: true },
-              { name: 'Context Window', value: selectedModel.contextWindow.toLocaleString() + ' tokens', inline: true },
-              { name: 'Thinking Mode', value: selectedModel.supportsThinking ? 'Enabled' : 'Disabled', inline: true }
+              { name: 'Context Window', value: selectedModel ? selectedModel.contextWindow.toLocaleString() + ' tokens' : 'varies', inline: true },
+              { name: 'Thinking Mode', value: selectedModel ? (selectedModel.supportsThinking ? 'Enabled' : 'Disabled') : 'varies', inline: true }
             ],
             footer: { text: 'This applies to all new conversations' },
             timestamp: true

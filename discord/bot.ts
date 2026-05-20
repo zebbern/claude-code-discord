@@ -20,6 +20,7 @@ import { sanitizeChannelName } from "./utils.ts";
 import { handlePaginationInteraction } from "./pagination.ts";
 import { checkCommandPermission } from "../core/rbac.ts";
 import { SETTINGS_ACTIONS, SETTINGS_VALUES } from "../settings/unified-settings.ts";
+import { CLAUDE_MODELS } from "../claude/enhanced-client.ts";
 import { BOT_VERSION } from "../util/version-check.ts";
 import type {
   BotConfig,
@@ -306,19 +307,41 @@ export async function createDiscordBot(
 
   // Autocomplete handler for /settings action & value fields
   async function handleAutocomplete(interaction: AutocompleteInteraction) {
+    const focused = interaction.options.getFocused(true);
+    const typed = focused.value.toLowerCase();
+
+    // /claude-enhanced model autocomplete — served from live CLAUDE_MODELS so
+    // Bedrock deployments see Bedrock profile IDs after initModels() swaps the map.
+    if (interaction.commandName === 'claude-enhanced' && focused.name === 'model') {
+      const choices = Object.entries(CLAUDE_MODELS)
+        .map(([value, model]) => ({ name: model.name, value }))
+        .filter(c => c.name.toLowerCase().includes(typed) || c.value.toLowerCase().includes(typed))
+        .slice(0, 25);
+      await interaction.respond(choices);
+      return;
+    }
+
     if (interaction.commandName !== 'settings') return;
 
-    const focused = interaction.options.getFocused(true);
     const category = interaction.options.getString('category') ?? '';
     const action = interaction.options.getString('action') ?? '';
-    const typed = focused.value.toLowerCase();
 
     let choices: { name: string; value: string }[] = [];
 
     if (focused.name === 'action') {
       choices = SETTINGS_ACTIONS[category] ?? [];
     } else if (focused.name === 'value') {
-      choices = SETTINGS_VALUES[action] ?? [];
+      // For set-model: serve the live CLAUDE_MODELS map so Bedrock deployments
+      // see Bedrock profile IDs after initModels() swaps the map, not the
+      // frozen Anthropic IDs captured at module-import time in SETTINGS_VALUES.
+      if (action === 'set-model') {
+        choices = Object.entries(CLAUDE_MODELS).map(([key, model]) => ({
+          name: `${key} — ${model.name}`,
+          value: key,
+        }));
+      } else {
+        choices = SETTINGS_VALUES[action] ?? [];
+      }
     }
 
     // Filter by what the user has typed so far
