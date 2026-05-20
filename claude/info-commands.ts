@@ -116,7 +116,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           }
           if (!account) {
             // Open ephemeral query for info
-            const info = await fetchClaudeInfo(workDir);
+            const info = await fetchClaudeInfo(workDir, undefined, deps.getQueryOptions?.()?.model);
             if (info) {
               account = info.account;
               // If showing all, we got everything in one call
@@ -151,7 +151,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
             models = await getSupportedModels();
           }
           if (!models) {
-            const info = await fetchClaudeInfo(workDir);
+            const info = await fetchClaudeInfo(workDir, undefined, deps.getQueryOptions?.()?.model);
             models = info?.models;
           }
           if (models && models.length > 0) {

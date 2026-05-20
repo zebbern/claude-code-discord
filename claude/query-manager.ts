@@ -109,16 +109,29 @@ export async function interruptActiveQuery(): Promise<boolean> {
 
 /**
  * Change the model on the active query mid-session.
+ * On Bedrock, bare aliases and Anthropic full IDs are mapped to Bedrock profile IDs.
  */
 export async function setActiveModel(model?: string): Promise<boolean> {
   if (!activeQuery) return false;
   try {
-    await activeQuery.setModel(model);
+    const resolved = model && Deno.env.get("CLAUDE_CODE_USE_BEDROCK") === "1"
+      ? (BEDROCK_MID_SESSION_MAP[model] ?? model)
+      : model;
+    await activeQuery.setModel(resolved);
     return true;
   } catch {
     return false;
   }
 }
+
+// Bedrock alias map for mid-session switches — only bare aliases, same policy as
+// BEDROCK_MODEL_MAP in client.ts. Full Anthropic IDs pass through unchanged.
+// Inlined to avoid circular imports (client.ts ↔ query-manager.ts).
+const BEDROCK_MID_SESSION_MAP: Record<string, string> = {
+  "opus":   "global.anthropic.claude-opus-4-6-v1",
+  "sonnet": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "haiku":  "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+};
 
 /**
  * Change the permission mode on the active query mid-session.
@@ -283,9 +296,15 @@ export async function setMcpServersActive(servers: Record<string, McpServerConfi
  * @param workDir - Working directory for the session
  * @param envVars - Environment variables (must include ANTHROPIC_API_KEY)
  */
-export async function fetchClaudeInfo(workDir: string, envVars?: Record<string, string>): Promise<ClaudeInitInfo | null> {
+export async function fetchClaudeInfo(workDir: string, envVars?: Record<string, string>, model?: string): Promise<ClaudeInitInfo | null> {
   let infoQuery: Query | null = null;
   try {
+    // Determine the model to use. On Bedrock, prefer the caller-supplied model
+    // (from getQueryOptions), then fall back to opus. This avoids inheriting a
+    // potentially invalid Anthropic API model from ~/.claude/settings.json.
+    const infoModel = model
+      ?? (Deno.env.get("CLAUDE_CODE_USE_BEDROCK") === "1" ? BEDROCK_MID_SESSION_MAP["opus"] : undefined);
+
     // Create a minimal query — it will start the CLI subprocess
     infoQuery = claudeQuery({
       prompt: "Say 'info' and nothing else.",
@@ -296,9 +315,13 @@ export async function fetchClaudeInfo(workDir: string, envVars?: Record<string, 
         thinking: { type: 'disabled' },
         effort: 'low',
         persistSession: false,
-        env: envVars ?? Object.fromEntries(
-          Object.entries(Deno.env.toObject())
-        ),
+        ...(infoModel && { model: infoModel }),
+        env: (() => {
+          const env = envVars ?? Object.fromEntries(Object.entries(Deno.env.toObject()));
+          // Prevent "cannot be launched inside another Claude Code session" error
+          delete env["CLAUDECODE"];
+          return env;
+        })(),
       },
     });
 

@@ -4,6 +4,23 @@ import type { AskUserQuestionInput, AskUserCallback } from "./user-question.ts";
 import type { PermissionRequestCallback } from "./permission-request.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 
+// Bedrock alias map — only bare user-facing aliases (opus/sonnet/haiku).
+// Full Anthropic IDs (claude-*) and already-valid Bedrock IDs pass through unchanged:
+// full IDs are treated as explicit pins and should not be silently remapped to a
+// different model version. The SDK will return a clear error if they are invalid.
+const BEDROCK_MODEL_MAP: Record<string, string> = {
+  "opus":   "global.anthropic.claude-opus-4-6-v1",
+  "sonnet": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "haiku":  "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+};
+
+// Resolve a model ID for Bedrock: expands bare aliases to Bedrock profile IDs.
+// No-op for non-Bedrock, already-valid Bedrock IDs, or explicit Anthropic full IDs.
+function resolveBedrockModel(model: string): string {
+  if (Deno.env.get("CLAUDE_CODE_USE_BEDROCK") !== "1") return model;
+  return BEDROCK_MODEL_MAP[model] ?? model;
+}
+
 // Load MCP server configs from .claude/mcp.json
 async function loadMcpServers(workDir: string): Promise<Record<string, McpServerConfig> | undefined> {
   try {
@@ -192,8 +209,17 @@ export async function sendToClaudeCode(
   // Wrap with comprehensive error handling
   const executeWithErrorHandling = async (overrideModel?: string) => {
     try {
-      // Determine which model to use
-      const modelToUse = overrideModel || modelOptions?.model;
+      // Determine which model to use.
+      // On Bedrock, always resolve to a full model ID — bare aliases like "haiku"
+      // are not accepted by the Bedrock endpoint. Also default to "opus" when no
+      // model is configured so the SDK doesn't inherit a broken alias from the
+      // user's global ~/.claude/settings.json (which may pin an ID unavailable
+      // on their Bedrock account).
+      const useBedrock = Deno.env.get("CLAUDE_CODE_USE_BEDROCK") === "1";
+      // On Bedrock, default to "opus" when no model is configured so the SDK
+      // does not inherit a potentially broken alias from ~/.claude/settings.json.
+      const rawModel = overrideModel || modelOptions?.model || (useBedrock ? "opus" : undefined);
+      const modelToUse = rawModel ? resolveBedrockModel(rawModel) : undefined;
       
       // Determine permission mode (defaults to dontAsk for Discord — denies anything not pre-approved)
       const permMode = modelOptions?.permissionMode || "dontAsk";
@@ -206,6 +232,13 @@ export async function sendToClaudeCode(
         // Enable experimental Agent Teams if configured
         ...(modelOptions?.enableAgentTeams && { CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1' }),
       };
+
+      // Remove CLAUDECODE env var — the Claude CLI refuses to start if it detects
+      // it's being launched inside an existing Claude Code session. When the bot
+      // itself runs inside a Claude Code session (e.g. during development), this
+      // variable leaks through Deno.env.toObject() and causes every SDK subprocess
+      // to exit with code 1.
+      delete envVars["CLAUDECODE"];
       
       // Apply extra env vars (proxy settings, etc.)
       if (modelOptions?.extraEnv) {
@@ -239,8 +272,10 @@ export async function sendToClaudeCode(
           ...(cleanedSessionId && !continueMode && { resume: cleanedSessionId }),
           ...(modelToUse && { model: modelToUse }),
           ...(modelOptions?.maxTurns && { maxTurns: modelOptions.maxTurns }),
-          ...(modelOptions?.fallbackModel && { fallbackModel: modelOptions.fallbackModel }),
-          // Native SDK agent support
+          ...(modelOptions?.fallbackModel && { fallbackModel: resolveBedrockModel(modelOptions.fallbackModel) }),
+          // Native SDK agent support — SDK resolves agent model aliases (opus/sonnet/haiku)
+          // internally; agent.model is typed as a constrained union and cannot take full
+          // Bedrock profile IDs, so we leave it for the SDK to handle.
           ...(modelOptions?.agents && { agents: modelOptions.agents }),
           ...(modelOptions?.agent && { agent: modelOptions.agent }),
           // Advanced features: betas, file checkpointing, sandbox, additional dirs, fork
@@ -431,8 +466,12 @@ export async function sendToClaudeCode(
     };
   // deno-lint-ignore no-explicit-any
   } catch (error: any) {
-    // For exit code 1 errors (rate limit), retry with Haiku (cheaper/faster fallback)
-    if (error.message && (error.message.includes('exit code 1') || error.message.includes('exited with code 1'))) {
+    // For exit code 1 errors (rate limit), retry with Haiku (cheaper/faster fallback).
+    // On Bedrock, the SDK does not distinguish rate-limit from model-invalid/auth errors;
+    // retrying could silently substitute a different model tier. Skip retry on Bedrock and
+    // let the original error surface so operators can see the real failure cause.
+    const useBedrock = Deno.env.get("CLAUDE_CODE_USE_BEDROCK") === "1";
+    if (!useBedrock && error.message && (error.message.includes('exit code 1') || error.message.includes('exited with code 1'))) {
       console.log("Rate limit detected, retrying with Haiku (fast fallback)...");
       
       try {

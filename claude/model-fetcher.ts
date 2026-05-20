@@ -133,6 +133,7 @@ function buildAliases(models: Record<string, ModelInfo>, apiModels: AnthropicMod
  * Returns null if no API key is set or the request fails.
  */
 async function fetchFromAPI(): Promise<AnthropicModelEntry[] | null> {
+  if (Deno.env.get("CLAUDE_CODE_USE_BEDROCK") === "1") return null;
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) {
     return null;
@@ -373,6 +374,11 @@ function extractDateFromId(id: string): string {
  * Strategy: API key > CLI binary parsing > null (use hardcoded defaults).
  */
 export async function fetchModels(): Promise<Record<string, ModelInfo> | null> {
+  // On Bedrock, dynamic model discovery from the Anthropic API or CLI binary
+  // would overwrite BEDROCK_MODELS with Anthropic API IDs. Return null so the
+  // caller keeps using BEDROCK_MODELS (set by initModels() in enhanced-client.ts).
+  if (Deno.env.get("CLAUDE_CODE_USE_BEDROCK") === "1") return null;
+
   const now = Date.now();
 
   // Return cached if still fresh

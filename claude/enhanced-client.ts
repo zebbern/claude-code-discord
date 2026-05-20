@@ -445,8 +445,8 @@ export let CLAUDE_MODELS: Record<string, ModelInfo> = {
 export const BEDROCK_MODELS: Record<string, ModelInfo> = {
   // === Aliases ===
   'opus': {
-    name: 'Claude Opus (Latest)',
-    description: 'Most powerful model — Bedrock global inference',
+    name: 'Claude Opus 4.6 (Bedrock)',
+    description: 'Pinned: global.anthropic.claude-opus-4-6-v1 — update alias for newer versions',
     contextWindow: 200000,
     recommended: true,
     supportsThinking: true,
@@ -454,8 +454,8 @@ export const BEDROCK_MODELS: Record<string, ModelInfo> = {
     aliasFor: 'global.anthropic.claude-opus-4-6-v1'
   },
   'sonnet': {
-    name: 'Claude Sonnet (Latest)',
-    description: 'High-performance model — Bedrock cross-region inference',
+    name: 'Claude Sonnet 4.5 (Bedrock)',
+    description: 'Pinned: us.anthropic.claude-sonnet-4-5-20250929-v1:0 — update alias for newer versions',
     contextWindow: 200000,
     recommended: true,
     supportsThinking: true,
@@ -463,8 +463,8 @@ export const BEDROCK_MODELS: Record<string, ModelInfo> = {
     aliasFor: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
   },
   'haiku': {
-    name: 'Claude Haiku (Latest)',
-    description: 'Fast model — Bedrock cross-region inference',
+    name: 'Claude Haiku 4.5 (Bedrock)',
+    description: 'Pinned: us.anthropic.claude-haiku-4-5-20251001-v1:0 — update alias for newer versions',
     contextWindow: 200000,
     recommended: true,
     supportsThinking: false,
