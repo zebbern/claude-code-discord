@@ -28,6 +28,7 @@ export interface SessionThreadCallbacks {
   getThreadSender(sessionId: string): Promise<{
     sender: (messages: ClaudeMessage[]) => Promise<void>;
     threadSessionKey: string;
+    threadChannelId: string;
   } | undefined>;
   /**
    * Update the session key mapping when the real SDK session ID arrives.
@@ -152,11 +153,13 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
 
       // Pick the right sender — if this channel has a thread, use it
       let activeSender = sendClaudeMessages;
+      let sessionThreadChannelId: string | undefined;
       if (activeSessionId && deps.sessionThreads) {
         try {
           const existing = await deps.sessionThreads.getThreadSender(activeSessionId);
           if (existing) {
             activeSender = existing.sender;
+            sessionThreadChannelId = existing.threadChannelId;
           }
         } catch { /* fallback to main sender */ }
       }
@@ -173,13 +176,11 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         }]
       });
 
-      // TODO(cwd-resume): if `explicitSessionId` was provided and its session thread
-      // is in a different channel than the invoking one, we resolve cwd from the
-      // *invoking* channel here rather than the session's home channel.  In practice
-      // users always run /claude from inside their session thread so this is a
-      // theoretical edge case, but if multi-channel concurrency is ever added it
-      // will need to resolve cwd from the thread's channel instead.
-      const cwd = deps.resolveCwdForChannel(channelId, ctx.getParentChannelId?.());
+      // Use the session thread's channel id for cwd resolution when resuming.
+      // This ensures cross-channel /claude session_id:X uses the correct project.
+      const cwdChannelId = sessionThreadChannelId ?? channelId;
+      const cwdParentId = sessionThreadChannelId ? undefined : ctx.getParentChannelId?.();
+      const cwd = deps.resolveCwdForChannel(cwdChannelId, cwdParentId);
       const result = await sendToClaudeCode(
         cwd,
         prompt,
@@ -419,6 +420,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       // Check if the most recent session has a thread — if so, reuse it
       let activeSender = sendClaudeMessages;
       let isReusingThread = false;
+      let sessionThreadChannelId: string | undefined;
 
       if (deps.sessionThreads) {
         const currentSessionId = deps.getClaudeSessionId();
@@ -428,6 +430,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
             if (existing) {
               activeSender = existing.sender;
               isReusingThread = true;
+              sessionThreadChannelId = existing.threadChannelId;
             }
           } catch (err) {
             console.warn('[SessionThread] Could not reuse thread for continue, falling back:', err);
@@ -450,7 +453,9 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
 
       await ctx.editReply({ embeds: [embedData] });
 
-      const cwd = deps.resolveCwdForChannel(channelId, ctx.getParentChannelId?.());
+      const cwdChannelId = sessionThreadChannelId ?? channelId;
+      const cwdParentId = sessionThreadChannelId ? undefined : ctx.getParentChannelId?.();
+      const cwd = deps.resolveCwdForChannel(cwdChannelId, cwdParentId);
       const result = await sendToClaudeCode(
         cwd,
         actualPrompt,

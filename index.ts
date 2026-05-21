@@ -184,7 +184,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       }
       sessionThreadManager.recordActivity(sessionId);
       const threadSender = createClaudeSender(createChannelSenderAdapter(existingThread));
-      return { sender: threadSender, threadSessionKey: sessionId };
+      return { sender: threadSender, threadSessionKey: sessionId, threadChannelId: existingThread.id };
     },
 
     updateSessionId(oldKey: string, newSessionId: string) {
