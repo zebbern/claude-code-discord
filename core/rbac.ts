@@ -20,6 +20,8 @@ const RESTRICTED_COMMANDS: Record<string, string[]> = {
   system: ['env-vars', 'port-scan', 'system-logs'],
   /** Bot lifecycle */
   admin: ['shutdown'],
+  /** Project binding — controls which directory Claude runs in */
+  project: ['project'],
 };
 
 /** Flat set of all restricted command names for fast lookup */
