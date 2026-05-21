@@ -250,11 +250,11 @@ export async function createDiscordBot(
       },
       isThread(): boolean {
         const ch = interaction.channel ?? client.channels.cache.get(interaction.channelId ?? '');
-        return !!(ch?.isThread?.());
+        return !!(ch?.isThread());
       },
       getParentChannelId(): string | undefined {
         const ch = interaction.channel ?? client.channels.cache.get(interaction.channelId ?? '');
-        return ch?.isThread?.() ? (ch as any).parentId ?? undefined : undefined;
+        return ch?.isThread() ? (ch as any).parentId ?? undefined : undefined;
       },
     };
   }
