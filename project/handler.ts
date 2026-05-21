@@ -117,19 +117,23 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
 
       // Attempt to list git worktrees in the default working directory.
       let worktreeLines: string | null = null;
+      const abortCtrl = new AbortController();
+      const timeoutId = setTimeout(() => abortCtrl.abort(), 5000);
       try {
-        const cmd = new Deno.Command("git", {
+        const output = await new Deno.Command("git", {
           args: ["worktree", "list"],
           cwd: defaultWorkDir,
           stdout: "piped",
           stderr: "piped",
-        });
-        const output = await cmd.output();
+          signal: abortCtrl.signal,
+        }).output();
+        clearTimeout(timeoutId);
         if (output.code === 0) {
           worktreeLines = new TextDecoder().decode(output.stdout).trim();
         }
       } catch {
-        // Suppress — worktree listing is best-effort
+        // Suppress — worktree listing is best-effort (also catches timeout abort)
+        clearTimeout(timeoutId);
       }
 
       const truncate = (s: string, max = 950) =>

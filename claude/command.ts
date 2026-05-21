@@ -319,6 +319,11 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
           } catch (err) {
             console.warn('[SessionThread] Could not create thread, falling back to main channel:', err);
             if (markedPendingThreadId) deps.clearChannelPending?.(markedPendingThreadId, controller);
+            // Bind the invoking channel so subsequent /claude and free-form messages
+            // in this channel use the correct project directory for this session.
+            if (validatedDir && deps.bindings) {
+              deps.bindings.setBindingSync(invokingChannelId, validatedDir);
+            }
           }
         }
 
