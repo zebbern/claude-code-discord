@@ -216,13 +216,16 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       const controller = new AbortController();
       deps.setClaudeController(controller);
 
+      // Defer the reply immediately — before any async work that could time out —
+      // so Discord's 3-second interaction window is always satisfied.
+      await ctx.deferReply();
+
       // Step 1 — Validate dir if provided.
       let validatedDir: string | undefined;
       if (dir) {
         try {
           validatedDir = await validateProjectPath(dir);
         } catch (err) {
-          await ctx.deferReply();
           await ctx.editReply({
             embeds: [{
               color: 0xff0000,
