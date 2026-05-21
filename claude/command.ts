@@ -173,6 +173,12 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         }]
       });
 
+      // TODO(cwd-resume): if `explicitSessionId` was provided and its session thread
+      // is in a different channel than the invoking one, we resolve cwd from the
+      // *invoking* channel here rather than the session's home channel.  In practice
+      // users always run /claude from inside their session thread so this is a
+      // theoretical edge case, but if multi-channel concurrency is ever added it
+      // will need to resolve cwd from the thread's channel instead.
       const cwd = deps.resolveCwdForChannel(channelId, ctx.getParentChannelId?.());
       const result = await sendToClaudeCode(
         cwd,
@@ -267,8 +273,14 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
           const invokingParentId = ctx.getParentChannelId?.() as string | undefined;
           if (deps.bindings.hasBinding(invokingChannelId)) {
             seedPath = deps.bindings.resolveWorkDir(invokingChannelId);
-          } else if (invokingParentId && deps.bindings.hasBinding(invokingParentId)) {
-            seedPath = deps.bindings.resolveWorkDir(invokingParentId);
+          } else if (!deps.bindings.hasTombstone(invokingChannelId)) {
+            // Only inherit from parent if the invoking channel has not explicitly
+            // opted out of inheritance via /project unbind (tombstone).
+            if (invokingParentId && deps.bindings.hasBinding(invokingParentId)) {
+              seedPath = deps.bindings.resolveWorkDir(invokingParentId);
+            }
+            // If invokingParentId also has a tombstone, we don't seed — fall through
+            // to undefined (new thread gets no inherited binding).
           }
         }
 
@@ -291,6 +303,11 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
                   deps.clearChannelPending?.(provisionalChannelId, controller);
                 }
                 // Seed binding so the new thread inherits/overrides the cwd.
+                // setBindingSync is fire-and-forget by design: the in-memory map is
+                // updated immediately (so the next query sees the correct cwd), and the
+                // disk write is best-effort via the serial mutation queue.  The only
+                // failure mode is a bot restart between binding and the next query —
+                // acceptable here since thread creation is a quick path.
                 if (seedPath && deps.bindings) {
                   deps.bindings.setBindingSync(threadId, seedPath);
                 }
@@ -322,10 +339,11 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         });
 
         // Step 4 — Resolve cwd for the new thread (binding was seeded above if applicable).
-        const cwd = deps.resolveCwdForChannel(
-          threadChannelId ?? invokingChannelId,
-          ctx.getParentChannelId?.(),
-        );
+        // If thread creation failed but the user specified a dir, use it directly so
+        // their intent is honoured for this run even though no binding was persisted.
+        const cwd = threadChannelId
+          ? deps.resolveCwdForChannel(threadChannelId, ctx.getParentChannelId?.())
+          : (validatedDir ?? deps.resolveCwdForChannel(invokingChannelId, ctx.getParentChannelId?.()));
         result = await sendToClaudeCode(
           cwd,
           prompt,

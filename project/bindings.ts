@@ -161,6 +161,6 @@ export class ProjectBindings {
       bindings: Object.fromEntries(this.map),
     };
     const success = await this.persistence.save(data);
-    if (!success) throw new Error('[ProjectBindings] Failed to persist bindings to disk');
+    if (!success) throw new Error('[ProjectBindings] Binding saved in memory but failed to persist to disk — will not survive restart');
   }
 }
