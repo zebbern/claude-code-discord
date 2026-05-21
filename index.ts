@@ -20,7 +20,7 @@ import {
   SessionThreadManager,
 } from "./discord/index.ts";
 import type { Message, TextBasedChannel, TextChannel, ThreadChannel } from "npm:discord.js@14.14.1";
-import { ProjectBindings } from "./project/bindings.ts";
+import { ProjectBindings } from "./project/index.ts";
 
 import { getGitInfo } from "./git/index.ts";
 import { createClaudeSender, expandableContent, sendToClaudeCode, convertToClaudeMessages, type DiscordSender, type ClaudeMessage, type SessionThreadCallbacks } from "./claude/index.ts";
@@ -241,6 +241,10 @@ export async function createClaudeCodeBot(config: BotConfig) {
     return await permReqState.handler(toolName, toolInput);
   };
 
+  // Instantiate and load the ProjectBindings singleton
+  const projectBindings = new ProjectBindings(workDir);
+  await projectBindings.load();
+
   // Create all handlers using the registry (centralized handler creation)
   const allHandlers: AllHandlers = createAllHandlers(
     {
@@ -269,6 +273,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       sessionThreads: sessionThreadCallbacks,
       createSenderForChannel: (channel: TextBasedChannel) =>
         createClaudeSender(createChannelSenderAdapter(channel)),
+      bindings: projectBindings,
     },
     {
       getController: () => claudeController,
@@ -325,8 +330,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       monitorConfig: {
         channelId: monitorChannelId,
         botIds: monitorBotIds,
-        // TODO(task-14): replace stub with the real ProjectBindings singleton
-        bindings: new ProjectBindings(workDir),
+        bindings: projectBindings,
         defaultWorkDir: workDir,
         onAlertMessage: async (content: string, thread: ThreadChannel) => {
           const prompt = [

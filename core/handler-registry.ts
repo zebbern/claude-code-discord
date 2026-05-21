@@ -40,6 +40,7 @@ import { THINKING_MODES, OPERATION_MODES, EFFORT_LEVELS } from "../settings/inde
 import type { ShellManager } from "../shell/index.ts";
 import type { WorktreeBotManager } from "../git/index.ts";
 import type { ProcessCrashHandler, ProcessHealthMonitor } from "../process/index.ts";
+import { ProjectBindings, createProjectHandlers, projectCommands } from "../project/index.ts";
 
 // ================================
 // Types and Interfaces
@@ -139,6 +140,7 @@ export interface AllHandlers {
   agent: ReturnType<typeof createAgentHandlers>;
   screenshot: ReturnType<typeof createScreenshotHandlers>;
   infoCommands: ReturnType<typeof createInfoCommandHandlers>;
+  project: ReturnType<typeof createProjectHandlers>;
 }
 
 /**
@@ -184,6 +186,8 @@ export interface HandlerRegistryDeps {
   /** Thread-per-session callbacks (optional). When provided, each /claude
    *  invocation creates a dedicated Discord thread for its output. */
   sessionThreads?: SessionThreadCallbacks;
+  /** ProjectBindings singleton for channel→workDir resolution */
+  bindings: ProjectBindings;
 }
 
 /**
@@ -385,8 +389,18 @@ export function createAllHandlers(
   const {
     workDir, repoName, branchName, categoryName, discordToken, applicationId,
     shellManager, worktreeBotManager, crashHandler, claudeSessionManager,
-    sendClaudeMessages, onBotSettingsUpdate
+    sendClaudeMessages, onBotSettingsUpdate, bindings
   } = deps;
+
+  const resolveCwdForChannel = (channelId: string, parentChannelId?: string): string => {
+    const direct = bindings.resolveWorkDir(channelId);
+    if (direct !== workDir) return direct; // has a direct binding
+    if (parentChannelId) {
+      const parent = bindings.resolveWorkDir(parentChannelId);
+      if (parent !== workDir) return parent; // inherit from parent
+    }
+    return workDir;
+  };
 
   const currentSettings = settings.getSettings();
 
@@ -645,6 +659,8 @@ export function createAllHandlers(
     updateUnifiedSettings: (partial) => settings.updateUnified(partial),
   });
 
+  const projectHandlers = createProjectHandlers({ bindings, defaultWorkDir: workDir });
+
   return {
     claude: claudeHandlers,
     enhancedClaude: enhancedClaudeHandlers,
@@ -659,6 +675,7 @@ export function createAllHandlers(
     agent: agentHandlers,
     screenshot: screenshotHandlers,
     infoCommands: infoCommandHandlers,
+    project: projectHandlers,
   };
 }
 
@@ -681,6 +698,7 @@ export function getAllCommands() {
     ...systemCommands,
     ...screenshotCommands,
     ...infoCommands,
+    ...projectCommands,
     helpCommand,
   ];
 }
