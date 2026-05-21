@@ -60,6 +60,19 @@ Discord slash command
 
 Set `CLAUDE_CODE_USE_BEDROCK=1` plus AWS credentials (static keys, profile, or IAM role). When active, the bot uses `us.anthropic.*` cross-region inference profile IDs and `ANTHROPIC_API_KEY` is not required. See `.env.example` for the full variable list.
 
+## Known limitations
+
+### Free-form messaging (`MessageCreate` handler)
+Plain text typed in the bot's channel or any thread under it triggers Claude without a slash command.
+
+- **Session memory is in-memory only**: bot restart wipes all channel→session bindings. Users must re-run `/claude` or `/claude-thread` to re-establish a session after restart.
+- **`/claude-thread` placeholder window**: if a user sends a free-form message in a `/claude-thread` thread *while the thread is still being created* (between Discord thread creation and the first response), they will see a ⌛ reaction and the message is ignored. This window is typically 1–3 seconds.
+- **AskUser/permission routing during cancel+restart**: if `/claude-cancel` is called while Claude is waiting for a user to click an AskUserQuestion or permission-request button, and a new `/claude-thread` is started immediately after, the stale permission/question prompt may route to the old thread for the duration of Discord's component timeout before falling back. This is a known edge case with no practical workaround short of making Discord collectors abort-aware.
+- **Global single-run model**: the bot runs one Claude query at a time globally. All commands and free-form messages in *any* channel are blocked (⌛) while a `/claude-thread` is in its startup window. After the session is established (a few seconds), only the originating channel is blocked.
+
+### AskUser/permission button routing
+`getActiveSessionChannel()` in `index.ts` routes AskUser and permission-request buttons to the most recently active session thread. If multiple sessions are running concurrently (not possible today with the single-run model, but relevant if that changes), buttons may appear in the wrong channel.
+
 ## Key files
 
 - `index.ts` — entry point; bootstraps Discord client and wires all modules
