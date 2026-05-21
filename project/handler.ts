@@ -60,7 +60,15 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
     async handleUnbind(ctx: InteractionContext): Promise<void> {
       await ctx.deferReply();
 
-      await bindings.unsetBinding(ctx.getChannelId());
+      const channelId = ctx.getChannelId();
+      if (!bindings.hasBinding(channelId)) {
+        await ctx.editReply({
+          content: "No binding found for this channel.",
+        });
+        return;
+      }
+
+      await bindings.unsetBinding(channelId);
 
       await ctx.editReply({
         content: "Binding removed. Will use global default.",
@@ -95,11 +103,6 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
             fields: [
               { name: "Source", value: sourceLabel, inline: true },
               { name: "Path", value: `\`${resolution.path}\``, inline: false },
-              {
-                name: "Effective cwd for next Claude query",
-                value: `\`${resolution.path}\``,
-                inline: false,
-              },
             ],
           },
         ],
@@ -129,6 +132,9 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
         // Suppress — worktree listing is best-effort
       }
 
+      const truncate = (s: string, max = 950) =>
+        s.length > max ? s.slice(0, max) + "…" : s;
+
       const bindingLines =
         allBindings.length > 0
           ? allBindings
@@ -139,7 +145,7 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
       const fields = [
         {
           name: "Bound channels / threads",
-          value: bindingLines,
+          value: truncate(bindingLines),
           inline: false,
         },
       ];
@@ -147,7 +153,7 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
       if (worktreeLines) {
         fields.push({
           name: "Available worktrees (not bound):",
-          value: `\`\`\`\n${worktreeLines}\n\`\`\``,
+          value: truncate(`\`\`\`\n${worktreeLines}\n\`\`\``),
           inline: false,
         });
       }

@@ -14,11 +14,15 @@ import { resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
  */
 export async function validateProjectPath(rawPath: string): Promise<string> {
   // 1. Expand leading ~
-  const home = Deno.env.get("HOME") ?? "";
+  const home = Deno.env.get("HOME");
+  if (!home && rawPath.startsWith("~")) {
+    throw new Error("HOME environment variable is not set; cannot expand ~ in path");
+  }
+  const homeStr = home ?? "";
   const expanded = rawPath.startsWith("~/")
-    ? home + rawPath.slice(1)
+    ? homeStr + rawPath.slice(1)
     : rawPath === "~"
-    ? home
+    ? homeStr
     : rawPath;
 
   // 2. Resolve to absolute path

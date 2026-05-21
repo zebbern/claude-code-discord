@@ -13,6 +13,8 @@ interface BindingsData {
 }
 
 const DEFAULT_DATA: BindingsData = { version: 1, bindings: {} };
+Object.freeze(DEFAULT_DATA);
+Object.freeze(DEFAULT_DATA.bindings);
 
 export class ProjectBindings {
   private readonly globalWorkDir: string;
@@ -88,6 +90,11 @@ export class ProjectBindings {
   /** All [channelId, absPath] entries. */
   listBindings(): Array<[string, string]> {
     return Array.from(this.map.entries());
+  }
+
+  /** Returns true if a binding exists for the given channel. */
+  hasBinding(channelId: string): boolean {
+    return this.map.has(channelId);
   }
 
   /**
