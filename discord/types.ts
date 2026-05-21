@@ -1,5 +1,5 @@
 // Discord module types
-import type { TextChannel, Message } from "npm:discord.js@14.14.1";
+import type { TextChannel, ThreadChannel, Message } from "npm:discord.js@14.14.1";
 import type { BotSettings } from "../types/shared.ts";
 
 export interface EmbedData {
@@ -51,6 +51,10 @@ export interface InteractionContext {
   getUserId(): string;
   /** Returns the channel or thread ID the interaction was sent in */
   getChannelId(): string;
+  /** Returns true if the interaction was sent from a Discord thread (not a text channel or category-parented channel) */
+  isThread(): boolean;
+  /** Returns the parent channel ID if this interaction is in a thread; undefined otherwise */
+  getParentChannelId(): string | undefined;
 }
 
 export interface BotConfig {
@@ -97,7 +101,11 @@ export interface MonitorConfig {
   /** Bot/webhook user IDs whose messages trigger auto-response */
   botIds: string[];
   /** Callback invoked with batched alert content and the thread to stream output to */
-  onAlertMessage: (content: string, thread: TextChannel) => Promise<void>;
+  onAlertMessage: (content: string, thread: ThreadChannel) => Promise<void>;
+  /** ProjectBindings singleton for materializing thread bindings */
+  bindings: import("../project/bindings.ts").ProjectBindings;
+  /** The bot's global default working directory (for comparison in binding materialization) */
+  defaultWorkDir: string;
 }
 
 /**

@@ -19,7 +19,8 @@ import {
   type MessageContent,
   SessionThreadManager,
 } from "./discord/index.ts";
-import type { Message, TextBasedChannel, TextChannel } from "npm:discord.js@14.14.1";
+import type { Message, TextBasedChannel, TextChannel, ThreadChannel } from "npm:discord.js@14.14.1";
+import { ProjectBindings } from "./project/bindings.ts";
 
 import { getGitInfo } from "./git/index.ts";
 import { createClaudeSender, expandableContent, sendToClaudeCode, convertToClaudeMessages, type DiscordSender, type ClaudeMessage, type SessionThreadCallbacks } from "./claude/index.ts";
@@ -324,7 +325,10 @@ export async function createClaudeCodeBot(config: BotConfig) {
       monitorConfig: {
         channelId: monitorChannelId,
         botIds: monitorBotIds,
-        onAlertMessage: async (content: string, thread: TextChannel) => {
+        // TODO(task-14): replace stub with the real ProjectBindings singleton
+        bindings: new ProjectBindings(workDir),
+        defaultWorkDir: workDir,
+        onAlertMessage: async (content: string, thread: ThreadChannel) => {
           const prompt = [
             "A monitoring alert notification was just received. Investigate this alert.",
             "Identify the alert, check severity, gather diagnostics, analyze the root cause, and report findings.",
