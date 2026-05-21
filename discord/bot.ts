@@ -273,6 +273,23 @@ export async function createDiscordBot(
     const allowed = await checkCommandPermission(interaction.commandName, ctx);
     if (!allowed) return;
 
+    // Block commands that would abort an in-flight /claude-thread run.
+    // Guard matches the global controller scope — any pending run blocks all channels.
+    // claude-cancel and shutdown are allowed through as explicit cancellation paths.
+    // claude-cancel / shutdown = explicit cancellation paths
+    // claude-control = mid-session controls (interrupt, status, set-model, etc.) for the active run
+    const PENDING_BYPASS = new Set(['claude-cancel', 'shutdown', 'claude-control']);
+    if (
+      !PENDING_BYPASS.has(interaction.commandName) &&
+      dependencies.isAnyChannelPending?.()
+    ) {
+      await ctx.reply({
+        content: '⌛ A Claude session is already starting in this channel. Please wait for it to finish, or use `/claude-cancel` to stop it.',
+        ephemeral: true
+      });
+      return;
+    }
+
     const handler = handlers.get(interaction.commandName);
 
     if (!handler) {
@@ -359,6 +376,15 @@ export async function createDiscordBot(
     }
 
     const ctx = createInteractionContext(interaction);
+
+    // Block Claude-starting buttons while any /claude-thread run is pending.
+    // Bypass: pagination (no controller use), ask-user/perm-req (needed by the in-flight run itself).
+    const buttonPrefix = interaction.customId.split(':')[0] + ':';
+    const BUTTON_PENDING_BYPASS = new Set(['pagination:', 'ask-user:', 'ask-user-confirm:', 'perm-req:']);
+    if (!BUTTON_PENDING_BYPASS.has(buttonPrefix) && dependencies.isAnyChannelPending?.()) {
+      await ctx.reply({ content: '⌛ A Claude session is already starting. Please wait for it to finish.', ephemeral: true });
+      return;
+    }
 
     // Handle pagination buttons first
     if (interaction.customId.startsWith('pagination:')) {

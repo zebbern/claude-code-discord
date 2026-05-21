@@ -166,6 +166,15 @@ export class SessionThreadManager {
   // ───────────────────── Cleanup ─────────────────────
 
   /**
+   * Immediately remove a session thread entry by key.
+   * Used to clean up abandoned placeholder entries (e.g. on cancel-before-session-start).
+   */
+  removeSessionThread(key: string): void {
+    this.threads.delete(key);
+    this.threadChannels.delete(key);
+  }
+
+  /**
    * Remove sessions older than the given age.
    * Does NOT archive the Discord threads — that's handled by autoArchiveDuration.
    */

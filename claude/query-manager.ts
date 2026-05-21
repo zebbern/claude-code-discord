@@ -57,6 +57,17 @@ export function setActiveQuery(q: Query | null): void {
 }
 
 /**
+ * Clear the active query only if it still matches the given iterator.
+ * Prevents a stale/canceled run from clearing a newer run's active query.
+ */
+export function clearActiveQueryIf(q: Query): void {
+  if (activeQuery === q) {
+    activeQuery = null;
+    trackedMessages = [];
+  }
+}
+
+/**
  * Get the active Query reference.
  */
 export function getActiveQuery(): Query | null {

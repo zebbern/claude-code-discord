@@ -15,7 +15,7 @@ export interface SessionThreadCallbacks {
    * @param sessionId Optional pre-existing session ID (reuses thread if one exists)
    * @returns Object with the thread-bound sender and a placeholder session key
    */
-  createThreadSender(prompt: string, sessionId?: string, threadName?: string): Promise<{
+  createThreadSender(prompt: string, sessionId?: string, threadName?: string, onThreadIdKnown?: (threadId: string) => void): Promise<{
     sender: (messages: ClaudeMessage[]) => Promise<void>;
     threadSessionKey: string;
     threadChannelId: string;
@@ -37,6 +37,11 @@ export interface SessionThreadCallbacks {
    * Used by free-form cold-starts in threads so /resume and Continue route back there.
    */
   registerExistingChannelThread?(channelId: string, sessionId: string): void;
+  /**
+   * Remove a placeholder session thread entry (e.g. on cancel-before-session-start).
+   * Prevents abandoned pending_ entries from hijacking AskUser/permission routing.
+   */
+  removeSessionThread?(key: string): void;
 }
 
 // Discord command definitions
@@ -98,6 +103,16 @@ export interface ClaudeHandlerDeps {
   sessionThreads?: SessionThreadCallbacks;
   /** Create a sender bound to an arbitrary channel/thread (for free-form message routing) */
   createSenderForChannel?: (channel: TextBasedChannel) => (messages: ClaudeMessage[]) => Promise<void>;
+  /** Mark a channel as having an in-flight run, keyed by controller for ownership */
+  markChannelPending?: (channelId: string, controller: AbortController) => void;
+  /** Clear the in-flight marker only if this controller still owns it */
+  clearChannelPending?: (channelId: string, controller: AbortController) => void;
+  /** Check whether a channel has an in-flight run */
+  isChannelPending?: (channelId: string) => boolean;
+  /** Check whether ANY channel has an in-flight run (global scope, matches the singleton controller) */
+  isAnyChannelPending?: () => boolean;
+  /** Clear all pending markers owned by this controller (used by cancel) */
+  clearAllPending?: (controller: AbortController) => void;
 }
 
 export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
@@ -191,51 +206,95 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       const controller = new AbortController();
       deps.setClaudeController(controller);
 
-      await ctx.deferReply();
+      // Mark the invoking channel as pending BEFORE the first await so that
+      // free-form messages and other commands see isAnyChannelPending() === true
+      // immediately, even during ctx.deferReply() and thread creation.
+      const provisionalChannelId = ctx.getChannelId?.() as string | undefined;
+      if (provisionalChannelId) deps.markChannelPending?.(provisionalChannelId, controller);
 
       // Create a dedicated thread for this session
       let activeSender = sendClaudeMessages;
       let threadSessionKey: string | undefined;
       let threadChannelId: string | undefined;
+      let markedPendingThreadId: string | undefined;
+      let result: ClaudeResponse | undefined;
 
-      if (deps.sessionThreads) {
-        try {
-          const threadResult = await deps.sessionThreads.createThreadSender(prompt, undefined, threadName);
-          activeSender = threadResult.sender;
-          threadSessionKey = threadResult.threadSessionKey;
-          threadChannelId = threadResult.threadChannelId;
-        } catch (err) {
-          console.warn('[SessionThread] Could not create thread, falling back to main channel:', err);
+      // Single try/finally covers every await after markChannelPending, including
+      // deferReply — so the pending marker is always cleared even if deferReply throws.
+      try {
+        await ctx.deferReply();
+
+        // Abort check after deferReply — a cancel during deferReply should stop before thread creation.
+        if (controller.signal.aborted) throw new Error("Aborted before thread creation");
+
+        if (deps.sessionThreads) {
+          try {
+            const threadResult = await deps.sessionThreads.createThreadSender(
+              prompt,
+              undefined,
+              threadName,
+              // Transfer pending from invoking channel to real thread ID (same controller).
+              (threadId) => {
+                markedPendingThreadId = threadId;
+                deps.markChannelPending?.(threadId, controller);
+                // Clear provisional once the real thread ID is known.
+                if (provisionalChannelId && provisionalChannelId !== threadId) {
+                  deps.clearChannelPending?.(provisionalChannelId, controller);
+                }
+              },
+            );
+            activeSender = threadResult.sender;
+            threadSessionKey = threadResult.threadSessionKey;
+            threadChannelId = threadResult.threadChannelId;
+          } catch (err) {
+            console.warn('[SessionThread] Could not create thread, falling back to main channel:', err);
+            if (markedPendingThreadId) deps.clearChannelPending?.(markedPendingThreadId, controller);
+          }
+        }
+
+        // Abort check after thread creation — bail early; finally block will clean up
+        // the placeholder from SessionThreadManager if no sessionId was produced.
+        if (controller.signal.aborted) throw new Error("Aborted after thread creation");
+
+        await ctx.editReply({
+          embeds: [{
+            color: 0xffff00,
+            title: 'Claude Code Running...',
+            description: threadSessionKey
+              ? 'Session started in a dedicated thread — check below ↓'
+              : 'Starting new session...',
+            fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
+            timestamp: true
+          }]
+        });
+
+        result = await sendToClaudeCode(
+          workDir,
+          prompt,
+          controller,
+          undefined, // always a new session
+          undefined,
+          (jsonData) => {
+            const claudeMessages = convertToClaudeMessages(jsonData);
+            if (claudeMessages.length > 0) {
+              activeSender(claudeMessages).catch(() => {});
+            }
+          },
+          false,
+          deps.getQueryOptions?.()
+        );
+      } finally {
+        // Clear markers owned by this controller only — stale finalizers won't touch newer runs.
+        if (threadChannelId) deps.clearChannelPending?.(threadChannelId, controller);
+        if (provisionalChannelId) deps.clearChannelPending?.(provisionalChannelId, controller);
+
+        // If the run ended without a real sessionId (abort, error, cancel during SDK),
+        // remove the placeholder from SessionThreadManager so it can't hijack
+        // AskUser/permission routing for later runs.
+        if (threadSessionKey && !result?.sessionId && deps.sessionThreads) {
+          deps.sessionThreads.removeSessionThread?.(threadSessionKey);
         }
       }
-
-      await ctx.editReply({
-        embeds: [{
-          color: 0xffff00,
-          title: 'Claude Code Running...',
-          description: threadSessionKey
-            ? 'Session started in a dedicated thread — check below ↓'
-            : 'Starting new session...',
-          fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
-          timestamp: true
-        }]
-      });
-
-      const result = await sendToClaudeCode(
-        workDir,
-        prompt,
-        controller,
-        undefined, // always a new session
-        undefined,
-        (jsonData) => {
-          const claudeMessages = convertToClaudeMessages(jsonData);
-          if (claudeMessages.length > 0) {
-            activeSender(claudeMessages).catch(() => {});
-          }
-        },
-        false,
-        deps.getQueryOptions?.()
-      );
 
       const stillOwner = deps.getClaudeController() === controller;
       if (stillOwner) {
@@ -336,6 +395,12 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       const channelId = message.channelId;
       const prompt = message.content;
 
+      // If any /claude-thread run is in-flight (global controller scope), don't abort it.
+      if (deps.isAnyChannelPending?.()) {
+        message.react("⌛").catch(() => {});
+        return;
+      }
+
       // Read existing session BEFORE installing new controller — synchronous, no interleaving.
       const existingSessionId = deps.getSessionForChannel(channelId);
 
@@ -393,6 +458,15 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       }
     },
 
+    /** Expose pending check so index.ts can pass it into BotDependencies */
+    isChannelPending(channelId: string): boolean {
+      return deps.isChannelPending?.(channelId) ?? false;
+    },
+    /** True if ANY channel has an in-flight /claude-thread run — guards the global controller */
+    isAnyChannelPending(): boolean {
+      return deps.isAnyChannelPending?.() ?? false;
+    },
+
     // deno-lint-ignore no-explicit-any
     onClaudeCancel(_ctx: any): boolean {
       const currentController = deps.getClaudeController();
@@ -404,6 +478,8 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       currentController.abort();
       deps.setClaudeController(null);
       deps.setClaudeSessionId(undefined);
+      // Clear pending markers owned by this controller so the guard doesn't stay latched.
+      deps.clearAllPending?.(currentController);
 
       return true;
     }

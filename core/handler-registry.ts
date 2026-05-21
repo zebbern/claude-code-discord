@@ -515,6 +515,9 @@ export function createAllHandlers(
 
   // Per-channel session tracking — maps channelId/threadId to active sessionId
   const channelSessionMap = new Map<string, string>();
+  // Channels with in-flight runs that have no session ID yet.
+  // Maps channelId -> AbortController so stale finalizers can't clear a newer run's marker.
+  const pendingChannels = new Map<string, AbortController>();
 
   const claudeHandlers = createClaudeHandlers({
     workDir,
@@ -534,6 +537,19 @@ export function createAllHandlers(
     getQueryOptions,
     sessionThreads: deps.sessionThreads,
     createSenderForChannel: deps.createSenderForChannel,
+    markChannelPending: (channelId, controller) => pendingChannels.set(channelId, controller),
+    clearChannelPending: (channelId, controller) => {
+      // Only clear if this run still owns the marker (controller matches).
+      if (pendingChannels.get(channelId) === controller) pendingChannels.delete(channelId);
+    },
+    isChannelPending: (channelId) => pendingChannels.has(channelId),
+    isAnyChannelPending: () => pendingChannels.size > 0,
+    clearAllPending: (controller) => {
+      // Only clear entries owned by this controller.
+      for (const [id, ctrl] of pendingChannels) {
+        if (ctrl === controller) pendingChannels.delete(id);
+      }
+    },
   });
 
   const gitHandlers = createGitHandlers({

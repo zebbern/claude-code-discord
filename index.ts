@@ -129,7 +129,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // Session thread callbacks — used by claude/command.ts for /claude-thread and /resume.
   // The callbacks are closures over `bot` (late-bound) and `sessionThreadManager`.
   const sessionThreadCallbacks: SessionThreadCallbacks = {
-    async createThreadSender(prompt: string, sessionId?: string, threadName?: string) {
+    async createThreadSender(prompt: string, sessionId?: string, threadName?: string, onThreadIdKnown?: (threadId: string) => void) {
       const channel = bot?.getChannel() as TextChannel | null;
       if (!channel) throw new Error('Bot channel not ready');
 
@@ -152,8 +152,13 @@ export async function createClaudeCodeBot(config: BotConfig) {
       // Create a thread in the main channel
       const thread = await sessionThreadManager.createSessionThread(channel, placeholderKey, prompt, threadName);
 
-      // Post a summary embed in the main channel pointing to the thread
-      await sendMessageContent(channel, {
+      // Notify caller as soon as the thread ID is known — before any further awaits.
+      // Used by /claude-thread to mark the channel pending so free-form messages don't abort this run.
+      onThreadIdKnown?.(thread.id);
+
+      // Post a summary embed best-effort — thread creation already succeeded, so we must
+      // return the thread sender regardless. A failed embed is cosmetic; not worth aborting.
+      sendMessageContent(channel, {
         embeds: [{
           color: 0x5865F2,
           title: '🧵 New Claude Session',
@@ -163,7 +168,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
           ],
           timestamp: true,
         }],
-      });
+      }).catch(err => console.warn('[SessionThread] Summary embed failed (non-fatal):', err));
 
       const threadSender = createClaudeSender(createChannelSenderAdapter(thread));
       return { sender: threadSender, threadSessionKey: placeholderKey, threadChannelId: thread.id };
@@ -183,6 +188,10 @@ export async function createClaudeCodeBot(config: BotConfig) {
 
     updateSessionId(oldKey: string, newSessionId: string) {
       sessionThreadManager.updateSessionId(oldKey, newSessionId);
+    },
+
+    removeSessionThread(key: string) {
+      sessionThreadManager.removeSessionThread(key);
     },
 
     registerExistingChannelThread(channelId: string, sessionId: string) {
@@ -309,6 +318,8 @@ export async function createClaudeCodeBot(config: BotConfig) {
       await allHandlers.claude.onContinue(ctx);
     },
     onFreeFormMessage,
+    isChannelPending: (channelId: string) => allHandlers.claude.isChannelPending(channelId),
+    isAnyChannelPending: () => allHandlers.claude.isAnyChannelPending(),
     ...(monitorChannelId && monitorBotIds?.length && {
       monitorConfig: {
         channelId: monitorChannelId,
