@@ -265,12 +265,10 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
           seedPath = validatedDir;
         } else if (deps.bindings) {
           const invokingParentId = ctx.getParentChannelId?.() as string | undefined;
-          const current = deps.bindings.resolveWorkDir(invokingChannelId);
-          if (current !== workDir) {
-            seedPath = current; // invoking channel/thread has a direct binding
-          } else if (invokingParentId) {
-            const parentBound = deps.bindings.resolveWorkDir(invokingParentId);
-            if (parentBound !== workDir) seedPath = parentBound;
+          if (deps.bindings.hasBinding(invokingChannelId)) {
+            seedPath = deps.bindings.resolveWorkDir(invokingChannelId);
+          } else if (invokingParentId && deps.bindings.hasBinding(invokingParentId)) {
+            seedPath = deps.bindings.resolveWorkDir(invokingParentId);
           }
         }
 

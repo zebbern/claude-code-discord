@@ -394,6 +394,8 @@ export function createAllHandlers(
 
   const resolveCwdForChannel = (channelId: string, parentChannelId?: string): string => {
     if (bindings.hasBinding(channelId)) return bindings.resolveWorkDir(channelId);
+    // Tombstone: explicit opt-out — do NOT fall through to parent binding.
+    if (bindings.hasTombstone(channelId)) return workDir;
     if (parentChannelId && bindings.hasBinding(parentChannelId)) return bindings.resolveWorkDir(parentChannelId);
     return workDir;
   };

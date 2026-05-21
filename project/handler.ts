@@ -61,7 +61,7 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
       await ctx.deferReply();
 
       const channelId = ctx.getChannelId();
-      if (!bindings.hasBinding(channelId)) {
+      if (!bindings.hasBinding(channelId) && !bindings.hasTombstone(channelId)) {
         await ctx.editReply({
           content: "No binding found for this channel.",
         });
@@ -71,7 +71,7 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
       await bindings.unsetBinding(channelId);
 
       await ctx.editReply({
-        content: "Binding removed. Will use global default.",
+        content: "Binding removed. Using global default (parent channel binding will NOT be inherited).",
       });
     },
 
@@ -91,6 +91,8 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
           ? "Thread binding"
           : resolution.source === "parent"
           ? "Parent channel binding"
+          : resolution.source === "none (explicit)"
+          ? "None (explicit — parent not inherited)"
           : "Global default";
 
       await ctx.editReply({

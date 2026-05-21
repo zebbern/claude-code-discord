@@ -301,6 +301,22 @@ export function createClaudeCommandHandlers(
         const prompt = ctx.getString('prompt', true)!;
         const threadName = ctx.getString('name') || undefined;
         const dir = ctx.getString('dir') ?? undefined;
+        // RBAC: if a dir: override is requested, require 'project' permission
+        if (dir) {
+          const rbacConfig = loadRBACConfig();
+          if (rbacConfig.enabled && !hasPermission(ctx)) {
+            await ctx.deferReply();
+            await ctx.editReply({
+              embeds: [{
+                color: 0xff0000,
+                title: '🔒 Permission denied',
+                description: 'The `dir:` parameter requires an admin role.',
+                timestamp: true,
+              }]
+            });
+            return;
+          }
+        }
         addToHistory(prompt);
         await claudeHandlers.onClaudeThread(ctx, prompt, threadName, dir);
       }
@@ -556,6 +572,7 @@ function createInfoCommandsMap(
 
 // Import git/shell handlers for complete factory
 import { createGitCommandHandlers, createShellCommandHandlers, createUtilityCommandHandlers, type GitShellHandlerDeps } from "./git-shell-handlers.ts";
+import { hasPermission, loadRBACConfig } from "./rbac.ts";
 
 /**
  * Extended dependencies for complete command handler creation.

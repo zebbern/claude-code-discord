@@ -82,7 +82,9 @@ export class PersistenceManager<T> {
         ? JSON.stringify(data, null, 2)
         : JSON.stringify(data);
       
-      await Deno.writeTextFile(this.filePath, content);
+      const tmpPath = this.filePath + '.tmp';
+      await Deno.writeTextFile(tmpPath, content);
+      await Deno.rename(tmpPath, this.filePath);
       this.cache = data;
       console.log(`Persistence: Saved ${this.filename}`);
       return true;

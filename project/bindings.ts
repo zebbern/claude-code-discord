@@ -51,9 +51,12 @@ export class ProjectBindings {
     this.map = new Map(Object.entries(data.bindings));
   }
 
-  /** Synchronously resolve the working directory for a channel. */
+  /** Synchronously resolve the working directory for a channel.
+   * A tombstone value ("") resolves to the global working directory. */
   resolveWorkDir(channelId: string): string {
-    return this.map.get(channelId) ?? this.globalWorkDir;
+    const val = this.map.get(channelId);
+    if (val === undefined || val === "") return this.globalWorkDir;
+    return val;
   }
 
   /**
@@ -66,12 +69,25 @@ export class ProjectBindings {
   }
 
   /**
-   * Remove a binding and persist.
-   * Awaitable — used by /project unbind.
+   * Remove a binding and persist a tombstone ("") so the channel explicitly
+   * opts out of parent-channel inheritance. Used by /project unbind.
    */
   async unsetBinding(channelId: string): Promise<void> {
-    this.map.delete(channelId);
+    this.map.set(channelId, "");
     await this._persist();
+  }
+
+  /**
+   * Synchronous tombstone — used from sync callbacks where await is not possible.
+   * Never throws.
+   */
+  unsetBindingSync(channelId: string): void {
+    this.map.set(channelId, "");
+    this.mutationQueue = this.mutationQueue
+      .then(() => this._writeToDisk())
+      .catch((e) =>
+        console.error("[ProjectBindings] persist error:", e)
+      );
   }
 
   /**
@@ -87,28 +103,44 @@ export class ProjectBindings {
       );
   }
 
-  /** All [channelId, absPath] entries. */
+  /** All [channelId, absPath] entries (excludes tombstones). */
   listBindings(): Array<[string, string]> {
-    return Array.from(this.map.entries());
+    return Array.from(this.map.entries()).filter(([, v]) => v !== "");
   }
 
-  /** Returns true if a binding exists for the given channel. */
+  /**
+   * Returns true if the channel has a real (non-tombstone) binding.
+   * A tombstone ("") is stored but does not count as a binding for inheritance.
+   */
   hasBinding(channelId: string): boolean {
-    return this.map.has(channelId);
+    const val = this.map.get(channelId);
+    return val !== undefined && val !== "";
+  }
+
+  /**
+   * Returns true if the channel has an explicit tombstone, meaning it has
+   * opted out of parent-channel binding inheritance.
+   */
+  hasTombstone(channelId: string): boolean {
+    return this.map.get(channelId) === "";
   }
 
   /**
    * Resolve effective working directory with source attribution.
    * Checks the channel itself, then its parent (for threads), then global.
+   * A tombstone on the channel suppresses parent fallback.
    */
   getEffectiveResolution(
     channelId: string,
     parentChannelId?: string,
-  ): { source: "thread" | "parent" | "global"; path: string } {
-    if (this.map.has(channelId)) {
+  ): { source: "thread" | "parent" | "global" | "none (explicit)"; path: string } {
+    if (this.hasBinding(channelId)) {
       return { source: "thread", path: this.map.get(channelId)! };
     }
-    if (parentChannelId && this.map.has(parentChannelId)) {
+    if (this.hasTombstone(channelId)) {
+      return { source: "none (explicit)", path: this.globalWorkDir };
+    }
+    if (parentChannelId && this.hasBinding(parentChannelId)) {
       return { source: "parent", path: this.map.get(parentChannelId)! };
     }
     return { source: "global", path: this.globalWorkDir };
@@ -128,6 +160,7 @@ export class ProjectBindings {
       version: 1,
       bindings: Object.fromEntries(this.map),
     };
-    await this.persistence.save(data);
+    const success = await this.persistence.save(data);
+    if (!success) throw new Error('[ProjectBindings] Failed to persist bindings to disk');
   }
 }
