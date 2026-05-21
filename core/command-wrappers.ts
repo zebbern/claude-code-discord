@@ -300,8 +300,11 @@ export function createClaudeCommandHandlers(
       execute: async (ctx: InteractionContext) => {
         const prompt = ctx.getString('prompt', true)!;
         const threadName = ctx.getString('name') || undefined;
+        const dir = ctx.getString('dir') ?? undefined;
         addToHistory(prompt);
+        // TODO(task-16): pass dir once onClaudeThread gains the 4th param
         await claudeHandlers.onClaudeThread(ctx, prompt, threadName);
+        void dir; // referenced above; suppress unused-variable lint
       }
     }],
     ['resume', {
@@ -592,6 +595,33 @@ export function createAllCommandHandlers(deps: CommandWrapperDeps): CommandHandl
   const shellHandlers = createShellCommandHandlers(gitShellDeps);
   const utilityHandlers = createUtilityCommandHandlers(gitShellDeps);
 
+  // Project command handlers
+  const projectCommandHandlers: Map<string, { execute: (ctx: InteractionContext) => Promise<void> }> = new Map([
+    ['project', {
+      execute: async (ctx: InteractionContext) => {
+        const action = ctx.getString('action', true)!;
+        const path = ctx.getString('path');
+        switch (action) {
+          case 'bind':
+            await handlers.project.handleBind(ctx, path);
+            break;
+          case 'unbind':
+            await handlers.project.handleUnbind(ctx);
+            break;
+          case 'show':
+            await handlers.project.handleShow(ctx);
+            break;
+          case 'list':
+            await handlers.project.handleList(ctx);
+            break;
+          default:
+            await ctx.deferReply();
+            await ctx.editReply({ embeds: [{ color: 0xff0000, title: 'Unknown action', description: `Unknown action: ${action}` }] });
+        }
+      }
+    }],
+  ]);
+
   // Combine all handlers into single map
   const commandHandlers: CommandHandlers = new Map([
     ...systemHandlers,
@@ -603,6 +633,7 @@ export function createAllCommandHandlers(deps: CommandWrapperDeps): CommandHandl
     ...gitHandlers,
     ...shellHandlers,
     ...utilityHandlers,
+    ...projectCommandHandlers,
   ]);
 
   return commandHandlers;
