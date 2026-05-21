@@ -56,6 +56,26 @@ Discord slash command
 3. Export command + handler from the module's `index.ts`
 4. Import and wire both into `core/handler-registry.ts` (`getAllCommands()` + `createAllHandlers()`)
 
+### Project resolution
+
+Each Discord thread or channel can be bound to a specific git repository directory ("project"). When a bound channel receives a Claude command or free-form message, the SDK runs with that directory as `cwd`.
+
+**Resolution chain** (first match wins):
+1. Direct binding for the current thread/channel (set via `/project bind` or `/claude-thread dir:`)
+2. Parent channel binding (for threads under a bound text channel)
+3. Global default: the directory the bot was launched from
+
+**Binding management:** `/project bind|unbind|show|list`
+
+**Operational side effects of changing `cwd`:**
+- `.claude/mcp.json` is read from the project directory
+- `.claude/settings*.json` project-scoped settings are loaded from the project directory
+- `.claude/agents/` and `.claude/hooks/` are discovered from the project directory
+
+This is intentional — a "project" is genuinely defined by its `cwd`-scoped config.
+
+**Known limitation:** If `MONITOR_CHANNEL_ID` points to a different channel than the bot's main channel, `/project bind` cannot be run there (Discord routes commands only to the bot's main channel/threads). To use project bindings with monitor alerts, set `MONITOR_CHANNEL_ID` to the bot's main channel ID.
+
 ### AWS Bedrock backend
 
 Set `CLAUDE_CODE_USE_BEDROCK=1` plus AWS credentials (static keys, profile, or IAM role). When active, the bot uses `us.anthropic.*` cross-region inference profile IDs and `ANTHROPIC_API_KEY` is not required. See `.env.example` for the full variable list.

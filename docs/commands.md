@@ -5,10 +5,38 @@
 | Command | Description |
 |---------|-------------|
 | `/claude` | Send a prompt to Claude Code. Supports `prompt` and `session_id` options. |
-| `/claude-thread` | Start a new Claude conversation in a dedicated Discord thread. Options: `name` (thread title), `prompt`. |
+| `/claude-thread` | Start a new Claude conversation in a dedicated Discord thread. Options: `name` (thread title), `prompt`, `dir` (bind to a git repository directory at creation time). |
 | `/resume` | Resume (continue) a previous Claude conversation with an optional follow-up prompt. |
 | `/claude-cancel` | Cancel the currently running Claude operation. |
 | `/fast` | Toggle Opus 4.6 fast mode — 2.5x faster responses, same quality. |
+
+### `/claude-thread` options
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `name` | string | No | Thread title |
+| `prompt` | string | No | Initial prompt to send |
+| `dir` | string | No | Bind this thread to a specific git repository directory at creation time |
+
+### `/project`
+
+Bind the current thread or channel to a project directory. All Claude commands in this thread will use the bound directory as their working directory.
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `action` | string | Yes | One of: `bind`, `unbind`, `show`, `list` |
+| `path` | string | No | Absolute path to a git repository (required for `bind`) |
+
+**Actions:**
+- `bind path:/path/to/repo` — Bind the current channel/thread to a git repo. Requires RBAC permission if enabled.
+- `unbind` — Remove the binding. Future queries fall back to the parent channel binding (if any) or the global default.
+- `show` — Display the current effective binding and its source (direct, parent-inherited, or global default).
+- `list` — List all channel/thread bindings and available worktrees as quick-bind suggestions.
+
+**Notes:**
+- Bindings persist across bot restarts.
+- Threads created via `/claude-thread` inherit the parent channel's binding (materialized at creation time).
+- To bind the monitor channel's alert threads, deploy with `MONITOR_CHANNEL_ID` equal to the bot's main channel ID.
 
 ## Enhanced Claude Commands (4)
 
