@@ -111,11 +111,9 @@ export class ProjectBindings {
 
   /** Persist current in-memory map through the serial mutation queue. Re-throws on error. */
   private async _persist(): Promise<void> {
-    // Chain onto the queue so concurrent callers serialize correctly.
-    // Do NOT swallow errors — let them propagate to awaitable callers.
-    this.mutationQueue = this.mutationQueue.then(() => this._writeToDisk());
-    // Await the current tail so the caller knows the write finished (or failed).
-    await this.mutationQueue;
+    const next = this.mutationQueue.then(() => this._writeToDisk());
+    this.mutationQueue = next.catch(() => {}); // recover queue to resolved state even on error
+    await next;                                // re-throw to caller
   }
 
   private async _writeToDisk(): Promise<void> {
