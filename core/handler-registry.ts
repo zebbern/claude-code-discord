@@ -535,6 +535,8 @@ export function createAllHandlers(
 
   const claudeHandlers = createClaudeHandlers({
     workDir,
+    resolveCwdForChannel,
+    bindings,
     getClaudeController: claudeSession.getController,
     setClaudeController: claudeSession.setController,
     getSessionForChannel: (channelId: string) => channelSessionMap.get(channelId),

@@ -302,9 +302,7 @@ export function createClaudeCommandHandlers(
         const threadName = ctx.getString('name') || undefined;
         const dir = ctx.getString('dir') ?? undefined;
         addToHistory(prompt);
-        // TODO(task-16): pass dir once onClaudeThread gains the 4th param
-        await claudeHandlers.onClaudeThread(ctx, prompt, threadName);
-        void dir; // referenced above; suppress unused-variable lint
+        await claudeHandlers.onClaudeThread(ctx, prompt, threadName, dir);
       }
     }],
     ['resume', {

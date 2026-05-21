@@ -3,6 +3,7 @@ import { sendToClaudeCode, type ClaudeModelOptions } from "./client.ts";
 import { convertToClaudeMessages } from "./message-converter.ts";
 import { SlashCommandBuilder } from "npm:discord.js@14.14.1";
 import type { Message, TextBasedChannel } from "npm:discord.js@14.14.1";
+import { validateProjectPath } from "../project/validate.ts";
 
 // Callback that creates (or retrieves) a session thread and returns a
 // sender function bound to that thread.
@@ -68,7 +69,11 @@ export const claudeCommands = [
     .addStringOption(option =>
       option.setName('prompt')
         .setDescription('Prompt for Claude Code')
-        .setRequired(true)),
+        .setRequired(true))
+    .addStringOption(option =>
+      option.setName('dir')
+        .setDescription('Bind this thread to a specific git repository directory (optional)')
+        .setRequired(false)),
 
   new SlashCommandBuilder()
     .setName('resume')
@@ -85,6 +90,10 @@ export const claudeCommands = [
 
 export interface ClaudeHandlerDeps {
   workDir: string;
+  /** Resolve the effective working directory for a channel/thread */
+  resolveCwdForChannel: (channelId: string, parentChannelId?: string) => string;
+  /** ProjectBindings instance for seeding new thread bindings */
+  bindings?: import("../project/bindings.ts").ProjectBindings;
   getClaudeController: () => AbortController | null;
   setClaudeController: (controller: AbortController | null) => void;
   /** Get session ID for a specific channel/thread (per-channel tracking) */
@@ -164,8 +173,9 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         }]
       });
 
+      const cwd = deps.resolveCwdForChannel(channelId, ctx.getParentChannelId?.());
       const result = await sendToClaudeCode(
-        workDir,
+        cwd,
         prompt,
         controller,
         activeSessionId, // resume if present, new session if undefined
@@ -197,7 +207,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
      * /claude-thread — Start a brand-new session in a dedicated Discord thread.
      */
     // deno-lint-ignore no-explicit-any
-    async onClaudeThread(ctx: any, prompt: string, threadName?: string): Promise<ClaudeResponse> {
+    async onClaudeThread(ctx: any, prompt: string, threadName?: string, dir?: string): Promise<ClaudeResponse> {
       const existingController = deps.getClaudeController();
       if (existingController) {
         existingController.abort();
@@ -206,10 +216,47 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       const controller = new AbortController();
       deps.setClaudeController(controller);
 
+      // Step 1 — Validate dir if provided.
+      let validatedDir: string | undefined;
+      if (dir) {
+        try {
+          validatedDir = await validateProjectPath(dir);
+        } catch (err) {
+          await ctx.deferReply();
+          await ctx.editReply({
+            embeds: [{
+              color: 0xff0000,
+              title: 'Invalid project path',
+              description: err instanceof Error ? err.message : String(err),
+              timestamp: true,
+            }]
+          });
+          // Release the controller we set above since we're bailing out.
+          if (deps.getClaudeController() === controller) deps.setClaudeController(null);
+          return { response: '', sessionId: undefined };
+        }
+      }
+
+      // Step 2 — Compute seedPath for inheritance.
+      const invokingChannelId = ctx.getChannelId?.() as string;
+      let seedPath: string | undefined;
+      if (validatedDir) {
+        seedPath = validatedDir;
+      } else if (deps.bindings) {
+        const invokingParentId = ctx.getParentChannelId?.() as string | undefined;
+        const current = deps.bindings.resolveWorkDir(invokingChannelId);
+        if (current !== workDir) {
+          seedPath = current; // invoking channel/thread has a direct binding
+        } else if (invokingParentId) {
+          const parentBound = deps.bindings.resolveWorkDir(invokingParentId);
+          if (parentBound !== workDir) seedPath = parentBound;
+        }
+      }
+
       // Mark the invoking channel as pending BEFORE the first await so that
       // free-form messages and other commands see isAnyChannelPending() === true
       // immediately, even during ctx.deferReply() and thread creation.
-      const provisionalChannelId = ctx.getChannelId?.() as string | undefined;
+      const provisionalChannelId = invokingChannelId;
       if (provisionalChannelId) deps.markChannelPending?.(provisionalChannelId, controller);
 
       // Create a dedicated thread for this session
@@ -234,12 +281,17 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
               undefined,
               threadName,
               // Transfer pending from invoking channel to real thread ID (same controller).
+              // Step 3 — also seed the binding for the new thread.
               (threadId) => {
                 markedPendingThreadId = threadId;
                 deps.markChannelPending?.(threadId, controller);
                 // Clear provisional once the real thread ID is known.
                 if (provisionalChannelId && provisionalChannelId !== threadId) {
                   deps.clearChannelPending?.(provisionalChannelId, controller);
+                }
+                // Seed binding so the new thread inherits/overrides the cwd.
+                if (seedPath && deps.bindings) {
+                  deps.bindings.setBindingSync(threadId, seedPath);
                 }
               },
             );
@@ -268,8 +320,13 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
           }]
         });
 
+        // Step 4 — Resolve cwd for the new thread (binding was seeded above if applicable).
+        const cwd = deps.resolveCwdForChannel(
+          threadChannelId ?? invokingChannelId,
+          ctx.getParentChannelId?.(),
+        );
         result = await sendToClaudeCode(
-          workDir,
+          cwd,
           prompt,
           controller,
           undefined, // always a new session
@@ -328,6 +385,7 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       const controller = new AbortController();
       deps.setClaudeController(controller);
 
+      const channelId = ctx.getChannelId?.() as string;
       const actualPrompt = prompt || "Please continue.";
 
       await ctx.deferReply();
@@ -366,8 +424,9 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
 
       await ctx.editReply({ embeds: [embedData] });
 
+      const cwd = deps.resolveCwdForChannel(channelId, ctx.getParentChannelId?.());
       const result = await sendToClaudeCode(
-        workDir,
+        cwd,
         actualPrompt,
         controller,
         undefined,
@@ -426,8 +485,9 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
 
       let result: ClaudeResponse | undefined;
       try {
+        const cwd = deps.resolveCwdForChannel(channelId, (message.channel as any).parentId);
         result = await sendToClaudeCode(
-          workDir,
+          cwd,
           prompt,
           controller,
           existingSessionId,
