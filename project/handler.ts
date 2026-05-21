@@ -79,9 +79,7 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
     async handleShow(ctx: InteractionContext): Promise<void> {
       await ctx.deferReply();
 
-      const parentChannelId = (ctx as any).getParentChannelId?.() as
-        | string
-        | undefined;
+      const parentChannelId = ctx.getParentChannelId?.();
 
       const resolution = bindings.getEffectiveResolution(
         ctx.getChannelId(),

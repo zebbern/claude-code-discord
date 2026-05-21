@@ -346,6 +346,9 @@ export async function createClaudeCodeBot(config: BotConfig) {
           const threadSender = createClaudeSender(createChannelSenderAdapter(thread));
 
           const controller = new AbortController();
+          // TODO(monitor-settings): the monitor alert path doesn't pass getQueryOptions
+          // because getQueryOptions is built inside createAllHandlers and not plumbed through
+          // to this closure. The alert runs with default SDK options (no model/thinking/etc).
           await sendToClaudeCode(
             projectBindings.resolveWorkDir(thread.id),
             prompt,

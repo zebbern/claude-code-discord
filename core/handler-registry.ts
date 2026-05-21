@@ -393,12 +393,8 @@ export function createAllHandlers(
   } = deps;
 
   const resolveCwdForChannel = (channelId: string, parentChannelId?: string): string => {
-    const direct = bindings.resolveWorkDir(channelId);
-    if (direct !== workDir) return direct; // has a direct binding
-    if (parentChannelId) {
-      const parent = bindings.resolveWorkDir(parentChannelId);
-      if (parent !== workDir) return parent; // inherit from parent
-    }
+    if (bindings.hasBinding(channelId)) return bindings.resolveWorkDir(channelId);
+    if (parentChannelId && bindings.hasBinding(parentChannelId)) return bindings.resolveWorkDir(parentChannelId);
     return workDir;
   };
 

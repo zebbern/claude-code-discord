@@ -379,11 +379,12 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
         if (includeGitContext) {
           try {
             const { executeGitCommand } = await import("../git/handler.ts");
+            const cwd = deps.resolveCwdForChannel?.(ctx.getChannelId?.() ?? '', ctx.getParentChannelId?.() ?? undefined) ?? workDir;
             const [branch, status] = await Promise.all([
-              executeGitCommand(workDir, "git branch --show-current"),
-              executeGitCommand(workDir, "git status --porcelain")
+              executeGitCommand(cwd, "git branch --show-current"),
+              executeGitCommand(cwd, "git status --porcelain")
             ]);
-            
+
             const gitInfo = `Branch: ${branch.trim()}\nStatus: ${status || 'Clean'}`;
             contextParts.push(`**Git Context:**\n\`\`\`\n${gitInfo}\n\`\`\``);
           } catch (error) {

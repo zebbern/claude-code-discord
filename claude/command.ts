@@ -216,51 +216,9 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       const controller = new AbortController();
       deps.setClaudeController(controller);
 
-      // Defer the reply immediately — before any async work that could time out —
-      // so Discord's 3-second interaction window is always satisfied.
-      await ctx.deferReply();
-
-      // Step 1 — Validate dir if provided.
-      let validatedDir: string | undefined;
-      if (dir) {
-        try {
-          validatedDir = await validateProjectPath(dir);
-        } catch (err) {
-          await ctx.editReply({
-            embeds: [{
-              color: 0xff0000,
-              title: 'Invalid project path',
-              description: err instanceof Error ? err.message : String(err),
-              timestamp: true,
-            }]
-          });
-          // Release the controller we set above since we're bailing out.
-          if (deps.getClaudeController() === controller) deps.setClaudeController(null);
-          return { response: '', sessionId: undefined };
-        }
-      }
-
-      // Step 2 — Compute seedPath for inheritance.
+      // Capture the invoking channel ID before any awaits.
       const invokingChannelId = ctx.getChannelId?.() as string;
-      let seedPath: string | undefined;
-      if (validatedDir) {
-        seedPath = validatedDir;
-      } else if (deps.bindings) {
-        const invokingParentId = ctx.getParentChannelId?.() as string | undefined;
-        const current = deps.bindings.resolveWorkDir(invokingChannelId);
-        if (current !== workDir) {
-          seedPath = current; // invoking channel/thread has a direct binding
-        } else if (invokingParentId) {
-          const parentBound = deps.bindings.resolveWorkDir(invokingParentId);
-          if (parentBound !== workDir) seedPath = parentBound;
-        }
-      }
-
-      // Mark the invoking channel as pending BEFORE the first await so that
-      // free-form messages and other commands see isAnyChannelPending() === true
-      // immediately, even during ctx.deferReply() and thread creation.
       const provisionalChannelId = invokingChannelId;
-      if (provisionalChannelId) deps.markChannelPending?.(provisionalChannelId, controller);
 
       // Create a dedicated thread for this session
       let activeSender = sendClaudeMessages;
@@ -272,7 +230,49 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       // Single try/finally covers every await after markChannelPending, including
       // deferReply — so the pending marker is always cleared even if deferReply throws.
       try {
+        // Defer the reply immediately — before any async work that could time out —
+        // so Discord's 3-second interaction window is always satisfied.
         await ctx.deferReply();
+
+        // Mark the invoking channel as pending right after deferReply so that
+        // free-form messages and other commands see isAnyChannelPending() === true
+        // during path validation, seed computation, and thread creation.
+        if (provisionalChannelId) deps.markChannelPending?.(provisionalChannelId, controller);
+
+        // Step 1 — Validate dir if provided.
+        let validatedDir: string | undefined;
+        if (dir) {
+          try {
+            validatedDir = await validateProjectPath(dir);
+          } catch (err) {
+            await ctx.editReply({
+              embeds: [{
+                color: 0xff0000,
+                title: 'Invalid project path',
+                description: err instanceof Error ? err.message : String(err),
+                timestamp: true,
+              }]
+            });
+            // Release the controller we set above since we're bailing out.
+            if (deps.getClaudeController() === controller) deps.setClaudeController(null);
+            return { response: '', sessionId: undefined };
+          }
+        }
+
+        // Step 2 — Compute seedPath for inheritance.
+        let seedPath: string | undefined;
+        if (validatedDir) {
+          seedPath = validatedDir;
+        } else if (deps.bindings) {
+          const invokingParentId = ctx.getParentChannelId?.() as string | undefined;
+          const current = deps.bindings.resolveWorkDir(invokingChannelId);
+          if (current !== workDir) {
+            seedPath = current; // invoking channel/thread has a direct binding
+          } else if (invokingParentId) {
+            const parentBound = deps.bindings.resolveWorkDir(invokingParentId);
+            if (parentBound !== workDir) seedPath = parentBound;
+          }
+        }
 
         // Abort check after deferReply — a cancel during deferReply should stop before thread creation.
         if (controller.signal.aborted) throw new Error("Aborted before thread creation");
@@ -355,6 +355,8 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
           deps.sessionThreads.removeSessionThread?.(threadSessionKey);
         }
       }
+
+      if (!result) return { response: '', sessionId: undefined };
 
       const stillOwner = deps.getClaudeController() === controller;
       if (stillOwner) {
