@@ -611,6 +611,7 @@ export function createAllHandlers(
     sessionManager: claudeSessionManager,
     crashHandler,
     getQueryOptions,
+    resolveCwdForChannel,
   });
 
   const systemHandlers = createSystemHandlers({
@@ -627,6 +628,7 @@ export function createAllHandlers(
     crashHandler,
     settings: currentSettings.advanced,
     getQueryOptions,
+    resolveCwdForChannel,
   });
 
   const advancedSettingsHandlers = createAdvancedSettingsHandlers({
@@ -648,6 +650,7 @@ export function createAllHandlers(
     sendClaudeMessages,
     sessionManager: claudeSessionManager,
     getQueryOptions,
+    resolveCwdForChannel,
   });
 
   const screenshotHandlers = createScreenshotHandlers({

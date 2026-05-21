@@ -176,6 +176,7 @@ export interface AgentHandlerDeps {
   sendClaudeMessages: (messages: any[]) => Promise<void>;
   sessionManager: any;
   getQueryOptions?: () => ClaudeModelOptions;
+  resolveCwdForChannel?: (channelId: string, parentChannelId?: string) => string;
 }
 
 // Persistence manager for agent sessions
@@ -476,10 +477,12 @@ async function chatWithAgent(
     // Merge runtime settings (permissionMode, thinking, effort, proxy, etc.)
     const runtimeOpts = deps?.getQueryOptions?.() || {};
 
+    const cwd = deps?.resolveCwdForChannel?.(ctx.getChannelId?.() ?? '', ctx.getParentChannelId?.() ?? undefined) ?? deps?.workDir ?? Deno.cwd();
+
     const result = await enhancedClaudeQuery(
       enhancedPrompt,
       {
-        workDir: deps?.workDir || Deno.cwd(),
+        workDir: cwd,
         // Use native SDK agent support — SDK applies agent's systemPrompt + model automatically
         agent: activeAgentName,
         agents: SDK_AGENTS,

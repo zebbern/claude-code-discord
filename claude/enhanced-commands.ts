@@ -93,6 +93,7 @@ export interface EnhancedClaudeHandlerDeps {
   crashHandler: any;
   /** Get current runtime options from unified settings (thinking, operation, proxy) */
   getQueryOptions?: () => import("./client.ts").ClaudeModelOptions;
+  resolveCwdForChannel?: (channelId: string, parentChannelId?: string) => string;
 }
 
 export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
@@ -155,10 +156,12 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
         // Get current runtime options from settings (thinking, operation, proxy)
         const runtimeOpts = deps.getQueryOptions?.() || {};
 
+        const cwd = deps.resolveCwdForChannel?.(ctx.getChannelId?.() ?? '', ctx.getParentChannelId?.() ?? undefined) ?? workDir;
+
         const result = await enhancedClaudeQuery(
           enhancedPrompt,
           {
-            workDir,
+            workDir: cwd,
             model: model ? resolveModelId(model) : runtimeOpts.model,
             includeSystemInfo: !!includeSystemInfo,
             includeGitContext: !!includeGitContext,

@@ -190,6 +190,7 @@ export interface AdditionalClaudeHandlerDeps {
   settings: any;
   /** Get current runtime options from unified settings (thinking, operation, proxy) */
   getQueryOptions?: () => import("./client.ts").ClaudeModelOptions;
+  resolveCwdForChannel?: (channelId: string, parentChannelId?: string) => string;
 }
 
 export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps) {
@@ -229,7 +230,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         prompt += `:\n\n${content}`;
 
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
-        
+
         // Cancel any existing session
         const existingController = deps.getClaudeController();
         if (existingController) {
@@ -239,10 +240,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
+        const cwd = deps.resolveCwdForChannel?.(ctx.getChannelId?.() ?? '', ctx.getParentChannelId?.() ?? undefined) ?? workDir;
+
         const result = await enhancedClaudeQuery(
           prompt,
           {
-            workDir,
+            workDir: cwd,
             includeSystemInfo: false,
             includeGitContext: false,
             ...getRuntimeOpts(),
@@ -296,14 +299,16 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
-        const contextFilesList = contextFiles ? 
-          contextFiles.split(',').map(f => f.trim()).filter(f => f.length > 0) : 
+        const contextFilesList = contextFiles ?
+          contextFiles.split(',').map(f => f.trim()).filter(f => f.length > 0) :
           undefined;
+
+        const cwd = deps.resolveCwdForChannel?.(ctx.getChannelId?.() ?? '', ctx.getParentChannelId?.() ?? undefined) ?? workDir;
 
         const result = await enhancedClaudeQuery(
           prompt,
           {
-            workDir,
+            workDir: cwd,
             includeSystemInfo: settings.autoIncludeSystemInfo,
             includeGitContext: settings.autoIncludeGitContext,
             contextFiles: contextFilesList,
@@ -362,10 +367,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
+        const cwd = deps.resolveCwdForChannel?.(ctx.getChannelId?.() ?? '', ctx.getParentChannelId?.() ?? undefined) ?? workDir;
+
         const result = await enhancedClaudeQuery(
           prompt,
           {
-            workDir,
+            workDir: cwd,
             includeSystemInfo: false,
             includeGitContext: settings.autoIncludeGitContext,
             ...getRuntimeOpts(),
@@ -435,10 +442,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const isFilePath = codeOrFile.includes('/') || codeOrFile.includes('\\') || codeOrFile.includes('.');
         const contextFiles = isFilePath ? [codeOrFile] : undefined;
 
+        const cwd = deps.resolveCwdForChannel?.(ctx.getChannelId?.() ?? '', ctx.getParentChannelId?.() ?? undefined) ?? workDir;
+
         const result = await enhancedClaudeQuery(
           prompt,
           {
-            workDir,
+            workDir: cwd,
             includeSystemInfo: false,
             includeGitContext: settings.autoIncludeGitContext,
             contextFiles,
@@ -493,10 +502,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
+        const cwd = deps.resolveCwdForChannel?.(ctx.getChannelId?.() ?? '', ctx.getParentChannelId?.() ?? undefined) ?? workDir;
+
         const result = await enhancedClaudeQuery(
           prompt,
           {
-            workDir,
+            workDir: cwd,
             includeSystemInfo: settings.autoIncludeSystemInfo,
             includeGitContext: settings.autoIncludeGitContext,
             ...getRuntimeOpts(),
@@ -559,10 +570,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
+        const cwd = deps.resolveCwdForChannel?.(ctx.getChannelId?.() ?? '', ctx.getParentChannelId?.() ?? undefined) ?? workDir;
+
         const result = await enhancedClaudeQuery(
           prompt,
           {
-            workDir,
+            workDir: cwd,
             includeSystemInfo: false,
             includeGitContext: settings.autoIncludeGitContext,
             ...getRuntimeOpts(),
@@ -621,10 +634,12 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller);
 
+        const cwd = deps.resolveCwdForChannel?.(ctx.getChannelId?.() ?? '', ctx.getParentChannelId?.() ?? undefined) ?? workDir;
+
         const result = await enhancedClaudeQuery(
           prompt,
           {
-            workDir,
+            workDir: cwd,
             includeSystemInfo: false,
             includeGitContext: false,
             ...getRuntimeOpts(),
