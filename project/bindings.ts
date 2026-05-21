@@ -109,14 +109,12 @@ export class ProjectBindings {
 
   // ── private helpers ──────────────────────────────────────────────────────
 
-  /** Persist current in-memory map through the serial mutation queue. */
+  /** Persist current in-memory map through the serial mutation queue. Re-throws on error. */
   private async _persist(): Promise<void> {
     // Chain onto the queue so concurrent callers serialize correctly.
-    const write = () => this._writeToDisk();
-    this.mutationQueue = this.mutationQueue.then(write).catch((e) =>
-      console.error("[ProjectBindings] persist error:", e)
-    );
-    // Await the current tail so the caller knows the write finished.
+    // Do NOT swallow errors — let them propagate to awaitable callers.
+    this.mutationQueue = this.mutationQueue.then(() => this._writeToDisk());
+    // Await the current tail so the caller knows the write finished (or failed).
     await this.mutationQueue;
   }
 

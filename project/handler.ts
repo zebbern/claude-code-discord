@@ -71,13 +71,9 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
     async handleShow(ctx: InteractionContext): Promise<void> {
       await ctx.deferReply();
 
-      const parentChannelId =
-        "getParentChannelId" in ctx &&
-        typeof (ctx as { getParentChannelId?: () => string | undefined })
-          .getParentChannelId === "function"
-          ? (ctx as { getParentChannelId: () => string | undefined })
-              .getParentChannelId()
-          : undefined;
+      const parentChannelId = (ctx as any).getParentChannelId?.() as
+        | string
+        | undefined;
 
       const resolution = bindings.getEffectiveResolution(
         ctx.getChannelId(),
@@ -150,7 +146,7 @@ export function createProjectHandlers(deps: ProjectHandlerDeps) {
 
       if (worktreeLines) {
         fields.push({
-          name: "Available worktrees (not bound)",
+          name: "Available worktrees (not bound):",
           value: `\`\`\`\n${worktreeLines}\n\`\`\``,
           inline: false,
         });

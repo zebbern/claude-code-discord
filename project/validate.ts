@@ -17,8 +17,8 @@ export async function validateProjectPath(rawPath: string): Promise<string> {
   const home = Deno.env.get("HOME") ?? "";
   const expanded = rawPath.startsWith("~/")
     ? home + rawPath.slice(1)
-    : rawPath.startsWith("~")
-    ? home + rawPath.slice(1)
+    : rawPath === "~"
+    ? home
     : rawPath;
 
   // 2. Resolve to absolute path
