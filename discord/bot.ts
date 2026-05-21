@@ -627,7 +627,7 @@ export async function createDiscordBot(
 
   // Channel monitoring -- auto-respond to messages from specific bots/webhooks
   if (dependencies.monitorConfig) {
-    const { channelId, botIds, onAlertMessage } = dependencies.monitorConfig;
+    const { channelId, botIds, onAlertMessage, bindings, defaultWorkDir } = dependencies.monitorConfig;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     let pendingAlerts: string[] = [];
     let lastAlertMessage: Message | null = null;
@@ -664,6 +664,14 @@ export async function createDiscordBot(
             name: `Alert Investigation`,
             autoArchiveDuration: 60,
           });
+
+          // Materialize parent channel binding onto the new alert thread
+          if (bindings && defaultWorkDir) {
+            const parentBound = bindings.resolveWorkDir(channelId);
+            if (parentBound !== defaultWorkDir) {
+              bindings.setBindingSync(thread.id, parentBound);
+            }
+          }
 
           await onAlertMessage(combined, thread);
         } catch (error) {

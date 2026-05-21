@@ -347,7 +347,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
 
           const controller = new AbortController();
           await sendToClaudeCode(
-            workDir,
+            projectBindings.resolveWorkDir(thread.id),
             prompt,
             controller,
             undefined,
