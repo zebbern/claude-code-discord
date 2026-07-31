@@ -816,17 +816,27 @@ async function loadEnvFile(): Promise<void> {
       // Skip comments and empty lines
       if (!trimmed || trimmed.startsWith('#')) continue;
 
-      // Parse KEY=VALUE format
+      // Parse KEY=VALUE format — only split on the first '=' so values like
+      // SECRET="a=b=c" are handled correctly
       const eqIndex = trimmed.indexOf('=');
       if (eqIndex === -1) continue;
 
       const key = trimmed.substring(0, eqIndex).trim();
       let value = trimmed.substring(eqIndex + 1).trim();
 
-      // Remove surrounding quotes if present
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
+      // Remove surrounding quotes if present, handling values that contain '='
+      if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
+        // Double-quoted: strip quotes and process escape sequences
+        value = value.slice(1, -1).replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      } else if (value.startsWith("'") && value.endsWith("'") && value.length >= 2) {
+        // Single-quoted: strip quotes (no escape processing, like bash)
         value = value.slice(1, -1);
+      } else {
+        // Unquoted: strip inline comments (e.g., VALUE # comment)
+        const commentIndex = value.indexOf(' #');
+        if (commentIndex !== -1) {
+          value = value.substring(0, commentIndex).trim();
+        }
       }
 
       // Only set if not already defined (env vars take precedence)

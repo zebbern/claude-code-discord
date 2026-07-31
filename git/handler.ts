@@ -6,6 +6,48 @@ import type { GitInfo, WorktreeResult, WorktreeListResult, GitStatus } from "./t
 
 const exec = promisify(execCallback);
 
+/**
+ * Validate a git branch name to prevent command injection.
+ * Rejects names containing shell metacharacters or patterns that could
+ * be interpreted as flags/options.
+ */
+export function validateBranchName(branch: string): { valid: boolean; reason?: string } {
+  if (!branch || !branch.trim()) {
+    return { valid: false, reason: "Branch name cannot be empty" };
+  }
+
+  // Reject names starting with '-' (could be interpreted as flags)
+  if (branch.startsWith('-')) {
+    return { valid: false, reason: "Branch name cannot start with '-'" };
+  }
+
+  // Reject shell metacharacters that could enable command injection
+  const dangerousChars = /[;&|`$(){}!\\\n\r"'<>]/;
+  if (dangerousChars.test(branch)) {
+    return { valid: false, reason: "Branch name contains invalid characters" };
+  }
+
+  // Reject git-specific invalid patterns
+  if (branch.includes('..') || branch.includes('~') || branch.includes('^') || branch.includes(':')) {
+    return { valid: false, reason: "Branch name contains invalid git ref characters" };
+  }
+
+  // Reject whitespace
+  if (/\s/.test(branch)) {
+    return { valid: false, reason: "Branch name cannot contain whitespace" };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Shell-escape a string argument for safe use in exec() commands.
+ */
+function shellEscape(arg: string): string {
+  // Wrap in single quotes; escape any embedded single quotes
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
 export async function getGitInfo(workDir: string = Deno.cwd()): Promise<GitInfo> {
   try {
     const { stdout: branch } = await exec("git branch --show-current", { cwd: workDir });
@@ -58,9 +100,21 @@ export async function executeGitCommand(workDir: string, command: string): Promi
 }
 
 export async function createWorktree(workDir: string, branch: string, ref?: string): Promise<WorktreeResult> {
+  // Validate branch name to prevent command injection
+  const branchValidation = validateBranchName(branch);
+  if (!branchValidation.valid) {
+    return { result: `Error: ${branchValidation.reason}`, fullPath: '', baseDir: workDir };
+  }
+  if (ref) {
+    const refValidation = validateBranchName(ref);
+    if (!refValidation.valid) {
+      return { result: `Error: Invalid ref - ${refValidation.reason}`, fullPath: '', baseDir: workDir };
+    }
+  }
+
   const actualRef = ref || branch;
   let baseWorkDir = workDir;
-  
+
   try {
     const gitFile = await Deno.readTextFile(`${workDir}/.git`);
     if (gitFile.includes('gitdir:')) {
@@ -69,59 +123,80 @@ export async function createWorktree(workDir: string, branch: string, ref?: stri
   } catch {
     // For .git directory, this is a normal repository
   }
-  
-  // Check if worktree already exists for this branch
-  const existingWorktrees = await executeGitCommand(baseWorkDir, "git worktree list");
+
+  // Check if worktree already exists for this branch using --porcelain for reliable parsing
+  const existingWorktrees = await executeGitCommand(baseWorkDir, "git worktree list --porcelain");
   if (!existingWorktrees.startsWith('Execution error:') && !existingWorktrees.startsWith('Error:')) {
-    const worktreeLines = existingWorktrees.split('\n').filter(line => line.trim());
-    for (const line of worktreeLines) {
-      // Check if this branch is already used by a worktree
-      if (line.includes(`[${branch}]`) || line.endsWith(` ${branch}`)) {
-        const existingPath = line.split(/\s+/)[0];
-        return { 
-          result: `Found existing worktree. Path: ${existingPath}`, 
-          fullPath: existingPath, 
-          baseDir: baseWorkDir,
-          isExisting: true
-        };
-      }
+    const existingPath = findWorktreePathByBranch(existingWorktrees, branch);
+    if (existingPath) {
+      return {
+        result: `Found existing worktree. Path: ${existingPath}`,
+        fullPath: existingPath,
+        baseDir: baseWorkDir,
+        isExisting: true
+      };
     }
   }
-  
+
   // The actual worktree directory path (not the .git/worktrees path)
   const worktreeDir = `${baseWorkDir}/../${branch}`;
-  
+
   // Check if directory already exists
   try {
     await Deno.stat(worktreeDir);
-    return { 
-      result: `Error: Directory '${worktreeDir}' already exists.`, 
-      fullPath: worktreeDir, 
-      baseDir: baseWorkDir 
+    return {
+      result: `Error: Directory '${worktreeDir}' already exists.`,
+      fullPath: worktreeDir,
+      baseDir: baseWorkDir
     };
   } catch {
     // Directory doesn't exist, which is good
   }
-  
-  // Check if branch already exists
-  const branchCheckResult = await executeGitCommand(baseWorkDir, `git show-ref --verify --quiet refs/heads/${branch}`);
+
+  // Check if branch already exists (use shell-escaped branch name)
+  const branchCheckResult = await executeGitCommand(baseWorkDir, `git show-ref --verify --quiet refs/heads/${shellEscape(branch)}`);
   const branchExists = !branchCheckResult.startsWith('Execution error:') && !branchCheckResult.startsWith('Error:');
-  
+
   let result: string;
   if (branchExists) {
-    // Branch exists, use it without creating a new one
-    result = await executeGitCommand(baseWorkDir, `git worktree add ${worktreeDir} ${branch}`);
+    result = await executeGitCommand(baseWorkDir, `git worktree add ${shellEscape(worktreeDir)} ${shellEscape(branch)}`);
   } else {
-    // Branch doesn't exist, create a new one
-    result = await executeGitCommand(baseWorkDir, `git worktree add ${worktreeDir} -b ${branch} ${actualRef}`);
+    result = await executeGitCommand(baseWorkDir, `git worktree add ${shellEscape(worktreeDir)} -b ${shellEscape(branch)} ${shellEscape(actualRef)}`);
   }
-  
+
   return { result, fullPath: worktreeDir, baseDir: baseWorkDir };
+}
+
+/**
+ * Parse `git worktree list --porcelain` output and find the path for a given branch.
+ * Porcelain format uses structured blocks separated by blank lines:
+ *   worktree /path/to/worktree
+ *   HEAD abc123
+ *   branch refs/heads/branch-name
+ */
+function findWorktreePathByBranch(porcelainOutput: string, branch: string): string | null {
+  const blocks = porcelainOutput.split('\n\n');
+  for (const block of blocks) {
+    const lines = block.trim().split('\n');
+    let path = '';
+    let blockBranch = '';
+    for (const line of lines) {
+      if (line.startsWith('worktree ')) {
+        path = line.substring('worktree '.length);
+      } else if (line.startsWith('branch refs/heads/')) {
+        blockBranch = line.substring('branch refs/heads/'.length);
+      }
+    }
+    if (blockBranch === branch && path) {
+      return path;
+    }
+  }
+  return null;
 }
 
 export async function listWorktrees(workDir: string): Promise<WorktreeListResult> {
   let baseWorkDir = workDir;
-  
+
   try {
     const gitFile = await Deno.readTextFile(`${workDir}/.git`);
     if (gitFile.includes('gitdir:')) {
@@ -130,14 +205,20 @@ export async function listWorktrees(workDir: string): Promise<WorktreeListResult
   } catch {
     // For .git directory, this is a normal repository
   }
-  
+
   const result = await executeGitCommand(baseWorkDir, "git worktree list");
   return { result, baseDir: baseWorkDir };
 }
 
 export async function removeWorktree(workDir: string, branch: string): Promise<WorktreeResult> {
+  // Validate branch name to prevent command injection
+  const branchValidation = validateBranchName(branch);
+  if (!branchValidation.valid) {
+    return { result: `Error: ${branchValidation.reason}`, fullPath: '', baseDir: workDir };
+  }
+
   let baseWorkDir = workDir;
-  
+
   try {
     const gitFile = await Deno.readTextFile(`${workDir}/.git`);
     if (gitFile.includes('gitdir:')) {
@@ -146,34 +227,26 @@ export async function removeWorktree(workDir: string, branch: string): Promise<W
   } catch {
     // For .git directory, this is a normal repository
   }
-  
-  // First, find the actual worktree path by listing existing worktrees
-  const worktreeList = await executeGitCommand(baseWorkDir, "git worktree list");
+
+  // Use --porcelain for reliable parsing (handles paths with spaces)
+  const worktreeList = await executeGitCommand(baseWorkDir, "git worktree list --porcelain");
   if (worktreeList.startsWith('Execution error:') || worktreeList.startsWith('Error:')) {
     return { result: worktreeList, fullPath: '', baseDir: baseWorkDir };
   }
-  
-  let worktreePathToRemove = '';
-  const worktreeLines = worktreeList.split('\n').filter(line => line.trim());
-  for (const line of worktreeLines) {
-    // Check if this line contains the branch we want to remove
-    if (line.includes(`[${branch}]`) || line.endsWith(` ${branch}`)) {
-      worktreePathToRemove = line.split(/\s+/)[0];
-      break;
-    }
-  }
-  
+
+  const worktreePathToRemove = findWorktreePathByBranch(worktreeList, branch);
+
   if (!worktreePathToRemove) {
-    return { 
-      result: `Error: Worktree for branch '${branch}' not found.`, 
-      fullPath: '', 
-      baseDir: baseWorkDir 
+    return {
+      result: `Error: Worktree for branch '${branch}' not found.`,
+      fullPath: '',
+      baseDir: baseWorkDir
     };
   }
-  
-  // Remove the worktree using the actual path
-  const result = await executeGitCommand(baseWorkDir, `git worktree remove ${worktreePathToRemove} --force`);
-  
+
+  // Remove the worktree using shell-escaped path
+  const result = await executeGitCommand(baseWorkDir, `git worktree remove ${shellEscape(worktreePathToRemove)} --force`);
+
   return { result, fullPath: worktreePathToRemove, baseDir: baseWorkDir };
 }
 

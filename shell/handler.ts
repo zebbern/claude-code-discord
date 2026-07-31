@@ -2,6 +2,9 @@ import type { ShellProcess, ShellExecutionResult, ShellInputResult, ShellKillRes
 import { detectPlatform, getShellCommand } from "../util/platform.ts";
 import { killProcessCrossPlatform } from "../util/process.ts";
 
+// Maximum output buffer size per process (10 MB) to prevent OOM on infinite output
+const MAX_OUTPUT_BUFFER_SIZE = 10 * 1024 * 1024;
+
 export class ShellManager {
   private runningProcesses = new Map<number, ShellProcess>();
   private processIdCounter = 0;
@@ -78,6 +81,8 @@ export class ShellManager {
 
     const decoder = new TextDecoder();
 
+    let outputTruncated = false;
+
     (async () => {
       const reader = child.stdout.getReader();
       try {
@@ -85,8 +90,17 @@ export class ShellManager {
           const { done, value } = await reader.read();
           if (done) break;
           const text = decoder.decode(value);
+          // Enforce max buffer size to prevent OOM on infinite output
+          if (output.length + text.length > MAX_OUTPUT_BUFFER_SIZE) {
+            if (!outputTruncated) {
+              outputTruncated = true;
+              const truncMsg = '\n\n[Output truncated — exceeded 10 MB buffer limit]';
+              output += truncMsg;
+              outputCallbacks.forEach(cb => cb(truncMsg));
+            }
+            continue;
+          }
           output += text;
-          // Track new output since last update
           const process = this.runningProcesses.get(processId);
           if (process) {
             process.outputSinceLastUpdate += text;
@@ -105,8 +119,16 @@ export class ShellManager {
           const { done, value } = await reader.read();
           if (done) break;
           const text = decoder.decode(value);
+          if (output.length + text.length > MAX_OUTPUT_BUFFER_SIZE) {
+            if (!outputTruncated) {
+              outputTruncated = true;
+              const truncMsg = '\n\n[Output truncated — exceeded 10 MB buffer limit]';
+              output += truncMsg;
+              outputCallbacks.forEach(cb => cb(truncMsg));
+            }
+            continue;
+          }
           output += text;
-          // Track new output since last update
           const process = this.runningProcesses.get(processId);
           if (process) {
             process.outputSinceLastUpdate += text;

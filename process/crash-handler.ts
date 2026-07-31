@@ -145,57 +145,78 @@ export class ProcessCrashHandler {
     }
   }
 
-  // Recover shell process
+  /**
+   * Recover a crashed shell process by cleaning up its state.
+   * Shell processes cannot be automatically re-run (we don't know what
+   * the user intended), so recovery means releasing resources cleanly.
+   */
   private async recoverShellProcess(report: CrashReport): Promise<boolean> {
     if (!this.shellManager || typeof report.processId !== 'number') {
+      console.warn(`[CrashHandler] Cannot recover shell process: ${!this.shellManager ? 'no ShellManager' : 'invalid processId type'}`);
       return false;
     }
 
     try {
-      // Shell processes are typically not auto-recoverable
-      // Just clean up the crashed process from the manager
-      await this.shellManager.killProcess(report.processId);
-      console.log(`Cleaned up crashed shell process ${report.processId}`);
+      // Attempt to kill the process if it's still running
+      const result = await this.shellManager.killProcess(report.processId);
+      if (result.success) {
+        console.log(`[CrashHandler] Cleaned up crashed shell process ${report.processId}`);
+      } else {
+        // Process already gone — that's fine, we just needed to ensure cleanup
+        console.log(`[CrashHandler] Shell process ${report.processId} already terminated`);
+      }
       return true;
     } catch (error) {
-      console.error(`Failed to clean up shell process ${report.processId}:`, error);
+      console.error(`[CrashHandler] Failed to clean up shell process ${report.processId}:`, error);
       return false;
     }
   }
 
-  // Recover worktree process
+  /**
+   * Recover a crashed worktree bot process by cleaning up its state.
+   * Worktree bots require the original spawn parameters to restart,
+   * so recovery kills the zombie and marks the slot available.
+   */
   private async recoverWorktreeProcess(report: CrashReport): Promise<boolean> {
     if (!this.worktreeManager || typeof report.processId !== 'string') {
+      console.warn(`[CrashHandler] Cannot recover worktree process: ${!this.worktreeManager ? 'no WorktreeManager' : 'invalid processId type'}`);
       return false;
     }
 
     try {
-      // Kill the crashed worktree bot
-      this.worktreeManager.killWorktreeBot(report.processId);
-      
-      // Wait a bit for cleanup
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Kill the crashed worktree bot to release resources
+      const killed = this.worktreeManager.killWorktreeBot(report.processId);
+      if (killed) {
+        console.log(`[CrashHandler] Killed crashed worktree bot at ${report.processId}`);
+      } else {
+        console.log(`[CrashHandler] Worktree bot at ${report.processId} already terminated`);
+      }
 
-      // Attempt to restart the worktree bot
-      // Note: This would need additional context about the original spawn parameters
-      console.log(`Attempted recovery for worktree bot at ${report.processId}`);
+      // Wait for OS-level cleanup of child process
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Note: Cannot auto-restart without the original spawn parameters.
+      // The user will need to re-run the /worktree command to restart.
+      console.log(`[CrashHandler] Worktree bot at ${report.processId} cleaned up. User must re-run /worktree to restart.`);
       return true;
     } catch (error) {
-      console.error(`Failed to recover worktree process ${report.processId}:`, error);
+      console.error(`[CrashHandler] Failed to recover worktree process ${report.processId}:`, error);
       return false;
     }
   }
 
-  // Recover Claude process
+  /**
+   * Handle a Claude process crash. Claude sessions are stateful via
+   * session IDs, so a crash just means the current query is lost.
+   * The next query will start a fresh subprocess automatically.
+   */
   private async recoverClaudeProcess(report: CrashReport): Promise<boolean> {
-    try {
-      // Claude processes are typically session-based and self-recovering
-      console.log('Claude process crash noted, session will be reset on next request');
-      return true;
-    } catch (error) {
-      console.error('Failed to recover Claude process:', error);
-      return false;
+    console.log(`[CrashHandler] Claude process crash (${report.context || 'unknown context'}). Session will reset on next request.`);
+    // Reset the retry counter so the next query attempt starts fresh
+    if (report.processId !== undefined) {
+      this.resetRetryCounter('claude', report.processId);
     }
+    return true;
   }
 
   // Get crash statistics
