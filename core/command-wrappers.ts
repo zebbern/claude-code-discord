@@ -23,8 +23,12 @@ export interface CommandWrapperDeps {
   handlers: AllHandlers;
   /** Message history operations */
   messageHistory: MessageHistoryOps;
-  /** Get current Claude controller */
-  getClaudeController: () => AbortController | null;
+  /** Get Claude controller for a channel (or any if omitted) */
+  getClaudeController: (channelId?: string) => AbortController | null;
+  /** Whether any channel has an active Claude controller */
+  hasAnyClaudeController: () => boolean;
+  /** Abort all channel Claude controllers */
+  abortAllClaudeControllers: () => void;
   /** Get current Claude session ID */
   getClaudeSessionId: () => string | undefined;
   /** Crash handler for error reporting */
@@ -215,7 +219,7 @@ export function createParameterizedSystemHandlers(
 export function createClaudeCommandHandlers(
   handlers: AllHandlers,
   messageHistory: MessageHistoryOps,
-  getClaudeController: () => AbortController | null
+  _getClaudeController: (channelId?: string) => AbortController | null
 ): Map<string, { execute: (ctx: InteractionContext) => Promise<void>; handleButton?: (ctx: InteractionContext, customId: string) => Promise<void> }> {
   const { claude: claudeHandlers, enhancedClaude: enhancedClaudeHandlers, additionalClaude: additionalClaudeHandlers } = handlers;
   const { addToHistory } = messageHistory;
@@ -568,7 +572,17 @@ export interface CompleteCommandWrapperDeps extends CommandWrapperDeps {
  * This significantly reduces code in index.ts by consolidating handler creation.
  */
 export function createAllCommandHandlers(deps: CommandWrapperDeps): CommandHandlers {
-  const { handlers, messageHistory, getClaudeController, crashHandler, healthMonitor, botSettings, cleanupInterval } = deps;
+  const {
+    handlers,
+    messageHistory,
+    getClaudeController,
+    hasAnyClaudeController,
+    abortAllClaudeControllers,
+    crashHandler,
+    healthMonitor,
+    botSettings,
+    cleanupInterval,
+  } = deps;
 
   // Get handlers from individual factories
   const systemHandlers = createSystemCommandHandlers(handlers, crashHandler);
@@ -584,6 +598,8 @@ export function createAllCommandHandlers(deps: CommandWrapperDeps): CommandHandl
     crashHandler,
     healthMonitor,
     getClaudeController,
+    hasAnyClaudeController,
+    abortAllClaudeControllers,
     cleanupInterval,
     botSettings,
   };

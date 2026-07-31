@@ -151,6 +151,8 @@ export interface ClaudeModelOptions {
    *  When Claude wants to use a tool that isn't pre-approved, this callback
    *  presents Allow/Deny buttons in Discord and waits for a response. */
   onPermissionRequest?: PermissionRequestCallback;
+  /** Discord channel ID for per-channel query isolation */
+  channelId?: string;
 }
 
 // Default query timeout: 10 minutes. Prevents hanging if the SDK stalls.
@@ -318,10 +320,11 @@ export async function sendToClaudeCode(
         console.log(`Session resuming with ID: ${cleanedSessionId}`);
       }
       
+      const channelId = modelOptions?.channelId;
       const iterator = claudeQuery(queryOptions);
       // Store query reference for mid-session controls (interrupt, rewind, info)
-      setActiveQuery(iterator);
-      clearTrackedMessages();
+      setActiveQuery(iterator, channelId);
+      clearTrackedMessages(channelId);
       
       const currentMessages: SDKMessage[] = [];
       let currentResponse = "";
@@ -364,7 +367,8 @@ export async function sendToClaudeCode(
           trackMessageId(
             message.message.id as string,
             turnCount,
-            `Turn ${turnCount}`
+            `Turn ${turnCount}`,
+            channelId
           );
         }
         
@@ -375,7 +379,7 @@ export async function sendToClaudeCode(
       }
       
       // Clear active query when done
-      setActiveQuery(null);
+      setActiveQuery(null, channelId);
       
       return {
         messages: currentMessages,
@@ -387,7 +391,7 @@ export async function sendToClaudeCode(
     // deno-lint-ignore no-explicit-any
     } catch (error: any) {
       // Clear active query on error
-      setActiveQuery(null);
+      setActiveQuery(null, modelOptions?.channelId);
       // Properly handle process exit code 143 (SIGTERM) and AbortError
       if (error.name === 'AbortError' || 
           controller.signal.aborted || 
@@ -406,16 +410,19 @@ export async function sendToClaudeCode(
   };
   
   // First try with specified model (or default), with a timeout to prevent indefinite hangs
+  const timeoutMs = DEFAULT_QUERY_TIMEOUT_MS;
+  const channelId = modelOptions?.channelId;
+  let timeoutId: number | undefined;
   try {
-    const timeoutMs = DEFAULT_QUERY_TIMEOUT_MS;
     const result = await Promise.race([
       executeWithErrorHandling(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => {
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
           controller.abort();
+          setActiveQuery(null, channelId);
           reject(new Error(`Query timed out after ${timeoutMs / 1000}s`));
-        }, timeoutMs)
-      ),
+        }, timeoutMs);
+      }),
     ]);
     
     if (result.aborted) {
@@ -481,5 +488,9 @@ export async function sendToClaudeCode(
     }
     
     throw error;
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
   }
 }

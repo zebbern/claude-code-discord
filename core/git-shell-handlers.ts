@@ -25,8 +25,12 @@ export interface GitShellHandlerDeps {
   crashHandler: ProcessCrashHandler;
   /** Health monitor */
   healthMonitor: ProcessHealthMonitor;
-  /** Get current Claude controller */
-  getClaudeController: () => AbortController | null;
+  /** Get Claude controller for a channel (or any if omitted) */
+  getClaudeController: (channelId?: string) => AbortController | null;
+  /** Whether any channel has an active Claude controller */
+  hasAnyClaudeController: () => boolean;
+  /** Abort all channel Claude controllers */
+  abortAllClaudeControllers: () => void;
   /** Cleanup interval ID */
   cleanupInterval: number;
   /** Bot settings */
@@ -538,15 +542,14 @@ export function createShellCommandHandlers(
 export function createUtilityCommandHandlers(
   deps: GitShellHandlerDeps
 ): Map<string, { execute: (ctx: InteractionContext) => Promise<void> }> {
-  const { handlers, crashHandler, healthMonitor, getClaudeController, cleanupInterval, botSettings } = deps;
+  const { handlers, crashHandler, healthMonitor, hasAnyClaudeController, abortAllClaudeControllers, cleanupInterval, botSettings } = deps;
   const { git: gitHandlers, shell: shellHandlers, utils: utilsHandlers, help: helpHandlers } = handlers;
 
   return new Map([
     ['status', {
       execute: async (ctx: InteractionContext) => {
         await ctx.deferReply();
-        const claudeController = getClaudeController();
-        const sessionStatus = claudeController ? "Running" : "Idle";
+        const sessionStatus = hasAnyClaudeController() ? "Running" : "Idle";
         const gitStatusInfo = await gitHandlers.getStatus();
         const runningCount = shellHandlers.onShellList(ctx).size;
         const worktreeStatus = gitHandlers.onWorktreeBots(ctx);
@@ -607,10 +610,7 @@ export function createUtilityCommandHandlers(
         shellHandlers.killAllProcesses();
         gitHandlers.killAllWorktreeBots();
         
-        const claudeController = getClaudeController();
-        if (claudeController) {
-          claudeController.abort();
-        }
+        abortAllClaudeControllers();
         
         healthMonitor.stopAll();
         crashHandler.cleanup();

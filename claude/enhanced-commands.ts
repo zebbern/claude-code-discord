@@ -90,8 +90,8 @@ export const enhancedClaudeCommands = [
 
 export interface EnhancedClaudeHandlerDeps {
   workDir: string;
-  getClaudeController: () => AbortController | null;
-  setClaudeController: (controller: AbortController | null) => void;
+  getClaudeController: (channelId?: string) => AbortController | null;
+  setClaudeController: (controller: AbortController | null, channelId?: string) => void;
   setClaudeSessionId: (sessionId: string | undefined) => void;
   sendClaudeMessages: (messages: any[]) => Promise<void>;
   sessionManager: any;
@@ -115,14 +115,15 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
       sessionId?: string
     ) {
       try {
-        // Cancel any existing session
-        const existingController = deps.getClaudeController();
+        const channelId = typeof ctx.getChannelId === 'function' ? ctx.getChannelId() : undefined;
+        // Cancel only this channel's session
+        const existingController = deps.getClaudeController(channelId);
         if (existingController) {
           existingController.abort();
         }
 
         const controller = new AbortController();
-        deps.setClaudeController(controller);
+        deps.setClaudeController(controller, channelId);
 
         await ctx.deferReply();
 
@@ -173,6 +174,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
             effort: runtimeOpts.effort,
             maxBudgetUsd: runtimeOpts.maxBudgetUsd,
             extraEnv: runtimeOpts.extraEnv,
+            channelId,
           },
           controller,
           sessionId,
@@ -188,7 +190,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
         );
 
         deps.setClaudeSessionId(result.sessionId);
-        deps.setClaudeController(null);
+        deps.setClaudeController(null, channelId);
 
         // Update session manager
         if (result.sessionId) {

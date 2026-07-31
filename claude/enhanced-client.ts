@@ -26,6 +26,8 @@ export interface EnhancedClaudeOptions {
   agent?: string;
   /** Custom subagent definitions */
   agents?: Record<string, SDKAgentDefinition>;
+  /** Discord channel ID for per-channel query isolation */
+  channelId?: string;
 }
 
 export interface ClaudeSession {
@@ -170,6 +172,9 @@ export async function enhancedClaudeQuery(
   // System prompt: skip appendSystemPrompt when using native agent (SDK handles it via AgentDefinition.prompt)
   if (options.systemPrompt && !options.agent) {
     modelOptions.appendSystemPrompt = options.systemPrompt;
+  }
+  if (options.channelId) {
+    modelOptions.channelId = options.channelId;
   }
 
   const result = await sendToClaudeCode(

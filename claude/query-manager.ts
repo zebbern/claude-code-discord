@@ -122,8 +122,8 @@ export function clearTrackedMessages(channelId?: string): void {
  * Interrupt the active query gracefully via SDK (better than AbortController).
  * The query will stop processing and return control.
  */
-export async function interruptActiveQuery(): Promise<boolean> {
-  const query = getActiveQuery();
+export async function interruptActiveQuery(channelId?: string): Promise<boolean> {
+  const query = getActiveQuery(channelId);
   if (!query) return false;
   try {
     await query.interrupt();
@@ -136,8 +136,8 @@ export async function interruptActiveQuery(): Promise<boolean> {
 /**
  * Change the model on the active query mid-session.
  */
-export async function setActiveModel(model?: string): Promise<boolean> {
-  const query = getActiveQuery();
+export async function setActiveModel(model?: string, channelId?: string): Promise<boolean> {
+  const query = getActiveQuery(channelId);
   if (!query) return false;
   try {
     await query.setModel(model);
@@ -150,8 +150,8 @@ export async function setActiveModel(model?: string): Promise<boolean> {
 /**
  * Change the permission mode on the active query mid-session.
  */
-export async function setActivePermissionMode(mode: PermissionMode): Promise<boolean> {
-  const query = getActiveQuery();
+export async function setActivePermissionMode(mode: PermissionMode, channelId?: string): Promise<boolean> {
+  const query = getActiveQuery(channelId);
   if (!query) return false;
   try {
     await query.setPermissionMode(mode);
@@ -167,9 +167,10 @@ export async function setActivePermissionMode(mode: PermissionMode): Promise<boo
  * 
  * @param messageId - UUID of the user message to rewind to
  * @param dryRun - If true, preview changes without modifying files
+ * @param channelId - Optional channel for per-channel query isolation
  */
-export async function rewindToMessage(messageId: string, dryRun = false): Promise<RewindFilesResult | null> {
-  const query = getActiveQuery();
+export async function rewindToMessage(messageId: string, dryRun = false, channelId?: string): Promise<RewindFilesResult | null> {
+  const query = getActiveQuery(channelId);
   if (!query) return null;
   try {
     return await query.rewindFiles(messageId, { dryRun });
@@ -181,8 +182,8 @@ export async function rewindToMessage(messageId: string, dryRun = false): Promis
 /**
  * Get the full initialization result from the active query.
  */
-export async function getInitInfo(): Promise<ClaudeInitInfo | null> {
-  const query = getActiveQuery();
+export async function getInitInfo(channelId?: string): Promise<ClaudeInitInfo | null> {
+  const query = getActiveQuery(channelId);
   if (!query) return null;
   try {
     const result = await query.initializationResult();
@@ -200,8 +201,8 @@ export async function getInitInfo(): Promise<ClaudeInitInfo | null> {
 /**
  * Get account info from the active query.
  */
-export async function getAccountInfo(): Promise<AccountInfo | null> {
-  const query = getActiveQuery();
+export async function getAccountInfo(channelId?: string): Promise<AccountInfo | null> {
+  const query = getActiveQuery(channelId);
   if (!query) return null;
   try {
     return await query.accountInfo();
@@ -213,8 +214,8 @@ export async function getAccountInfo(): Promise<AccountInfo | null> {
 /**
  * Get supported models from the active query.
  */
-export async function getSupportedModels(): Promise<ModelInfo[] | null> {
-  const query = getActiveQuery();
+export async function getSupportedModels(channelId?: string): Promise<ModelInfo[] | null> {
+  const query = getActiveQuery(channelId);
   if (!query) return null;
   try {
     return await query.supportedModels();
@@ -226,8 +227,8 @@ export async function getSupportedModels(): Promise<ModelInfo[] | null> {
 /**
  * Get MCP server status from the active query.
  */
-export async function getMcpServerStatus(): Promise<McpServerStatus[] | null> {
-  const query = getActiveQuery();
+export async function getMcpServerStatus(channelId?: string): Promise<McpServerStatus[] | null> {
+  const query = getActiveQuery(channelId);
   if (!query) return null;
   try {
     return await query.mcpServerStatus();
@@ -241,9 +242,10 @@ export async function getMcpServerStatus(): Promise<McpServerStatus[] | null> {
  * A task_notification with status 'stopped' will be emitted.
  *
  * @param taskId - The task ID from task_notification/task_started events
+ * @param channelId - Optional channel for per-channel query isolation
  */
-export async function stopActiveTask(taskId: string): Promise<boolean> {
-  const query = getActiveQuery();
+export async function stopActiveTask(taskId: string, channelId?: string): Promise<boolean> {
+  const query = getActiveQuery(channelId);
   if (!query) return false;
   try {
     await query.stopTask(taskId);
@@ -262,9 +264,10 @@ export async function stopActiveTask(taskId: string): Promise<boolean> {
  *
  * @param serverName - The name of the MCP server to toggle
  * @param enabled - Whether the server should be enabled
+ * @param channelId - Optional channel for per-channel query isolation
  */
-export async function toggleMcpServerActive(serverName: string, enabled: boolean): Promise<boolean> {
-  const query = getActiveQuery();
+export async function toggleMcpServerActive(serverName: string, enabled: boolean, channelId?: string): Promise<boolean> {
+  const query = getActiveQuery(channelId);
   if (!query) return false;
   try {
     await query.toggleMcpServer(serverName, enabled);
@@ -279,9 +282,10 @@ export async function toggleMcpServerActive(serverName: string, enabled: boolean
  * Useful when a server has failed or disconnected.
  *
  * @param serverName - The name of the MCP server to reconnect
+ * @param channelId - Optional channel for per-channel query isolation
  */
-export async function reconnectMcpServerActive(serverName: string): Promise<boolean> {
-  const query = getActiveQuery();
+export async function reconnectMcpServerActive(serverName: string, channelId?: string): Promise<boolean> {
+  const query = getActiveQuery(channelId);
   if (!query) return false;
   try {
     await query.reconnectMcpServer(serverName);
@@ -297,9 +301,10 @@ export async function reconnectMcpServerActive(serverName: string): Promise<bool
  * Servers from settings files are not affected.
  *
  * @param servers - Record of server name to configuration
+ * @param channelId - Optional channel for per-channel query isolation
  */
-export async function setMcpServersActive(servers: Record<string, McpServerConfig>): Promise<McpSetServersResult | null> {
-  const query = getActiveQuery();
+export async function setMcpServersActive(servers: Record<string, McpServerConfig>, channelId?: string): Promise<McpSetServersResult | null> {
+  const query = getActiveQuery(channelId);
   if (!query) return null;
   try {
     return await query.setMcpServers(servers);

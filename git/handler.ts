@@ -11,6 +11,9 @@ const exec = promisify(execCallback);
  * Rejects names containing shell metacharacters or patterns that could
  * be interpreted as flags/options.
  */
+/** Shell metacharacters that enable command injection via exec() */
+const SHELL_METACHARS = /[;&|`$(){}!\\\n\r"'<>]/;
+
 export function validateBranchName(branch: string): { valid: boolean; reason?: string } {
   if (!branch || !branch.trim()) {
     return { valid: false, reason: "Branch name cannot be empty" };
@@ -22,8 +25,7 @@ export function validateBranchName(branch: string): { valid: boolean; reason?: s
   }
 
   // Reject shell metacharacters that could enable command injection
-  const dangerousChars = /[;&|`$(){}!\\\n\r"'<>]/;
-  if (dangerousChars.test(branch)) {
+  if (SHELL_METACHARS.test(branch)) {
     return { valid: false, reason: "Branch name contains invalid characters" };
   }
 
@@ -37,6 +39,23 @@ export function validateBranchName(branch: string): { valid: boolean; reason?: s
     return { valid: false, reason: "Branch name cannot contain whitespace" };
   }
 
+  return { valid: true };
+}
+
+/**
+ * Validate a user-supplied git command string (the part after `git `).
+ * Rejects shell metacharacters that would allow injection via exec().
+ */
+export function validateGitCommandArgs(command: string): { valid: boolean; reason?: string } {
+  if (!command || !command.trim()) {
+    return { valid: false, reason: "Git command cannot be empty" };
+  }
+  if (SHELL_METACHARS.test(command)) {
+    return { valid: false, reason: "Git command contains invalid characters" };
+  }
+  if (command.includes("\n") || command.includes("\r")) {
+    return { valid: false, reason: "Git command cannot contain newlines" };
+  }
   return { valid: true };
 }
 

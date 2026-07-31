@@ -182,8 +182,8 @@ export const additionalClaudeCommands = [
 
 export interface AdditionalClaudeHandlerDeps {
   workDir: string;
-  getClaudeController: () => AbortController | null;
-  setClaudeController: (controller: AbortController | null) => void;
+  getClaudeController: (channelId?: string) => AbortController | null;
+  setClaudeController: (controller: AbortController | null, channelId?: string) => void;
   sendClaudeMessages: (messages: any[]) => Promise<void>;
   sessionManager: any;
   crashHandler: any;
@@ -194,6 +194,10 @@ export interface AdditionalClaudeHandlerDeps {
 
 export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps) {
   const { workDir, sessionManager, crashHandler, sendClaudeMessages, settings } = deps;
+
+  // deno-lint-ignore no-explicit-any
+  const channelFrom = (ctx: any): string | undefined =>
+    typeof ctx?.getChannelId === "function" ? ctx.getChannelId() : undefined;
 
   // Helper: merge runtime options (thinking, operation, proxy) into enhanced query options
   function getRuntimeOpts() {
@@ -216,7 +220,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
     ) {
       try {
         await ctx.deferReply();
-        
+        const channelId = channelFrom(ctx);
         let prompt = `Please explain the following in ${detailLevel || 'detailed'} terms`;
         
         if (includeExamples) {
@@ -228,13 +232,13 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
         // Cancel any existing session
-        const existingController = deps.getClaudeController();
+        const existingController = deps.getClaudeController(channelId);
         if (existingController) {
           existingController.abort();
         }
 
         const controller = new AbortController();
-        deps.setClaudeController(controller);
+        deps.setClaudeController(controller, channelId);
 
         const result = await enhancedClaudeQuery(
           prompt,
@@ -244,6 +248,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             includeSystemInfo: false,
             includeGitContext: false,
             ...getRuntimeOpts(),
+            channelId,
           },
           controller,
           undefined,
@@ -258,7 +263,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null);
+        deps.setClaudeController(null, channelId);
         return result;
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'explain', 'Claude explain command');
@@ -274,7 +279,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
     ) {
       try {
         await ctx.deferReply();
-        
+        const channelId = channelFrom(ctx);
         let prompt = `Please help me debug this ${language ? `${language} ` : ''}issue:\n\n${errorOrCode}`;
         
         if (contextFiles) {
@@ -286,13 +291,13 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
         // Cancel any existing session
-        const existingController = deps.getClaudeController();
+        const existingController = deps.getClaudeController(channelId);
         if (existingController) {
           existingController.abort();
         }
 
         const controller = new AbortController();
-        deps.setClaudeController(controller);
+        deps.setClaudeController(controller, channelId);
 
         const contextFilesList = contextFiles ? 
           contextFiles.split(',').map(f => f.trim()).filter(f => f.length > 0) : 
@@ -307,6 +312,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             includeGitContext: settings.autoIncludeGitContext,
             contextFiles: contextFilesList,
             ...getRuntimeOpts(),
+            channelId,
           },
           controller,
           undefined,
@@ -321,7 +327,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null);
+        deps.setClaudeController(null, channelId);
         return result;
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'debug', 'Claude debug command');
@@ -337,7 +343,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
     ) {
       try {
         await ctx.deferReply();
-        
+        const channelId = channelFrom(ctx);
         let prompt = `Please optimize this code`;
         
         if (focus) {
@@ -353,13 +359,13 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
         // Cancel any existing session
-        const existingController = deps.getClaudeController();
+        const existingController = deps.getClaudeController(channelId);
         if (existingController) {
           existingController.abort();
         }
 
         const controller = new AbortController();
-        deps.setClaudeController(controller);
+        deps.setClaudeController(controller, channelId);
 
         const result = await enhancedClaudeQuery(
           prompt,
@@ -369,6 +375,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             includeSystemInfo: false,
             includeGitContext: settings.autoIncludeGitContext,
             ...getRuntimeOpts(),
+            channelId,
           },
           controller,
           undefined,
@@ -383,7 +390,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null);
+        deps.setClaudeController(null, channelId);
         return result;
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'optimize', 'Claude optimize command');
@@ -400,7 +407,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
     ) {
       try {
         await ctx.deferReply();
-        
+        const channelId = channelFrom(ctx);
         let prompt = `Please perform a ${reviewType || 'standard'} code review of:\n\n${codeOrFile}\n\nPlease analyze:`;
         
         const analysisPoints = [
@@ -423,13 +430,13 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
         // Cancel any existing session
-        const existingController = deps.getClaudeController();
+        const existingController = deps.getClaudeController(channelId);
         if (existingController) {
           existingController.abort();
         }
 
         const controller = new AbortController();
-        deps.setClaudeController(controller);
+        deps.setClaudeController(controller, channelId);
 
         // Check if codeOrFile is a file path
         const isFilePath = codeOrFile.includes('/') || codeOrFile.includes('\\') || codeOrFile.includes('.');
@@ -444,6 +451,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             includeGitContext: settings.autoIncludeGitContext,
             contextFiles,
             ...getRuntimeOpts(),
+            channelId,
           },
           controller,
           undefined,
@@ -458,7 +466,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null);
+        deps.setClaudeController(null, channelId);
         return result;
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'review', 'Claude review command');
@@ -474,7 +482,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
     ) {
       try {
         await ctx.deferReply();
-        
+        const channelId = channelFrom(ctx);
         let prompt = `Please generate ${type ? `a ${type}` : 'code'} based on this request: ${request}`;
         
         if (style) {
@@ -486,13 +494,13 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
         // Cancel any existing session
-        const existingController = deps.getClaudeController();
+        const existingController = deps.getClaudeController(channelId);
         if (existingController) {
           existingController.abort();
         }
 
         const controller = new AbortController();
-        deps.setClaudeController(controller);
+        deps.setClaudeController(controller, channelId);
 
         const result = await enhancedClaudeQuery(
           prompt,
@@ -502,6 +510,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             includeSystemInfo: settings.autoIncludeSystemInfo,
             includeGitContext: settings.autoIncludeGitContext,
             ...getRuntimeOpts(),
+            channelId,
           },
           controller,
           undefined,
@@ -516,7 +525,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null);
+        deps.setClaudeController(null, channelId);
         return result;
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'generate', 'Claude generate command');
@@ -533,7 +542,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
     ) {
       try {
         await ctx.deferReply();
-        
+        const channelId = channelFrom(ctx);
         let prompt = `Please refactor this code`;
         
         if (goal) {
@@ -553,13 +562,13 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
         // Cancel any existing session
-        const existingController = deps.getClaudeController();
+        const existingController = deps.getClaudeController(channelId);
         if (existingController) {
           existingController.abort();
         }
 
         const controller = new AbortController();
-        deps.setClaudeController(controller);
+        deps.setClaudeController(controller, channelId);
 
         const result = await enhancedClaudeQuery(
           prompt,
@@ -569,6 +578,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             includeSystemInfo: false,
             includeGitContext: settings.autoIncludeGitContext,
             ...getRuntimeOpts(),
+            channelId,
           },
           controller,
           undefined,
@@ -583,7 +593,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null);
+        deps.setClaudeController(null, channelId);
         return result;
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'refactor', 'Claude refactor command');
@@ -600,7 +610,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
     ) {
       try {
         await ctx.deferReply();
-        
+        const channelId = channelFrom(ctx);
         let prompt = `Please teach me about "${topic}" at ${level || 'intermediate'} level.`;
         
         if (stepByStep) {
@@ -616,13 +626,13 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const { enhancedClaudeQuery } = await import("./enhanced-client.ts");
         
         // Cancel any existing session
-        const existingController = deps.getClaudeController();
+        const existingController = deps.getClaudeController(channelId);
         if (existingController) {
           existingController.abort();
         }
 
         const controller = new AbortController();
-        deps.setClaudeController(controller);
+        deps.setClaudeController(controller, channelId);
 
         const result = await enhancedClaudeQuery(
           prompt,
@@ -632,6 +642,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
             includeSystemInfo: false,
             includeGitContext: false,
             ...getRuntimeOpts(),
+            channelId,
           },
           controller,
           undefined,
@@ -646,7 +657,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null);
+        deps.setClaudeController(null, channelId);
         return result;
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'learn', 'Claude learn command');

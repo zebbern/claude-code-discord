@@ -72,20 +72,26 @@ export interface MessageHistoryOps {
  * Claude session state.
  */
 export interface ClaudeSessionState {
-  /** Abort controller for cancellation */
-  controller: AbortController | null;
+  /** Per-channel abort controllers for cancellation */
+  controllers: Map<string, AbortController>;
   /** Current session ID */
   sessionId: string | undefined;
 }
+
+const DEFAULT_CONTROLLER_CHANNEL = "__default__";
 
 /**
  * Claude session operations.
  */
 export interface ClaudeSessionOps {
-  /** Get current controller */
-  getController: () => AbortController | null;
-  /** Set controller */
-  setController: (controller: AbortController | null) => void;
+  /** Get controller for a channel (or any controller if channelId omitted) */
+  getController: (channelId?: string) => AbortController | null;
+  /** Set controller for a channel */
+  setController: (controller: AbortController | null, channelId?: string) => void;
+  /** Abort and clear all channel controllers */
+  abortAllControllers: () => void;
+  /** Whether any channel has an active controller */
+  hasAnyController: () => boolean;
   /** Get session ID */
   getSessionId: () => string | undefined;
   /** Set session ID */
@@ -271,13 +277,33 @@ export function createMessageHistory(maxSize: number = 50): MessageHistoryOps {
  */
 export function createClaudeSession(): ClaudeSessionOps {
   const state: ClaudeSessionState = {
-    controller: null,
+    controllers: new Map(),
     sessionId: undefined,
   };
 
   return {
-    getController: () => state.controller,
-    setController: (controller) => { state.controller = controller; },
+    getController: (channelId?) => {
+      if (channelId) {
+        return state.controllers.get(channelId) ?? null;
+      }
+      const first = state.controllers.values().next();
+      return first.done ? null : first.value;
+    },
+    setController: (controller, channelId?) => {
+      const key = channelId || DEFAULT_CONTROLLER_CHANNEL;
+      if (controller) {
+        state.controllers.set(key, controller);
+      } else {
+        state.controllers.delete(key);
+      }
+    },
+    abortAllControllers: () => {
+      for (const controller of state.controllers.values()) {
+        controller.abort();
+      }
+      state.controllers.clear();
+    },
+    hasAnyController: () => state.controllers.size > 0,
     getSessionId: () => state.sessionId,
     setSessionId: (sessionId) => { state.sessionId = sessionId; },
   };

@@ -73,8 +73,25 @@ export async function createClaudeCodeBot(config: BotConfig) {
   const actualCategoryName = categoryName || repoName;
 
   // Claude Code session management (closures needed for handler state)
-  let claudeController: AbortController | null = null;
+  const claudeControllers = new Map<string, AbortController>();
+  const DEFAULT_CONTROLLER_CHANNEL = "__default__";
   let claudeSessionId: string | undefined;
+
+  const getClaudeController = (channelId?: string): AbortController | null => {
+    if (channelId) return claudeControllers.get(channelId) ?? null;
+    const first = claudeControllers.values().next();
+    return first.done ? null : first.value;
+  };
+  const setClaudeController = (controller: AbortController | null, channelId?: string): void => {
+    const key = channelId || DEFAULT_CONTROLLER_CHANNEL;
+    if (controller) claudeControllers.set(key, controller);
+    else claudeControllers.delete(key);
+  };
+  const abortAllClaudeControllers = (): void => {
+    for (const c of claudeControllers.values()) c.abort();
+    claudeControllers.clear();
+  };
+  const hasAnyClaudeController = (): boolean => claudeControllers.size > 0;
 
   // Message history for navigation
   const messageHistoryOps: MessageHistoryOps = createMessageHistory(50);
@@ -109,7 +126,11 @@ export async function createClaudeCodeBot(config: BotConfig) {
   // Setup periodic cleanup tasks
   const cleanupInterval = setupPeriodicCleanup(managers, 3600000, [
     cleanupPaginationStates,
-    () => { sessionThreadManager.cleanup(); },
+    () => {
+      void sessionThreadManager.cleanup().catch((error) => {
+        console.error("Error during session thread cleanup:", error);
+      });
+    },
   ]);
 
   // Initialize bot settings
@@ -248,8 +269,10 @@ export async function createClaudeCodeBot(config: BotConfig) {
       sessionThreads: sessionThreadCallbacks,
     },
     {
-      getController: () => claudeController,
-      setController: (controller) => { claudeController = controller; },
+      getController: getClaudeController,
+      setController: setClaudeController,
+      abortAllControllers: abortAllClaudeControllers,
+      hasAnyController: hasAnyClaudeController,
       getSessionId: () => claudeSessionId,
       setSessionId: (sessionId) => { claudeSessionId = sessionId; },
     },
@@ -260,7 +283,9 @@ export async function createClaudeCodeBot(config: BotConfig) {
   const handlers: CommandHandlers = createAllCommandHandlers({
     handlers: allHandlers,
     messageHistory: messageHistoryOps,
-    getClaudeController: () => claudeController,
+    getClaudeController,
+    hasAnyClaudeController,
+    abortAllClaudeControllers,
     getClaudeSessionId: () => claudeSessionId,
     crashHandler,
     healthMonitor,
@@ -310,6 +335,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
           const threadSender = createClaudeSender(createChannelSenderAdapter(thread));
 
           const controller = new AbortController();
+          const alertChannelId = thread.id;
           await sendToClaudeCode(
             workDir,
             prompt,
@@ -323,6 +349,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
               }
             },
             false,
+            { channelId: alertChannelId },
           );
         },
       },
@@ -409,7 +436,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
   setupSignalHandlers({
     managers,
     allHandlers,
-    getClaudeController: () => claudeController,
+    abortAllClaudeControllers,
     claudeSender,
     actualCategoryName,
     repoName,
@@ -707,7 +734,7 @@ function createPermissionRequestHandler(bot: any, getTargetChannel?: () => any):
 function setupSignalHandlers(ctx: {
   managers: BotManagers;
   allHandlers: AllHandlers;
-  getClaudeController: () => AbortController | null;
+  abortAllClaudeControllers: () => void;
   claudeSender: ((messages: ClaudeMessage[]) => Promise<void>) | null;
   actualCategoryName: string;
   repoName: string;
@@ -716,7 +743,7 @@ function setupSignalHandlers(ctx: {
   // deno-lint-ignore no-explicit-any
   bot: any;
 }) {
-  const { managers, allHandlers, getClaudeController, claudeSender, actualCategoryName, repoName, branchName, cleanupInterval, bot } = ctx;
+  const { managers, allHandlers, abortAllClaudeControllers, claudeSender, actualCategoryName, repoName, branchName, cleanupInterval, bot } = ctx;
   const { crashHandler, healthMonitor } = managers;
   const { shell: shellHandlers, git: gitHandlers } = allHandlers;
 
@@ -728,11 +755,8 @@ function setupSignalHandlers(ctx: {
       shellHandlers.killAllProcesses();
       gitHandlers.killAllWorktreeBots();
 
-      // Cancel Claude Code session
-      const claudeController = getClaudeController();
-      if (claudeController) {
-        claudeController.abort();
-      }
+      // Cancel all Claude Code sessions
+      abortAllClaudeControllers();
 
       // Send shutdown message
       if (claudeSender) {

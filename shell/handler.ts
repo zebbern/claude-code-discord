@@ -3,7 +3,15 @@ import { detectPlatform, getShellCommand } from "../util/platform.ts";
 import { killProcessCrossPlatform } from "../util/process.ts";
 
 // Maximum output buffer size per process (10 MB) to prevent OOM on infinite output
-const MAX_OUTPUT_BUFFER_SIZE = 10 * 1024 * 1024;
+export const MAX_OUTPUT_BUFFER_SIZE = 10 * 1024 * 1024;
+
+/**
+ * Decide whether incoming chunk fits the buffer; returns remaining capacity info.
+ * Exported for unit tests.
+ */
+export function shouldTruncateOutput(currentLength: number, incomingLength: number, maxSize = MAX_OUTPUT_BUFFER_SIZE): boolean {
+  return currentLength + incomingLength > maxSize;
+}
 
 export class ShellManager {
   private runningProcesses = new Map<number, ShellProcess>();
@@ -90,15 +98,16 @@ export class ShellManager {
           const { done, value } = await reader.read();
           if (done) break;
           const text = decoder.decode(value);
-          // Enforce max buffer size to prevent OOM on infinite output
-          if (output.length + text.length > MAX_OUTPUT_BUFFER_SIZE) {
+          // Enforce max buffer size — kill the process so infinite output cannot burn CPU
+          if (shouldTruncateOutput(output.length, text.length)) {
             if (!outputTruncated) {
               outputTruncated = true;
-              const truncMsg = '\n\n[Output truncated — exceeded 10 MB buffer limit]';
+              const truncMsg = '\n\n[Output truncated — exceeded 10 MB buffer limit; process killed]';
               output += truncMsg;
               outputCallbacks.forEach(cb => cb(truncMsg));
+              void this.killProcess(processId);
             }
-            continue;
+            break;
           }
           output += text;
           const process = this.runningProcesses.get(processId);
@@ -119,14 +128,15 @@ export class ShellManager {
           const { done, value } = await reader.read();
           if (done) break;
           const text = decoder.decode(value);
-          if (output.length + text.length > MAX_OUTPUT_BUFFER_SIZE) {
+          if (shouldTruncateOutput(output.length, text.length)) {
             if (!outputTruncated) {
               outputTruncated = true;
-              const truncMsg = '\n\n[Output truncated — exceeded 10 MB buffer limit]';
+              const truncMsg = '\n\n[Output truncated — exceeded 10 MB buffer limit; process killed]';
               output += truncMsg;
               outputCallbacks.forEach(cb => cb(truncMsg));
+              void this.killProcess(processId);
             }
-            continue;
+            break;
           }
           output += text;
           const process = this.runningProcesses.get(processId);

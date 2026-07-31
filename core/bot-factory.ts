@@ -252,17 +252,22 @@ export function createBotManagers(deps: BotFactoryDeps): BotManagers {
 export function setupPeriodicCleanup(
   managers: BotManagers,
   intervalMs: number = DEFAULT_CLEANUP_INTERVAL_MS,
-  additionalCleanup: Array<() => void> = []
+  additionalCleanup: Array<() => void | Promise<void>> = []
 ): number {
   const cleanup = () => {
     try {
       managers.crashHandler.cleanup();
       managers.claudeSessionManager.cleanup();
       
-      // Run additional cleanup functions
+      // Run additional cleanup functions (sync or async)
       for (const cleanupFn of additionalCleanup) {
         try {
-          cleanupFn();
+          const result = cleanupFn();
+          if (result && typeof (result as Promise<void>).then === "function") {
+            void (result as Promise<void>).catch((error) => {
+              console.error('Error during additional cleanup:', error);
+            });
+          }
         } catch (error) {
           console.error('Error during additional cleanup:', error);
         }
@@ -304,7 +309,7 @@ export function setupPeriodicCleanup(
  */
 export function createBotContext(
   deps: BotFactoryDeps,
-  additionalCleanup: Array<() => void> = []
+  additionalCleanup: Array<() => void | Promise<void>> = []
 ): BotContext {
   const managers = createBotManagers(deps);
   const cleanupIntervalMs = deps.cleanupIntervalMs ?? DEFAULT_CLEANUP_INTERVAL_MS;
@@ -392,7 +397,7 @@ export function validateBotFactoryDeps(deps: BotFactoryDeps): ValidationResult {
  */
 export function createBotContextOrThrow(
   deps: BotFactoryDeps,
-  additionalCleanup: Array<() => void> = []
+  additionalCleanup: Array<() => void | Promise<void>> = []
 ): BotContext {
   const validation = validateBotFactoryDeps(deps);
   

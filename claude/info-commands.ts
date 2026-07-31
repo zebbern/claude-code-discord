@@ -103,16 +103,17 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
     // deno-lint-ignore no-explicit-any
     async onClaudeInfo(ctx: any, section?: string): Promise<void> {
       await ctx.deferReply();
+      const channelId = typeof ctx.getChannelId === 'function' ? ctx.getChannelId() : undefined;
       const showSection = section || 'all';
 
       // Try active query first, fall back to ephemeral query
-      const hasActive = !!getActiveQuery();
+      const hasActive = !!getActiveQuery(channelId);
       
       try {
         if (showSection === 'all' || showSection === 'account') {
           let account;
           if (hasActive) {
-            account = await getAccountInfo();
+            account = await getAccountInfo(channelId);
           }
           if (!account) {
             // Open ephemeral query for info
@@ -148,7 +149,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
         if (showSection === 'models') {
           let models;
           if (hasActive) {
-            models = await getSupportedModels();
+            models = await getSupportedModels(channelId);
           }
           if (!models) {
             const info = await fetchClaudeInfo(workDir);
@@ -173,7 +174,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
         if (showSection === 'mcp') {
           let mcpStatus;
           if (hasActive) {
-            mcpStatus = await getMcpServerStatus();
+            mcpStatus = await getMcpServerStatus(channelId);
           }
           if (mcpStatus && mcpStatus.length > 0) {
             const statusLines = mcpStatus.map(s => {
@@ -222,8 +223,9 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
     // deno-lint-ignore no-explicit-any
     async onRewind(ctx: any, turn?: number, dryRun?: boolean): Promise<void> {
       await ctx.deferReply();
+      const channelId = typeof ctx.getChannelId === 'function' ? ctx.getChannelId() : undefined;
 
-      if (!getActiveQuery()) {
+      if (!getActiveQuery(channelId)) {
         await ctx.editReply({
           embeds: [{
             color: 0xff0000,
@@ -235,7 +237,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
         return;
       }
 
-      const messages = getTrackedMessages();
+      const messages = getTrackedMessages(channelId);
 
       // If no turn specified, show available turns
       if (turn === undefined) {
@@ -284,7 +286,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
       const isDryRun = dryRun ?? false;
 
       try {
-        const result = await rewindToMessage(targetMessage.messageId, isDryRun);
+        const result = await rewindToMessage(targetMessage.messageId, isDryRun, channelId);
 
         if (!result) {
           await ctx.editReply({
@@ -347,10 +349,11 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
     // deno-lint-ignore no-explicit-any
     async onClaudeControl(ctx: any, action: string, value?: string): Promise<void> {
       await ctx.deferReply();
+      const channelId = typeof ctx.getChannelId === 'function' ? ctx.getChannelId() : undefined;
 
       switch (action) {
         case 'interrupt': {
-          const success = await interruptActiveQuery();
+          const success = await interruptActiveQuery(channelId);
           await ctx.editReply({
             embeds: [{
               color: success ? 0x00ff00 : 0xff0000,
@@ -372,7 +375,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
             });
             return;
           }
-          const success = await setActiveModel(value);
+          const success = await setActiveModel(value, channelId);
           await ctx.editReply({
             embeds: [{
               color: success ? 0x00ff00 : 0xff0000,
@@ -396,7 +399,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
             return;
           }
           // deno-lint-ignore no-explicit-any
-          const success = await setActivePermissionMode(value as any);
+          const success = await setActivePermissionMode(value as any, channelId);
           await ctx.editReply({
             embeds: [{
               color: success ? 0x00ff00 : 0xff0000,
@@ -411,8 +414,8 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
         }
 
         case 'status': {
-          const hasActive = !!getActiveQuery();
-          const trackedMsgs = getTrackedMessages();
+          const hasActive = !!getActiveQuery(channelId);
+          const trackedMsgs = getTrackedMessages(channelId);
           await ctx.editReply({
             embeds: [{
               color: hasActive ? 0x00ff00 : 0x666666,
@@ -438,7 +441,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
             });
             return;
           }
-          const success = await stopActiveTask(value);
+          const success = await stopActiveTask(value, channelId);
           await ctx.editReply({
             embeds: [{
               color: success ? 0x00ff00 : 0xff0000,
@@ -481,7 +484,8 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
         console.error('[/fast] Failed to write local settings:', err);
       }
 
-      const activeQuery = getActiveQuery();
+      const channelId = typeof ctx.getChannelId === 'function' ? ctx.getChannelId() : undefined;
+      const activeQuery = getActiveQuery(channelId);
       const sessionNote = activeQuery
         ? '\n⚠️ Takes effect on **next query** (cannot toggle mid-session via SDK).'
         : '';
