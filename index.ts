@@ -78,9 +78,8 @@ export async function createClaudeCodeBot(config: BotConfig) {
   let claudeSessionId: string | undefined;
 
   const getClaudeController = (channelId?: string): AbortController | null => {
-    if (channelId) return claudeControllers.get(channelId) ?? null;
-    const first = claudeControllers.values().next();
-    return first.done ? null : first.value;
+    const key = channelId || DEFAULT_CONTROLLER_CHANNEL;
+    return claudeControllers.get(key) ?? null;
   };
   const setClaudeController = (controller: AbortController | null, channelId?: string): void => {
     const key = channelId || DEFAULT_CONTROLLER_CHANNEL;

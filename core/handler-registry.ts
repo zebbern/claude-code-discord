@@ -84,9 +84,9 @@ const DEFAULT_CONTROLLER_CHANNEL = "__default__";
  * Claude session operations.
  */
 export interface ClaudeSessionOps {
-  /** Get controller for a channel (or any controller if channelId omitted) */
+  /** Get controller for a channel (falls back to DEFAULT_CONTROLLER_CHANNEL) */
   getController: (channelId?: string) => AbortController | null;
-  /** Set controller for a channel */
+  /** Set controller for a channel (falls back to DEFAULT_CONTROLLER_CHANNEL) */
   setController: (controller: AbortController | null, channelId?: string) => void;
   /** Abort and clear all channel controllers */
   abortAllControllers: () => void;
@@ -283,11 +283,8 @@ export function createClaudeSession(): ClaudeSessionOps {
 
   return {
     getController: (channelId?) => {
-      if (channelId) {
-        return state.controllers.get(channelId) ?? null;
-      }
-      const first = state.controllers.values().next();
-      return first.done ? null : first.value;
+      const key = channelId || DEFAULT_CONTROLLER_CHANNEL;
+      return state.controllers.get(key) ?? null;
     },
     setController: (controller, channelId?) => {
       const key = channelId || DEFAULT_CONTROLLER_CHANNEL;

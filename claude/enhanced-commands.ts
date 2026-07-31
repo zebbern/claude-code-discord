@@ -114,17 +114,17 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
       contextFiles?: string,
       sessionId?: string
     ) {
+      const channelId = typeof ctx.getChannelId === 'function' ? ctx.getChannelId() : undefined;
+      // Cancel only this channel's session
+      const existingController = deps.getClaudeController(channelId);
+      if (existingController) {
+        existingController.abort();
+      }
+
+      const controller = new AbortController();
+      deps.setClaudeController(controller, channelId);
+
       try {
-        const channelId = typeof ctx.getChannelId === 'function' ? ctx.getChannelId() : undefined;
-        // Cancel only this channel's session
-        const existingController = deps.getClaudeController(channelId);
-        if (existingController) {
-          existingController.abort();
-        }
-
-        const controller = new AbortController();
-        deps.setClaudeController(controller, channelId);
-
         await ctx.deferReply();
 
         // Apply template if specified
@@ -190,7 +190,6 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
         );
 
         deps.setClaudeSessionId(result.sessionId);
-        deps.setClaudeController(null, channelId);
 
         // Update session manager
         if (result.sessionId) {
@@ -203,6 +202,8 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'enhanced', 'Enhanced Claude query');
         throw error;
+      } finally {
+        deps.setClaudeController(null, channelId);
       }
     },
 

@@ -240,6 +240,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller, channelId);
 
+        try {
         const result = await enhancedClaudeQuery(
           prompt,
           {
@@ -263,8 +264,10 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null, channelId);
         return result;
+        } finally {
+          deps.setClaudeController(null, channelId);
+        }
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'explain', 'Claude explain command');
         throw error;
@@ -299,6 +302,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller, channelId);
 
+        try {
         const contextFilesList = contextFiles ? 
           contextFiles.split(',').map(f => f.trim()).filter(f => f.length > 0) : 
           undefined;
@@ -327,8 +331,10 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null, channelId);
         return result;
+        } finally {
+          deps.setClaudeController(null, channelId);
+        }
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'debug', 'Claude debug command');
         throw error;
@@ -367,6 +373,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller, channelId);
 
+        try {
         const result = await enhancedClaudeQuery(
           prompt,
           {
@@ -390,8 +397,10 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null, channelId);
         return result;
+        } finally {
+          deps.setClaudeController(null, channelId);
+        }
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'optimize', 'Claude optimize command');
         throw error;
@@ -438,6 +447,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller, channelId);
 
+        try {
         // Check if codeOrFile is a file path
         const isFilePath = codeOrFile.includes('/') || codeOrFile.includes('\\') || codeOrFile.includes('.');
         const contextFiles = isFilePath ? [codeOrFile] : undefined;
@@ -466,8 +476,10 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null, channelId);
         return result;
+        } finally {
+          deps.setClaudeController(null, channelId);
+        }
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'review', 'Claude review command');
         throw error;
@@ -502,6 +514,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller, channelId);
 
+        try {
         const result = await enhancedClaudeQuery(
           prompt,
           {
@@ -525,8 +538,10 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null, channelId);
         return result;
+        } finally {
+          deps.setClaudeController(null, channelId);
+        }
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'generate', 'Claude generate command');
         throw error;
@@ -570,6 +585,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller, channelId);
 
+        try {
         const result = await enhancedClaudeQuery(
           prompt,
           {
@@ -593,8 +609,10 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null, channelId);
         return result;
+        } finally {
+          deps.setClaudeController(null, channelId);
+        }
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'refactor', 'Claude refactor command');
         throw error;
@@ -634,6 +652,7 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
         const controller = new AbortController();
         deps.setClaudeController(controller, channelId);
 
+        try {
         const result = await enhancedClaudeQuery(
           prompt,
           {
@@ -657,8 +676,10 @@ export function createAdditionalClaudeHandlers(deps: AdditionalClaudeHandlerDeps
           false
         );
 
-        deps.setClaudeController(null, channelId);
         return result;
+        } finally {
+          deps.setClaudeController(null, channelId);
+        }
       } catch (error) {
         await crashHandler.reportCrash('claude', error instanceof Error ? error : new Error(String(error)), 'learn', 'Claude learn command');
         throw error;

@@ -111,61 +111,64 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       const controller = new AbortController();
       deps.setClaudeController(controller, channelId);
 
-      await ctx.deferReply();
+      try {
+        await ctx.deferReply();
 
-      // Resolve which session to resume:
-      // 1) Explicit session_id from user → resume that
-      // 2) Active session in this channel/thread → resume that
-      // 3) None → start a new session
-      const activeSessionId = explicitSessionId || deps.getSessionForChannel(channelId);
+        // Resolve which session to resume:
+        // 1) Explicit session_id from user → resume that
+        // 2) Active session in this channel/thread → resume that
+        // 3) None → start a new session
+        const activeSessionId = explicitSessionId || deps.getSessionForChannel(channelId);
 
-      // Pick the right sender — if this channel has a thread, use it
-      let activeSender = sendClaudeMessages;
-      if (activeSessionId && deps.sessionThreads) {
-        try {
-          const existing = await deps.sessionThreads.getThreadSender(activeSessionId);
-          if (existing) {
-            activeSender = existing.sender;
-          }
-        } catch { /* fallback to main sender */ }
+        // Pick the right sender — if this channel has a thread, use it
+        let activeSender = sendClaudeMessages;
+        if (activeSessionId && deps.sessionThreads) {
+          try {
+            const existing = await deps.sessionThreads.getThreadSender(activeSessionId);
+            if (existing) {
+              activeSender = existing.sender;
+            }
+          } catch { /* fallback to main sender */ }
+        }
+
+        const isResuming = !!activeSessionId;
+
+        await ctx.editReply({
+          embeds: [{
+            color: 0xffff00,
+            title: isResuming ? 'Claude Code Continuing...' : 'Claude Code Running...',
+            description: isResuming ? 'Continuing session...' : 'Starting new session...',
+            fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
+            timestamp: true
+          }]
+        });
+
+        const result = await sendToClaudeCode(
+          workDir,
+          prompt,
+          controller,
+          activeSessionId, // resume if present, new session if undefined
+          undefined,
+          (jsonData) => {
+            const claudeMessages = convertToClaudeMessages(jsonData);
+            if (claudeMessages.length > 0) {
+              activeSender(claudeMessages).catch(() => {});
+            }
+          },
+          false,
+          { ...deps.getQueryOptions?.(), channelId }
+        );
+
+        // Track session per-channel and globally
+        if (result.sessionId) {
+          deps.setSessionForChannel(channelId, result.sessionId);
+        }
+        deps.setClaudeSessionId(result.sessionId);
+
+        return result;
+      } finally {
+        deps.setClaudeController(null, channelId);
       }
-
-      const isResuming = !!activeSessionId;
-
-      await ctx.editReply({
-        embeds: [{
-          color: 0xffff00,
-          title: isResuming ? 'Claude Code Continuing...' : 'Claude Code Running...',
-          description: isResuming ? 'Continuing session...' : 'Starting new session...',
-          fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
-          timestamp: true
-        }]
-      });
-
-      const result = await sendToClaudeCode(
-        workDir,
-        prompt,
-        controller,
-        activeSessionId, // resume if present, new session if undefined
-        undefined,
-        (jsonData) => {
-          const claudeMessages = convertToClaudeMessages(jsonData);
-          if (claudeMessages.length > 0) {
-            activeSender(claudeMessages).catch(() => {});
-          }
-        },
-        false,
-        { ...deps.getQueryOptions?.(), channelId }
-      );
-
-      // Track session per-channel and globally
-      if (result.sessionId) {
-        deps.setSessionForChannel(channelId, result.sessionId);
-      }
-      deps.setClaudeSessionId(result.sessionId);
-      deps.setClaudeController(null, channelId);
-
-      return result;
     },
 
     /**
@@ -204,48 +207,51 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         deps.setClaudeController(controller, channelId);
       }
 
-      await ctx.editReply({
-        embeds: [{
-          color: 0xffff00,
-          title: 'Claude Code Running...',
-          description: threadSessionKey
-            ? 'Session started in a dedicated thread — check below ↓'
-            : 'Starting new session...',
-          fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
-          timestamp: true
-        }]
-      });
+      try {
+        await ctx.editReply({
+          embeds: [{
+            color: 0xffff00,
+            title: 'Claude Code Running...',
+            description: threadSessionKey
+              ? 'Session started in a dedicated thread — check below ↓'
+              : 'Starting new session...',
+            fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
+            timestamp: true
+          }]
+        });
 
-      const result = await sendToClaudeCode(
-        workDir,
-        prompt,
-        controller,
-        undefined, // always a new session
-        undefined,
-        (jsonData) => {
-          const claudeMessages = convertToClaudeMessages(jsonData);
-          if (claudeMessages.length > 0) {
-            activeSender(claudeMessages).catch(() => {});
-          }
-        },
-        false,
-        { ...deps.getQueryOptions?.(), channelId }
-      );
+        const result = await sendToClaudeCode(
+          workDir,
+          prompt,
+          controller,
+          undefined, // always a new session
+          undefined,
+          (jsonData) => {
+            const claudeMessages = convertToClaudeMessages(jsonData);
+            if (claudeMessages.length > 0) {
+              activeSender(claudeMessages).catch(() => {});
+            }
+          },
+          false,
+          { ...deps.getQueryOptions?.(), channelId }
+        );
 
-      deps.setClaudeSessionId(result.sessionId);
-      if (channelId) {
-        deps.setClaudeController(null, channelId);
+        deps.setClaudeSessionId(result.sessionId);
+
+        // Map the thread channel → session so /claude inside the thread auto-continues
+        if (threadSessionKey && result.sessionId && deps.sessionThreads) {
+          deps.sessionThreads.updateSessionId(threadSessionKey, result.sessionId);
+        }
+        if (threadChannelId && result.sessionId) {
+          deps.setSessionForChannel(threadChannelId, result.sessionId);
+        }
+
+        return result;
+      } finally {
+        if (channelId) {
+          deps.setClaudeController(null, channelId);
+        }
       }
-
-      // Map the thread channel → session so /claude inside the thread auto-continues
-      if (threadSessionKey && result.sessionId && deps.sessionThreads) {
-        deps.sessionThreads.updateSessionId(threadSessionKey, result.sessionId);
-      }
-      if (threadChannelId && result.sessionId) {
-        deps.setSessionForChannel(threadChannelId, result.sessionId);
-      }
-
-      return result;
     },
 
     /**
@@ -263,64 +269,67 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       const controller = new AbortController();
       deps.setClaudeController(controller, channelId);
 
-      const actualPrompt = prompt || "Please continue.";
+      try {
+        const actualPrompt = prompt || "Please continue.";
 
-      await ctx.deferReply();
+        await ctx.deferReply();
 
-      // Check if the most recent session has a thread — if so, reuse it
-      let activeSender = sendClaudeMessages;
-      let isReusingThread = false;
+        // Check if the most recent session has a thread — if so, reuse it
+        let activeSender = sendClaudeMessages;
+        let isReusingThread = false;
 
-      if (deps.sessionThreads) {
-        const currentSessionId = deps.getClaudeSessionId();
-        if (currentSessionId) {
-          try {
-            const existing = await deps.sessionThreads.getThreadSender(currentSessionId);
-            if (existing) {
-              activeSender = existing.sender;
-              isReusingThread = true;
+        if (deps.sessionThreads) {
+          const currentSessionId = deps.getClaudeSessionId();
+          if (currentSessionId) {
+            try {
+              const existing = await deps.sessionThreads.getThreadSender(currentSessionId);
+              if (existing) {
+                activeSender = existing.sender;
+                isReusingThread = true;
+              }
+            } catch (err) {
+              console.warn('[SessionThread] Could not reuse thread for continue, falling back:', err);
             }
-          } catch (err) {
-            console.warn('[SessionThread] Could not reuse thread for continue, falling back:', err);
           }
         }
+
+        const embedData: { color: number; title: string; description: string; timestamp: boolean; fields?: Array<{ name: string; value: string; inline: boolean }> } = {
+          color: 0xffff00,
+          title: 'Claude Code Continuing Conversation...',
+          description: isReusingThread
+            ? 'Continuing in session thread...'
+            : 'Loading latest conversation and waiting for response...',
+          timestamp: true
+        };
+
+        if (prompt) {
+          embedData.fields = [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }];
+        }
+
+        await ctx.editReply({ embeds: [embedData] });
+
+        const result = await sendToClaudeCode(
+          workDir,
+          actualPrompt,
+          controller,
+          undefined,
+          undefined,
+          (jsonData) => {
+            const claudeMessages = convertToClaudeMessages(jsonData);
+            if (claudeMessages.length > 0) {
+              activeSender(claudeMessages).catch(() => {});
+            }
+          },
+          true, // continueMode = true
+          { ...deps.getQueryOptions?.(), channelId }
+        );
+
+        deps.setClaudeSessionId(result.sessionId);
+
+        return result;
+      } finally {
+        deps.setClaudeController(null, channelId);
       }
-
-      const embedData: { color: number; title: string; description: string; timestamp: boolean; fields?: Array<{ name: string; value: string; inline: boolean }> } = {
-        color: 0xffff00,
-        title: 'Claude Code Continuing Conversation...',
-        description: isReusingThread
-          ? 'Continuing in session thread...'
-          : 'Loading latest conversation and waiting for response...',
-        timestamp: true
-      };
-
-      if (prompt) {
-        embedData.fields = [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }];
-      }
-
-      await ctx.editReply({ embeds: [embedData] });
-
-      const result = await sendToClaudeCode(
-        workDir,
-        actualPrompt,
-        controller,
-        undefined,
-        undefined,
-        (jsonData) => {
-          const claudeMessages = convertToClaudeMessages(jsonData);
-          if (claudeMessages.length > 0) {
-            activeSender(claudeMessages).catch(() => {});
-          }
-        },
-        true, // continueMode = true
-        { ...deps.getQueryOptions?.(), channelId }
-      );
-
-      deps.setClaudeSessionId(result.sessionId);
-      deps.setClaudeController(null, channelId);
-
-      return result;
     },
 
     // deno-lint-ignore no-explicit-any
@@ -334,7 +343,15 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       console.log("Cancelling Claude Code session...");
       currentController.abort();
       deps.setClaudeController(null, channelId);
-      deps.setClaudeSessionId(undefined);
+
+      // Clear only this channel's session; leave global alone unless it belongs here
+      if (channelId) {
+        const channelSession = deps.getSessionForChannel(channelId);
+        deps.setSessionForChannel(channelId, undefined);
+        if (channelSession && deps.getClaudeSessionId() === channelSession) {
+          deps.setClaudeSessionId(undefined);
+        }
+      }
 
       return true;
     }

@@ -6,7 +6,7 @@ import { killProcessCrossPlatform } from "../util/process.ts";
 export const MAX_OUTPUT_BUFFER_SIZE = 10 * 1024 * 1024;
 
 /**
- * Decide whether incoming chunk fits the buffer; returns remaining capacity info.
+ * Returns true when adding incomingLength would exceed the output buffer maxSize.
  * Exported for unit tests.
  */
 export function shouldTruncateOutput(currentLength: number, incomingLength: number, maxSize = MAX_OUTPUT_BUFFER_SIZE): boolean {
