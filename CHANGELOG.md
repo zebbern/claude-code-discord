@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- **`/git` argv spawn**: Git commands and worktree ops use `Deno.Command` argument arrays instead of shell `exec` / POSIX `shellEscape` (Audit #2 mitigation). Soft metacharacter validation kept as defense-in-depth.
+
+### Fixed
+- **Haiku fallback timeout**: Rate-limit Haiku retry now uses the same timeout / `clearTimeout` / active-query clear pattern as the primary query race.
+
 ## [2.3.0] - 2026-03-03
 
 ### Added

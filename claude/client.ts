@@ -450,21 +450,37 @@ export async function sendToClaudeCode(
     };
   // deno-lint-ignore no-explicit-any
   } catch (error: any) {
+    // Clear primary timeout before Haiku retry so it cannot fire mid-fallback
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+      timeoutId = undefined;
+    }
+
     // For exit code 1 errors (rate limit), retry with Haiku (cheaper/faster fallback)
     if (error.message && (error.message.includes('exit code 1') || error.message.includes('exited with code 1'))) {
       console.log("Rate limit detected, retrying with Haiku (fast fallback)...");
-      
+
+      let haikuTimeoutId: number | undefined;
       try {
-        const retryResult = await executeWithErrorHandling("haiku");
-        
+        const retryResult = await Promise.race([
+          executeWithErrorHandling("haiku"),
+          new Promise<never>((_, reject) => {
+            haikuTimeoutId = setTimeout(() => {
+              controller.abort();
+              setActiveQuery(null, channelId);
+              reject(new Error(`Query timed out after ${timeoutMs / 1000}s`));
+            }, timeoutMs);
+          }),
+        ]);
+
         if (retryResult.aborted) {
           return { response: "Request was cancelled", modelUsed: retryResult.modelUsed };
         }
-        
+
         // Get information from the last message
         const lastRetryMessage = retryResult.messages[retryResult.messages.length - 1];
         const retryDenials = extractPermissionDenials(retryResult.messages);
-        
+
         return {
           response: retryResult.response || "No response received",
           sessionId: retryResult.sessionId,
@@ -476,17 +492,21 @@ export async function sendToClaudeCode(
       // deno-lint-ignore no-explicit-any
       } catch (retryError: any) {
         // If Haiku fallback also fails
-        if (retryError.name === 'AbortError' || 
-            controller.signal.aborted || 
+        if (retryError.name === 'AbortError' ||
+            controller.signal.aborted ||
             (retryError.message && retryError.message.includes('exited with code 143'))) {
           return { response: "Request was cancelled", modelUsed: "Claude Haiku (fallback)" };
         }
-        
+
         retryError.message += '\n\n⚠️ Both default model and Haiku fallback encountered errors. Please wait a moment and try again.';
         throw retryError;
+      } finally {
+        if (haikuTimeoutId !== undefined) {
+          clearTimeout(haikuTimeoutId);
+        }
       }
     }
-    
+
     throw error;
   } finally {
     if (timeoutId !== undefined) {

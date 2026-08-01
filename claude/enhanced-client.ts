@@ -231,10 +231,10 @@ async function getGitContext(workDir: string): Promise<string | null> {
     const { executeGitCommand } = await import("../git/handler.ts");
     
     const [status, branch, remotes, recentCommits] = await Promise.all([
-      executeGitCommand(workDir, "git status --porcelain"),
-      executeGitCommand(workDir, "git branch --show-current"),
-      executeGitCommand(workDir, "git remote -v"),
-      executeGitCommand(workDir, "git log --oneline -5")
+      executeGitCommand(workDir, ["status", "--porcelain"]),
+      executeGitCommand(workDir, ["branch", "--show-current"]),
+      executeGitCommand(workDir, ["remote", "-v"]),
+      executeGitCommand(workDir, ["log", "--oneline", "-5"]),
     ]);
 
     return `<git-context>

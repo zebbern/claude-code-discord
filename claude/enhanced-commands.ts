@@ -385,8 +385,8 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
           try {
             const { executeGitCommand } = await import("../git/handler.ts");
             const [branch, status] = await Promise.all([
-              executeGitCommand(workDir, "git branch --show-current"),
-              executeGitCommand(workDir, "git status --porcelain")
+              executeGitCommand(workDir, ["branch", "--show-current"]),
+              executeGitCommand(workDir, ["status", "--porcelain"]),
             ]);
             
             const gitInfo = `Branch: ${branch.trim()}\nStatus: ${status || 'Clean'}`;

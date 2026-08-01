@@ -65,12 +65,12 @@ export function createGitHandlers(deps: GitHandlerDeps) {
   return {
     // deno-lint-ignore no-explicit-any
     async onGit(_ctx: any, command: string): Promise<string> {
-      const { executeGitCommand, validateGitCommandArgs } = await import("./handler.ts");
+      const { executeGitCommand, validateGitCommandArgs, splitGitArgs } = await import("./handler.ts");
       const validation = validateGitCommandArgs(command);
       if (!validation.valid) {
         return `Error: ${validation.reason}`;
       }
-      return await executeGitCommand(workDir, `git ${command}`);
+      return await executeGitCommand(workDir, splitGitArgs(command));
     },
     
     // deno-lint-ignore no-explicit-any

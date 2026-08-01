@@ -2,7 +2,11 @@
  * Unit tests for PR #23 follow-up security/stability hardening.
  */
 import { assertEquals } from "jsr:@std/assert@1";
-import { validateBranchName, validateGitCommandArgs } from "../git/handler.ts";
+import {
+  validateBranchName,
+  validateGitCommandArgs,
+  splitGitArgs,
+} from "../git/handler.ts";
 import { shouldTruncateOutput, MAX_OUTPUT_BUFFER_SIZE } from "../shell/handler.ts";
 
 Deno.test("validateBranchName accepts normal feature branches", () => {
@@ -52,6 +56,12 @@ Deno.test("validateGitCommandArgs accepts normal git args", () => {
   assertEquals(validateGitCommandArgs("status").valid, true);
   assertEquals(validateGitCommandArgs("log --oneline -5").valid, true);
   assertEquals(validateGitCommandArgs("diff HEAD~1").valid, true);
+});
+
+Deno.test("splitGitArgs tokenizes validated command strings for argv spawn", () => {
+  assertEquals(splitGitArgs("status"), ["status"]);
+  assertEquals(splitGitArgs("log --oneline -5"), ["log", "--oneline", "-5"]);
+  assertEquals(splitGitArgs("  diff HEAD~1  "), ["diff", "HEAD~1"]);
 });
 
 Deno.test("shouldTruncateOutput triggers at 10 MB boundary", () => {

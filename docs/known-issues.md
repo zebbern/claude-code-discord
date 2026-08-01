@@ -1,6 +1,6 @@
 # Known Issues & Accepted Risks
 
-> Last audited: 2026-03-03
+> Last audited: 2026-08-01 (Audit #2/#6 status updated)
 > Context: Single-user personal Discord bot — not a production multi-user service
 
 This document tracks issues identified during a comprehensive code audit that were **intentionally not fixed**. Each entry explains why the issue exists, why it doesn't matter for our use case, and under what conditions (if any) it would need revisiting.
@@ -9,11 +9,13 @@ This document tracks issues identified during a comprehensive code audit that we
 
 ## Security — Accepted for Personal Use
 
-### Command Injection via `/git` (Audit #2)
+### Command Injection via `/git` (Audit #2) — Mitigated
 
-**What:** The `/git` command passes user input to `git` CLI without sanitization. A crafted input could inject shell commands.
+**What (original):** The `/git` command passed user input through shell `exec`, so crafted input could inject shell commands. Worktree ops also used POSIX `shellEscape`, which is fragile on Windows.
 
-**Why we keep it:** This bot is operated by its owner in a private Discord server. The only person who can run `/git` is the same person who has SSH access to the machine. You can't escalate beyond what you already have. If the bot were ever exposed to untrusted users, this would need parameterized command execution.
+**Mitigation:** Git execution now uses `Deno.Command` argv arrays (no shell interpolation). Soft shell-metacharacter validation remains as defense-in-depth. Worktree branch/path args are passed as discrete argv elements.
+
+**Remaining risk:** The operator can still run destructive *git* operations (`reset --hard`, `push --force`, etc.) by design — argv spawn stops shell injection, not intentional git misuse. Same trust boundary as SSH access to the machine.
 
 ### Path Traversal in Git Worktree (Audit #3)
 
@@ -61,11 +63,13 @@ This document tracks issues identified during a comprehensive code audit that we
 
 ## Race Conditions — Single User Can't Trigger
 
-### Concurrent Query State Clobber (Audit #6)
+### Concurrent Query State Clobber (Audit #6) — Partially Mitigated
 
-**What:** If two `/claude` commands run simultaneously, they share a single `claudeController`. Only the last one can be cancelled.
+**What (original):** If two `/claude` commands ran simultaneously, they shared a single global `claudeController`. Only the last one could be cancelled.
 
-**Why it doesn't matter:** As a single user, you won't send two `/claude` commands at the exact same time. Even if you did, both queries still complete — you just can't cancel the first one. The second command's abort check (fixed in commit `5366f00`) now properly aborts the first.
+**Mitigation:** Controllers and active-query state are now keyed per Discord channel. Cross-channel concurrent sessions no longer clobber each other. Haiku rate-limit fallback uses the same query timeout + `clearTimeout` / `setActiveQuery(null)` pattern as the primary race.
+
+**Remaining risk:** Two `/claude` commands in the *same* channel still share one controller/query slot — the second aborts/replaces the first. Acceptable for single-user sequential use; revisit only if same-channel concurrency becomes a real workflow.
 
 ### Shell Callback Registration Race (Audit #7)
 
@@ -169,12 +173,14 @@ This document tracks issues identified during a comprehensive code audit that we
 
 | Category | Count | Action |
 |----------|-------|--------|
-| Security (accepted for personal use) | 4 | No fix needed — same trust boundary |
+| Security (accepted for personal use) | 3 | Same trust boundary (#2 mitigated — argv spawn) |
 | Memory (self-resolving) | 3 | Bot restarts clear state |
-| Race conditions (single-user) | 2 | Can't trigger with sequential usage |
+| Race conditions (single-user) | 2 | #6 partially mitigated (per-channel); same-channel still shared |
 | Dead/non-functional code | 4 | No impact, leave as-is |
 | Fragile but functional | 6 | Works in practice, accept the tradeoff |
 | Rare edge cases | 3 | Not worth the complexity to fix |
-| **Total accepted** | **22** | |
+| **Total accepted / residual** | **21** | |
 
 **Issues that were fixed:** #1 (stale closure), #10 (missing abort checks), #11 (pagination title), #12 (unicode splitting), #13 (continue button session ID) — see git log for details.
+
+**Issues mitigated later:** #2 (`/git` argv spawn + metachar validation), #6 (per-channel controllers / query isolation; same-channel concurrency residual).
