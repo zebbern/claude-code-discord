@@ -142,7 +142,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
         await ctx.editReply({
           embeds: [{
             color: 0xffff00,
-            title: '🤖 Enhanced Claude Code Running...',
+            title: 'Enhanced Claude Code Running...',
             description: 'Processing with advanced options...',
             fields: [
               { name: 'Model', value: model || 'Default', inline: true },
@@ -231,7 +231,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
       await ctx.reply({
         embeds: [{
           color: 0x0099ff,
-          title: '🤖 Available Claude Models',
+          title: 'Available Claude Models',
           description: '⭐ = Recommended • Aliases (opus, sonnet, haiku) always resolve to the latest version',
           fields,
           footer: { text: 'Use any model ID or alias with /claude-enhanced or /settings' },
@@ -250,7 +250,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
               await ctx.reply({
                 embeds: [{
                   color: 0xffaa00,
-                  title: '📋 Claude Sessions',
+                  title: 'Claude Sessions',
                   description: 'No active sessions found.',
                   timestamp: true
                 }],
@@ -268,7 +268,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x00ff00,
-                title: '📋 Active Claude Sessions',
+                title: 'Active Claude Sessions',
                 description: sessionsList,
                 footer: { text: `Total: ${sessions.length} sessions` },
                 timestamp: true
@@ -301,7 +301,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x0099ff,
-                title: '📊 Session Details',
+                title: 'Session Details',
                 fields: [
                   { name: 'Session ID', value: `\`${session.id}\``, inline: false },
                   { name: 'Model', value: session.model, inline: true },
@@ -331,7 +331,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: deleted ? 0x00ff00 : 0xff0000,
-                title: deleted ? '✅ Session Deleted' : '❌ Session Not Found',
+                title: deleted ? 'Session Deleted' : 'Session Not Found',
                 description: deleted ? `Session ${sessionId.substring(0, 12)}... has been deleted.` : 'The specified session was not found.',
                 timestamp: true
               }],
@@ -344,7 +344,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x00ff00,
-                title: '🧹 Sessions Cleaned Up',
+                title: 'Sessions Cleaned Up',
                 description: `Removed ${cleanedCount} old sessions (older than 24 hours).`,
                 timestamp: true
               }],
@@ -422,7 +422,7 @@ export function createEnhancedClaudeHandlers(deps: EnhancedClaudeHandlerDeps) {
         await ctx.editReply({
           embeds: [{
             color: 0x0099ff,
-            title: '📋 Claude Context Preview',
+            title: 'Claude Context Preview',
             description: fullContext || 'No context selected. Enable options to see what would be included.',
             footer: { text: 'This is what would be sent to Claude as additional context' },
             timestamp: true

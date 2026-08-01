@@ -1,6 +1,18 @@
 import type { ClaudeResponse, ClaudeMessage } from "./types.ts";
 import { sendToClaudeCode, type ClaudeModelOptions } from "./client.ts";
 import { convertToClaudeMessages } from "./message-converter.ts";
+import {
+  tryEnqueueClaudeJob,
+  takeClaudeJob,
+  clearClaudeJob,
+} from "./channel-queue.ts";
+import {
+  buildSessionFooter,
+  cancelClaudeComponents,
+  claudeCancelledEmbed,
+  resolveThreadChannelId,
+} from "./status-embed.ts";
+import { EMBED_COLORS } from "../discord/embed-theme.ts";
 import { SlashCommandBuilder } from "npm:discord.js@14.14.1";
 
 // Callback that creates (or retrieves) a session thread and returns a
@@ -31,6 +43,10 @@ export interface SessionThreadCallbacks {
    * Update the session key mapping when the real SDK session ID arrives.
    */
   updateSessionId(oldKey: string, newSessionId: string): void;
+  /** Discord thread channel id for a session, if tracked. */
+  getThreadChannelId(sessionId: string): string | undefined;
+  /** Session id for a Discord thread channel, if tracked. */
+  findSessionByThreadId(threadId: string): string | undefined;
 }
 
 // Discord command definitions
@@ -69,7 +85,7 @@ export const claudeCommands = [
 
   new SlashCommandBuilder()
     .setName('claude-cancel')
-    .setDescription('Cancel currently running Claude Code command'),
+    .setDescription('Cancel currently running Claude Code command (also available as Cancel on the running embed)'),
 ];
 
 export interface ClaudeHandlerDeps {
@@ -95,68 +111,70 @@ export interface ClaudeHandlerDeps {
 export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
   const { workDir, sendClaudeMessages } = deps;
 
-  return {
-    /**
-     * /claude — Send a message to Claude. Auto-continues the session active in the
-     * current channel/thread. Starts a new session only if there isn't one yet.
-     */
-    // deno-lint-ignore no-explicit-any
-    async onClaude(ctx: any, prompt: string, channelId: string, explicitSessionId?: string): Promise<ClaudeResponse> {
-      // Same-channel busy: do not silently abort — ask user to cancel first
-      const existingController = deps.getClaudeController(channelId);
-      if (existingController) {
-        await ctx.reply({
-          embeds: [{
-            color: 0xffaa00,
-            title: 'Claude Busy',
-            description:
-              'A Claude session is already running in this channel. Use `/claude-cancel` first, then try again.',
-            timestamp: true,
-          }],
-        });
-        return { response: 'A Claude session is already running in this channel.' };
+  function threadIdFor(sessionId?: string, channelId?: string, knownThreadChannelId?: string): string | undefined {
+    return resolveThreadChannelId({
+      sessionId,
+      channelId,
+      knownThreadChannelId,
+      getThreadChannelId: deps.sessionThreads?.getThreadChannelId.bind(deps.sessionThreads),
+      findSessionByThreadId: deps.sessionThreads?.findSessionByThreadId.bind(deps.sessionThreads),
+    });
+  }
+
+  // deno-lint-ignore no-explicit-any
+  async function runClaudeJob(
+    ctx: any,
+    prompt: string,
+    channelId: string,
+    explicitSessionId: string | undefined,
+    alreadyDeferred: boolean,
+  ): Promise<ClaudeResponse> {
+    const controller = new AbortController();
+    deps.setClaudeController(controller, channelId);
+
+    try {
+      if (!alreadyDeferred) {
+        await ctx.deferReply();
       }
 
-      const controller = new AbortController();
-      deps.setClaudeController(controller, channelId);
+      // Resolve which session to resume:
+      // 1) Explicit session_id from user → resume that
+      // 2) Active session in this channel/thread → resume that
+      // 3) None → start a new session
+      const activeSessionId = explicitSessionId || deps.getSessionForChannel(channelId);
 
+      let activeSender = sendClaudeMessages;
+      if (activeSessionId && deps.sessionThreads) {
+        try {
+          const existing = await deps.sessionThreads.getThreadSender(activeSessionId);
+          if (existing) {
+            activeSender = existing.sender;
+          }
+        } catch { /* fallback to main sender */ }
+      }
+
+      const isResuming = !!activeSessionId;
+      const runningThreadId = threadIdFor(activeSessionId, channelId);
+
+      await ctx.editReply({
+        embeds: [{
+          color: EMBED_COLORS.running,
+          title: isResuming ? '/claude · continuing' : '/claude · running',
+          description: isResuming ? 'Continuing session...' : 'Starting new session...',
+          fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
+          footer: buildSessionFooter(activeSessionId, runningThreadId),
+          timestamp: true,
+        }],
+        components: cancelClaudeComponents(),
+      });
+
+      let result: ClaudeResponse;
       try {
-        await ctx.deferReply();
-
-        // Resolve which session to resume:
-        // 1) Explicit session_id from user → resume that
-        // 2) Active session in this channel/thread → resume that
-        // 3) None → start a new session
-        const activeSessionId = explicitSessionId || deps.getSessionForChannel(channelId);
-
-        // Pick the right sender — if this channel has a thread, use it
-        let activeSender = sendClaudeMessages;
-        if (activeSessionId && deps.sessionThreads) {
-          try {
-            const existing = await deps.sessionThreads.getThreadSender(activeSessionId);
-            if (existing) {
-              activeSender = existing.sender;
-            }
-          } catch { /* fallback to main sender */ }
-        }
-
-        const isResuming = !!activeSessionId;
-
-        await ctx.editReply({
-          embeds: [{
-            color: 0xffff00,
-            title: isResuming ? 'Claude Code Continuing...' : 'Claude Code Running...',
-            description: isResuming ? 'Continuing session...' : 'Starting new session...',
-            fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
-            timestamp: true
-          }]
-        });
-
-        const result = await sendToClaudeCode(
+        result = await sendToClaudeCode(
           workDir,
           prompt,
           controller,
-          activeSessionId, // resume if present, new session if undefined
+          activeSessionId,
           undefined,
           (jsonData) => {
             const claudeMessages = convertToClaudeMessages(jsonData);
@@ -165,19 +183,131 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
             }
           },
           false,
-          { ...deps.getQueryOptions?.(), channelId }
+          { ...deps.getQueryOptions?.(), channelId },
         );
-
-        // Track session per-channel and globally
-        if (result.sessionId) {
-          deps.setSessionForChannel(channelId, result.sessionId);
+      } catch (err) {
+        if (controller.signal.aborted) {
+          try {
+            await ctx.editReply({
+              embeds: [claudeCancelledEmbed()],
+              components: [],
+            });
+          } catch { /* button handler may have already updated */ }
+          return { response: 'Cancelled' };
         }
-        deps.setClaudeSessionId(result.sessionId);
-
-        return result;
-      } finally {
-        deps.setClaudeController(null, channelId);
+        throw err;
       }
+
+      if (controller.signal.aborted) {
+        try {
+          await ctx.editReply({
+            embeds: [claudeCancelledEmbed()],
+            components: [],
+          });
+        } catch { /* ignore */ }
+        return { response: 'Cancelled', sessionId: result.sessionId };
+      }
+
+      if (result.sessionId) {
+        deps.setSessionForChannel(channelId, result.sessionId);
+      }
+      deps.setClaudeSessionId(result.sessionId);
+
+      const doneThreadId = threadIdFor(result.sessionId, channelId, runningThreadId);
+      try {
+        await ctx.editReply({
+          embeds: [{
+            color: EMBED_COLORS.success,
+            title: '/claude · done',
+            description: 'Response posted above. Use `/claude` to continue in this channel.',
+            fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
+            footer: buildSessionFooter(result.sessionId, doneThreadId),
+            timestamp: true,
+          }],
+          components: [],
+        });
+      } catch { /* interaction may have expired */ }
+
+      return result;
+    } finally {
+      deps.setClaudeController(null, channelId);
+
+      // Drain one queued /claude for this channel (max depth 1)
+      const next = takeClaudeJob(channelId);
+      if (next) {
+        void runClaudeJob(
+          next.ctx,
+          next.prompt,
+          channelId,
+          next.explicitSessionId,
+          true, // queued jobs already deferred
+        ).catch((err) => {
+          console.error('[ClaudeQueue] Failed to run queued job:', err);
+          try {
+            // deno-lint-ignore no-explicit-any
+            (next.ctx as any).editReply?.({
+              embeds: [{
+                color: EMBED_COLORS.fail,
+                title: '/claude · queue failed',
+                description: err instanceof Error ? err.message : String(err),
+                timestamp: true,
+              }],
+              components: [],
+            });
+          } catch { /* interaction may have expired */ }
+        });
+      }
+    }
+  }
+
+  return {
+    /**
+     * /claude — Send a message to Claude. Auto-continues the session active in the
+     * current channel/thread. Starts a new session only if there isn't one yet.
+     * Same-channel: one waiting slot (queue); if full, busy-reject.
+     * (continue/thread/enhanced still abort-replace — not queued.)
+     */
+    // deno-lint-ignore no-explicit-any
+    async onClaude(ctx: any, prompt: string, channelId: string, explicitSessionId?: string): Promise<ClaudeResponse> {
+      const existingController = deps.getClaudeController(channelId);
+      if (existingController) {
+        const enqueued = tryEnqueueClaudeJob(channelId, {
+          ctx,
+          prompt,
+          explicitSessionId,
+          enqueuedAt: Date.now(),
+        });
+        if (enqueued) {
+          await ctx.deferReply();
+          const queuedSessionId = explicitSessionId || deps.getSessionForChannel(channelId);
+          await ctx.editReply({
+            embeds: [{
+              color: EMBED_COLORS.info,
+              title: '/claude · queued',
+              description:
+                'A Claude session is already running in this channel. Your prompt will run next when it finishes. Use Cancel or `/claude-cancel` to abort the current run and drop the queue.',
+              fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
+              footer: buildSessionFooter(queuedSessionId, threadIdFor(queuedSessionId, channelId)),
+              timestamp: true,
+            }],
+            components: cancelClaudeComponents(),
+          });
+          return { response: 'Queued — will run when the current session finishes.' };
+        }
+
+        await ctx.reply({
+          embeds: [{
+            color: EMBED_COLORS.running,
+            title: '/claude · busy',
+            description:
+              'A Claude session is already running and one prompt is already queued. Use Cancel on the running embed or `/claude-cancel`, then try again.',
+            timestamp: true,
+          }],
+        });
+        return { response: 'A Claude session is already running in this channel (queue full).' };
+      }
+
+      return await runClaudeJob(ctx, prompt, channelId, explicitSessionId, false);
     },
 
     /**
@@ -227,31 +357,57 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       try {
         await ctx.editReply({
           embeds: [{
-            color: 0xffff00,
-            title: 'Claude Code Running...',
+            color: EMBED_COLORS.running,
+            title: '/claude-thread · running',
             description: threadSessionKey
               ? 'Session started in a dedicated thread — check below ↓'
               : 'Starting new session...',
             fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
-            timestamp: true
-          }]
+            footer: buildSessionFooter(undefined, threadChannelId),
+            timestamp: true,
+          }],
+          components: cancelClaudeComponents(),
         });
 
-        const result = await sendToClaudeCode(
-          workDir,
-          prompt,
-          controller,
-          undefined, // always a new session
-          undefined,
-          (jsonData) => {
-            const claudeMessages = convertToClaudeMessages(jsonData);
-            if (claudeMessages.length > 0) {
-              activeSender(claudeMessages).catch(() => {});
-            }
-          },
-          false,
-          { ...deps.getQueryOptions?.(), channelId }
-        );
+        let result: ClaudeResponse;
+        try {
+          result = await sendToClaudeCode(
+            workDir,
+            prompt,
+            controller,
+            undefined, // always a new session
+            undefined,
+            (jsonData) => {
+              const claudeMessages = convertToClaudeMessages(jsonData);
+              if (claudeMessages.length > 0) {
+                activeSender(claudeMessages).catch(() => {});
+              }
+            },
+            false,
+            { ...deps.getQueryOptions?.(), channelId },
+          );
+        } catch (err) {
+          if (controller.signal.aborted) {
+            try {
+              await ctx.editReply({
+                embeds: [claudeCancelledEmbed()],
+                components: [],
+              });
+            } catch { /* ignore */ }
+            return { response: 'Cancelled' };
+          }
+          throw err;
+        }
+
+        if (controller.signal.aborted) {
+          try {
+            await ctx.editReply({
+              embeds: [claudeCancelledEmbed()],
+              components: [],
+            });
+          } catch { /* ignore */ }
+          return { response: 'Cancelled', sessionId: result.sessionId };
+        }
 
         deps.setClaudeSessionId(result.sessionId);
 
@@ -262,6 +418,22 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
         if (threadChannelId && result.sessionId) {
           deps.setSessionForChannel(threadChannelId, result.sessionId);
         }
+
+        try {
+          await ctx.editReply({
+            embeds: [{
+              color: EMBED_COLORS.success,
+              title: '/claude-thread · done',
+              description: threadChannelId
+                ? `Session running in <#${threadChannelId}>.`
+                : 'Response posted above.',
+              fields: [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }],
+              footer: buildSessionFooter(result.sessionId, threadChannelId),
+              timestamp: true,
+            }],
+            components: [],
+          });
+        } catch { /* ignore */ }
 
         return result;
       } finally {
@@ -310,38 +482,85 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
           }
         }
 
-        const embedData: { color: number; title: string; description: string; timestamp: boolean; fields?: Array<{ name: string; value: string; inline: boolean }> } = {
-          color: 0xffff00,
-          title: 'Claude Code Continuing Conversation...',
-          description: isReusingThread
-            ? 'Continuing in session thread...'
-            : 'Loading latest conversation and waiting for response...',
-          timestamp: true
-        };
+        const resumeSessionId = deps.getClaudeSessionId();
+        const resumeThreadId = threadIdFor(resumeSessionId, channelId);
 
-        if (prompt) {
-          embedData.fields = [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }];
+        await ctx.editReply({
+          embeds: [{
+            color: EMBED_COLORS.running,
+            title: '/resume · continuing',
+            description: isReusingThread
+              ? 'Continuing in session thread...'
+              : 'Loading latest conversation and waiting for response...',
+            fields: prompt
+              ? [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }]
+              : undefined,
+            footer: buildSessionFooter(resumeSessionId, resumeThreadId),
+            timestamp: true,
+          }],
+          components: cancelClaudeComponents(),
+        });
+
+        let result: ClaudeResponse;
+        try {
+          result = await sendToClaudeCode(
+            workDir,
+            actualPrompt,
+            controller,
+            undefined,
+            undefined,
+            (jsonData) => {
+              const claudeMessages = convertToClaudeMessages(jsonData);
+              if (claudeMessages.length > 0) {
+                activeSender(claudeMessages).catch(() => {});
+              }
+            },
+            true, // continueMode = true
+            { ...deps.getQueryOptions?.(), channelId },
+          );
+        } catch (err) {
+          if (controller.signal.aborted) {
+            try {
+              await ctx.editReply({
+                embeds: [claudeCancelledEmbed()],
+                components: [],
+              });
+            } catch { /* ignore */ }
+            return { response: 'Cancelled' };
+          }
+          throw err;
         }
 
-        await ctx.editReply({ embeds: [embedData] });
-
-        const result = await sendToClaudeCode(
-          workDir,
-          actualPrompt,
-          controller,
-          undefined,
-          undefined,
-          (jsonData) => {
-            const claudeMessages = convertToClaudeMessages(jsonData);
-            if (claudeMessages.length > 0) {
-              activeSender(claudeMessages).catch(() => {});
-            }
-          },
-          true, // continueMode = true
-          { ...deps.getQueryOptions?.(), channelId }
-        );
+        if (controller.signal.aborted) {
+          try {
+            await ctx.editReply({
+              embeds: [claudeCancelledEmbed()],
+              components: [],
+            });
+          } catch { /* ignore */ }
+          return { response: 'Cancelled', sessionId: result.sessionId };
+        }
 
         deps.setClaudeSessionId(result.sessionId);
+
+        try {
+          await ctx.editReply({
+            embeds: [{
+              color: EMBED_COLORS.success,
+              title: '/resume · done',
+              description: 'Response posted above. Use `/resume` or `/claude` to continue.',
+              fields: prompt
+                ? [{ name: 'Prompt', value: `\`${prompt.substring(0, 1020)}\``, inline: false }]
+                : undefined,
+              footer: buildSessionFooter(
+                result.sessionId,
+                threadIdFor(result.sessionId, channelId, resumeThreadId),
+              ),
+              timestamp: true,
+            }],
+            components: [],
+          });
+        } catch { /* ignore */ }
 
         return result;
       } finally {
@@ -353,13 +572,32 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
     onClaudeCancel(ctx: any): boolean {
       const channelId = typeof ctx?.getChannelId === 'function' ? ctx.getChannelId() : undefined;
       const currentController = deps.getClaudeController(channelId);
-      if (!currentController) {
+      const dropped = channelId ? clearClaudeJob(channelId) : undefined;
+
+      if (dropped) {
+        try {
+          // deno-lint-ignore no-explicit-any
+          (dropped.ctx as any).editReply?.({
+            embeds: [{
+              color: EMBED_COLORS.fail,
+              title: '/claude · queue cancelled',
+              description: 'Queued prompt was dropped because Cancel or `/claude-cancel` was used.',
+              timestamp: true,
+            }],
+            components: [],
+          });
+        } catch { /* interaction may have expired */ }
+      }
+
+      if (!currentController && !dropped) {
         return false;
       }
 
-      console.log("Cancelling Claude Code session...");
-      currentController.abort();
-      deps.setClaudeController(null, channelId);
+      if (currentController) {
+        console.log("Cancelling Claude Code session...");
+        currentController.abort();
+        deps.setClaudeController(null, channelId);
+      }
 
       // Clear only this channel's session; leave global alone unless it belongs here
       if (channelId) {

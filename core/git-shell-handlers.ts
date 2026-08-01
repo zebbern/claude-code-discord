@@ -10,6 +10,7 @@ import {
   buildShellResultEmbed,
   buildShellRunningEmbed,
   buildShellErrorEmbed,
+  buildShellOutputFollowUpEmbed,
   buildGitResultEmbed,
   buildGitErrorEmbed,
   cleanupPaginationStates,
@@ -65,12 +66,12 @@ export function createGitCommandHandlers(
         const startedAt = Date.now();
         try {
           const result = await gitHandlers.onGit(ctx, command);
-          const embed = buildGitResultEmbed({
+          const { embed, files } = buildGitResultEmbed({
             command,
             output: result,
             durationMs: Date.now() - startedAt,
           });
-          await ctx.editReply({ embeds: [embed] });
+          await ctx.editReply({ embeds: [embed], files });
         } catch (error) {
           const embed = buildGitErrorEmbed({
             command,
@@ -304,14 +305,14 @@ export function createShellCommandHandlers(
             if (isCompleted) return;
             isCompleted = true;
 
-            const embed = buildShellResultEmbed({
+            const { embed, files } = buildShellResultEmbed({
               command,
               output,
               exitCode,
               processId: executionResult.processId,
               durationMs: Date.now() - startedAt,
             });
-            await ctx.editReply({ embeds: [embed] });
+            await ctx.editReply({ embeds: [embed], files });
 
             if (exitCode !== 0) {
               await crashHandler.reportCrash('shell', new Error(`Process exited with code ${exitCode}`), executionResult.processId, `Command: ${command}`);
@@ -390,20 +391,14 @@ export function createShellCommandHandlers(
             setTimeout(async () => {
               const newOutput = shellHandlers.getNewOutput(processId);
               if (newOutput.trim()) {
-                const truncatedOutput = newOutput.substring(0, 4000);
                 try {
-                  await ctx.followUp({
-                    embeds: [{
-                      color: 0x0099ff,
-                      title: 'New Output',
-                      fields: [
-                        { name: 'Process ID', value: processId.toString(), inline: true },
-                        { name: 'Input', value: `\`${input}\``, inline: true },
-                        { name: 'Output', value: `\`\`\`\n${truncatedOutput}\n\`\`\``, inline: false }
-                      ],
-                      timestamp: true
-                    }]
+                  const { embed, files } = buildShellOutputFollowUpEmbed({
+                    title: 'New Output',
+                    processId,
+                    input,
+                    output: newOutput,
                   });
+                  await ctx.followUp({ embeds: [embed], files });
                 } catch (error) {
                   console.error('Failed to send followUp output:', error);
                 }
@@ -411,20 +406,14 @@ export function createShellCommandHandlers(
                 setTimeout(async () => {
                   const lateOutput = shellHandlers.getNewOutput(processId);
                   if (lateOutput.trim()) {
-                    const truncatedOutput = lateOutput.substring(0, 4000);
                     try {
-                      await ctx.followUp({
-                        embeds: [{
-                          color: 0x0099ff,
-                          title: 'New Output (Delayed)',
-                          fields: [
-                            { name: 'Process ID', value: processId.toString(), inline: true },
-                            { name: 'Input', value: `\`${input}\``, inline: true },
-                            { name: 'Output', value: `\`\`\`\n${truncatedOutput}\n\`\`\``, inline: false }
-                          ],
-                          timestamp: true
-                        }]
+                      const { embed, files } = buildShellOutputFollowUpEmbed({
+                        title: 'New Output (Delayed)',
+                        processId,
+                        input,
+                        output: lateOutput,
                       });
+                      await ctx.followUp({ embeds: [embed], files });
                     } catch (error) {
                       console.error('Failed to send delayed followUp output:', error);
                     }

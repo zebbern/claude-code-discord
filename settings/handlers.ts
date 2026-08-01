@@ -19,7 +19,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x0099ff,
-                title: '🤖 Claude Code Settings',
+                title: 'Claude Code Settings',
                 description: 'Note: Only model and context options are supported by Claude Code CLI',
                 fields: [
                   { name: 'Default Model', value: `\`${settings.defaultModel}\`\n${CLAUDE_MODELS[settings.defaultModel as keyof typeof CLAUDE_MODELS]?.name || 'Unknown'}`, inline: true },
@@ -42,7 +42,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
               await ctx.reply({
                 embeds: [{
                   color: 0xff6600,
-                  title: '❌ Invalid Model',
+                  title: 'Invalid Model',
                   description: 'Please specify a valid Claude model.',
                   fields: [{ name: 'Available Models', value: modelList, inline: false }],
                   timestamp: true
@@ -58,7 +58,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x00ff00,
-                title: '✅ Model Updated',
+                title: 'Model Updated',
                 description: `Default Claude model set to **${selectedModel.name}**`,
                 fields: [
                   { name: 'Description', value: selectedModel.description, inline: false },
@@ -79,7 +79,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
               await ctx.reply({
                 embeds: [{
                   color: 0x00ff00,
-                  title: '✅ System Prompt Cleared',
+                  title: 'System Prompt Cleared',
                   description: 'Default system prompt has been removed',
                   timestamp: true
                 }],
@@ -90,7 +90,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
               await ctx.reply({
                 embeds: [{
                   color: 0x00ff00,
-                  title: '✅ System Prompt Set',
+                  title: 'System Prompt Set',
                   description: `System prompt updated: ${value.substring(0, 200)}${value.length > 200 ? '...' : ''}`,
                   timestamp: true
                 }],
@@ -105,7 +105,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x00ff00,
-                title: `✅ Auto System Info ${newSystemInfo ? 'Enabled' : 'Disabled'}`,
+                title: `Auto System Info ${newSystemInfo ? 'Enabled' : 'Disabled'}`,
                 description: `System information will ${newSystemInfo ? '' : 'not '}be automatically included in Claude requests`,
                 timestamp: true
               }],
@@ -119,7 +119,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x00ff00,
-                title: `✅ Auto Git Context ${newGitContext ? 'Enabled' : 'Disabled'}`,
+                title: `Auto Git Context ${newGitContext ? 'Enabled' : 'Disabled'}`,
                 description: `Git context will ${newGitContext ? '' : 'not '}be automatically included in Claude requests`,
                 timestamp: true
               }],
@@ -138,7 +138,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x00ff00,
-                title: '✅ Settings Reset',
+                title: 'Settings Reset',
                 description: 'Claude Code settings have been reset to defaults',
                 timestamp: true
               }],
@@ -166,7 +166,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x9932cc,
-                title: '🎨 Output Display Settings',
+                title: 'Output Display Settings',
                 fields: [
                   { name: 'Code Highlighting', value: settings.codeHighlighting ? 'Enabled' : 'Disabled', inline: true },
                   { name: 'Auto Pagination', value: settings.autoPageLongOutput ? 'Enabled' : 'Disabled', inline: true },
@@ -185,7 +185,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x00ff00,
-                title: `✅ Code Highlighting ${newHighlighting ? 'Enabled' : 'Disabled'}`,
+                title: `Code Highlighting ${newHighlighting ? 'Enabled' : 'Disabled'}`,
                 description: `Syntax highlighting ${newHighlighting ? 'will be applied' : 'has been disabled'} for code blocks`,
                 timestamp: true
               }],
@@ -199,7 +199,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x00ff00,
-                title: `✅ Auto Pagination ${newPagination ? 'Enabled' : 'Disabled'}`,
+                title: `Auto Pagination ${newPagination ? 'Enabled' : 'Disabled'}`,
                 description: `Long outputs ${newPagination ? 'will be paginated' : 'will be truncated'} automatically`,
                 timestamp: true
               }],
@@ -229,7 +229,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x00ff00,
-                title: '✅ Max Length Updated',
+                title: 'Max Length Updated',
                 description: `Output max length set to ${maxLength} characters`,
                 timestamp: true
               }],
@@ -250,7 +250,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
             await ctx.reply({
               embeds: [{
                 color: 0x00ff00,
-                title: '✅ Timestamp Format Updated',
+                title: 'Timestamp Format Updated',
                 description: `Timestamp format set to ${value}`,
                 timestamp: true
               }],
@@ -281,7 +281,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
           await ctx.reply({
             embeds: [{
               color: 0xff6600,
-              title: '❌ Invalid Model',
+              title: 'Invalid Model',
               description: `\`${model}\` is not a recognized model.`,
               fields: [{ name: 'Available Models', value: modelList || 'No models loaded', inline: false }],
               footer: { text: 'Use /claude-models to refresh the model list' },
@@ -297,7 +297,7 @@ export function createAdvancedSettingsHandlers(deps: SettingsHandlerDeps) {
         await ctx.reply({
           embeds: [{
             color: 0x00ff00,
-            title: '🚀 Model Switched',
+            title: 'Model Switched',
             description: `Now using **${selectedModel.name}** for Claude conversations`,
             fields: [
               { name: 'Model ID', value: `\`${model}\``, inline: true },

@@ -82,7 +82,7 @@ export function buildPermissionEmbed(toolName: string, input: Record<string, unk
 
   return {
     color: 0xff9900, // Orange — "waiting for you"
-    title: `🔐 Permission Request: ${toolName}`,
+    title: `Permission Request: ${toolName}`,
     description: `Claude wants to ${action}\n\nClick **Allow** to proceed or **Deny** to block this action.`,
     fields: [
       { name: 'Tool', value: `\`${toolName}\``, inline: true },

@@ -131,7 +131,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
             await ctx.editReply({
               embeds: [{
                 color: 0x0099ff,
-                title: '👤 Claude Account Info',
+                title: 'Claude Account Info',
                 fields: [
                   { name: 'Email', value: account.email || 'N/A', inline: true },
                   { name: 'Organization', value: account.organization || 'N/A', inline: true },
@@ -162,7 +162,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
             await ctx.editReply({
               embeds: [{
                 color: 0x00cc66,
-                title: `🤖 Available Models (${models.length})`,
+                title: `Available Models (${models.length})`,
                 description: chunks[0],
                 timestamp: new Date().toISOString()
               }]
@@ -184,7 +184,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
             await ctx.editReply({
               embeds: [{
                 color: 0x9966ff,
-                title: '🔌 MCP Server Status',
+                title: 'MCP Server Status',
                 description: statusLines,
                 timestamp: new Date().toISOString()
               }]
@@ -194,7 +194,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
             await ctx.editReply({
               embeds: [{
                 color: 0x9966ff,
-                title: '🔌 MCP Server Status',
+                title: 'MCP Server Status',
                 description: 'No MCP servers configured or no active session to query.',
                 timestamp: new Date().toISOString()
               }]
@@ -229,7 +229,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
         await ctx.editReply({
           embeds: [{
             color: 0xff0000,
-            title: '❌ No Active Session',
+            title: 'No Active Session',
             description: 'File rewind requires an active Claude session with file checkpointing enabled.\n\nTo enable checkpointing, use `/settings category:modes action:toggle-checkpoint`.',
             timestamp: new Date().toISOString()
           }]
@@ -245,7 +245,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           await ctx.editReply({
             embeds: [{
               color: 0xffaa00,
-              title: '📋 Rewind Points',
+              title: 'Rewind Points',
               description: 'No rewind points tracked yet. Rewind points are created as Claude processes user messages during an active session.',
               timestamp: new Date().toISOString()
             }]
@@ -260,7 +260,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
         await ctx.editReply({
           embeds: [{
             color: 0x0099ff,
-            title: '📋 Available Rewind Points',
+            title: 'Available Rewind Points',
             description: turnList,
             fields: [{
               name: 'Usage',
@@ -292,7 +292,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           await ctx.editReply({
             embeds: [{
               color: 0xff0000,
-              title: '❌ Rewind Failed',
+              title: 'Rewind Failed',
               description: 'Could not perform rewind. The session may have ended or checkpointing may not be enabled.',
               timestamp: new Date().toISOString()
             }]
@@ -304,7 +304,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           await ctx.editReply({
             embeds: [{
               color: 0xff0000,
-              title: '❌ Cannot Rewind',
+              title: 'Cannot Rewind',
               description: result.error || 'Rewind is not possible for this message.',
               timestamp: new Date().toISOString()
             }]
@@ -319,7 +319,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
         await ctx.editReply({
           embeds: [{
             color: isDryRun ? 0xffaa00 : 0x00ff00,
-            title: isDryRun ? '🔍 Rewind Preview (Dry Run)' : '✅ Files Rewound Successfully',
+            title: isDryRun ? 'Rewind Preview (Dry Run)' : 'Files Rewound Successfully',
             description: isDryRun
               ? `Preview of rewinding to Turn ${turn}:`
               : `Files have been rewound to their state at Turn ${turn}.`,
@@ -357,7 +357,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           await ctx.editReply({
             embeds: [{
               color: success ? 0x00ff00 : 0xff0000,
-              title: success ? '⏸️ Query Interrupted' : '❌ No Active Query',
+              title: success ? 'Query Interrupted' : 'No Active Query',
               description: success
                 ? 'The current query has been interrupted. It will stop processing and return control.'
                 : 'No active Claude query to interrupt.',
@@ -379,7 +379,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           await ctx.editReply({
             embeds: [{
               color: success ? 0x00ff00 : 0xff0000,
-              title: success ? '✅ Model Changed' : '❌ Cannot Change Model',
+              title: success ? 'Model Changed' : 'Cannot Change Model',
               description: success
                 ? `Model switched to **${value}** for the current session.`
                 : 'No active query to change model on. Start a query first.',
@@ -403,7 +403,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           await ctx.editReply({
             embeds: [{
               color: success ? 0x00ff00 : 0xff0000,
-              title: success ? '✅ Permission Mode Changed' : '❌ Cannot Change Permissions',
+              title: success ? 'Permission Mode Changed' : 'Cannot Change Permissions',
               description: success
                 ? `Permission mode switched to **${value}** for the current session.`
                 : 'No active query to change permissions on. Start a query first.',
@@ -419,7 +419,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           await ctx.editReply({
             embeds: [{
               color: hasActive ? 0x00ff00 : 0x666666,
-              title: hasActive ? '🟢 Active Session' : '⚫ No Active Session',
+              title: hasActive ? 'Active Session' : 'No Active Session',
               description: hasActive
                 ? `A Claude query is currently running.`
                 : 'No active Claude query. Use `/claude` or `/agent` to start one.',
@@ -445,7 +445,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
           await ctx.editReply({
             embeds: [{
               color: success ? 0x00ff00 : 0xff0000,
-              title: success ? '⏹️ Task Stop Requested' : '❌ Cannot Stop Task',
+              title: success ? 'Task Stop Requested' : 'Cannot Stop Task',
               description: success
                 ? `Stop signal sent for task \`${value}\`. A notification will appear when the task stops.`
                 : 'No active query, or the task ID was not found.',
@@ -493,7 +493,7 @@ export function createInfoCommandHandlers(deps: InfoCommandHandlerDeps) {
       await ctx.reply({
         embeds: [{
           color: newFastMode ? 0xffaa00 : 0x5865f2,
-          title: newFastMode ? '⚡ Fast Mode ON' : '🧠 Fast Mode OFF',
+          title: newFastMode ? 'Fast Mode ON' : 'Fast Mode OFF',
           description: newFastMode
             ? `Opus 4.6 fast mode enabled — **2.5x faster** responses, higher per-token cost, same quality.${sessionNote}`
             : `Standard Opus 4.6 mode — normal speed and pricing.${sessionNote}`,
@@ -567,7 +567,7 @@ async function sendFullInfoEmbed(ctx: any, account: any, models: any[], mcpServe
   await ctx.editReply({
     embeds: [{
       color: 0x0099ff,
-      title: '📊 Claude Info Overview',
+      title: 'Claude Info Overview',
       fields,
       timestamp: new Date().toISOString()
     }]

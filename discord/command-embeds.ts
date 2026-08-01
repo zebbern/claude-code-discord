@@ -4,13 +4,20 @@
  */
 
 import { formatText } from "./formatting.ts";
-import type { EmbedData } from "./types.ts";
+import { filesForTruncation } from "./attachments.ts";
+import type { EmbedData, FileAttachment } from "./types.ts";
 import {
   EMBED_COLORS,
   firstNonEmptyLine,
   formatDuration,
   truncateField,
 } from "./embed-theme.ts";
+
+export type CommandEmbedResult = {
+  embed: EmbedData;
+  wasTruncated: boolean;
+  files?: FileAttachment[];
+};
 
 function cleanAnsiAndNewlines(output: string): string {
   return output
@@ -42,7 +49,7 @@ export function buildShellResultEmbed(opts: {
   exitCode: number;
   processId: number;
   durationMs: number;
-}): EmbedData {
+}): CommandEmbedResult {
   const ok = opts.exitCode === 0;
   const cleaned = cleanAnsiAndNewlines(opts.output);
   const duration = formatDuration(opts.durationMs);
@@ -52,6 +59,7 @@ export function buildShellResultEmbed(opts: {
     maxLength: 3500,
     truncateAt: 3300,
   });
+  const files = filesForTruncation(body.wasTruncated, cleaned, "shell-output.txt");
 
   const fields: NonNullable<EmbedData["fields"]> = [
     { name: "Command", value: wrapCommand(opts.command), inline: false },
@@ -72,14 +80,18 @@ export function buildShellResultEmbed(opts: {
   }
 
   return {
-    color: ok ? EMBED_COLORS.success : EMBED_COLORS.fail,
-    title: `/shell · exit ${opts.exitCode} · ${duration}`,
-    description: cleaned.length === 0 ? "*No output*" : body.formatted,
-    fields,
-    timestamp: true,
-    footer: body.wasTruncated
-      ? { text: `Output truncated (${body.originalLength} → ${body.truncatedLength} chars)` }
-      : undefined,
+    embed: {
+      color: ok ? EMBED_COLORS.success : EMBED_COLORS.fail,
+      title: "/shell",
+      description: cleaned.length === 0 ? "*No output*" : body.formatted,
+      fields,
+      timestamp: true,
+      footer: body.wasTruncated
+        ? { text: "Output truncated — full output attached as .txt" }
+        : undefined,
+    },
+    wasTruncated: body.wasTruncated,
+    files,
   };
 }
 
@@ -145,7 +157,7 @@ export function buildGitResultEmbed(opts: {
   command: string;
   output: string;
   durationMs: number;
-}): EmbedData {
+}): CommandEmbedResult {
   const cleaned = cleanAnsiAndNewlines(opts.output);
   const isError = isGitErrorOutput(cleaned);
   const duration = formatDuration(opts.durationMs);
@@ -155,6 +167,7 @@ export function buildGitResultEmbed(opts: {
     maxLength: 3500,
     truncateAt: 3300,
   });
+  const files = filesForTruncation(body.wasTruncated, cleaned, "git-output.txt");
 
   const fields: NonNullable<EmbedData["fields"]> = [
     { name: "Command", value: wrapCommand(`git ${opts.command}`), inline: false },
@@ -173,14 +186,18 @@ export function buildGitResultEmbed(opts: {
   }
 
   return {
-    color: isError ? EMBED_COLORS.fail : EMBED_COLORS.success,
-    title: `/git · ${isError ? "error" : "ok"} · ${duration}`,
-    description: cleaned.length === 0 ? "*No output*" : body.formatted,
-    fields,
-    timestamp: true,
-    footer: body.wasTruncated
-      ? { text: `Output truncated (${body.originalLength} → ${body.truncatedLength} chars)` }
-      : undefined,
+    embed: {
+      color: isError ? EMBED_COLORS.fail : EMBED_COLORS.success,
+      title: "/git",
+      description: cleaned.length === 0 ? "*No output*" : body.formatted,
+      fields,
+      timestamp: true,
+      footer: body.wasTruncated
+        ? { text: "Output truncated — full output attached as .txt" }
+        : undefined,
+    },
+    wasTruncated: body.wasTruncated,
+    files,
   };
 }
 
@@ -210,5 +227,52 @@ export function buildGitErrorEmbed(opts: {
     title: "/git · error",
     fields,
     timestamp: true,
+  };
+}
+
+/** Follow-up shell output (e.g. after /shell-input) with truncation attach. */
+export function buildShellOutputFollowUpEmbed(opts: {
+  title: string;
+  processId: number;
+  input: string;
+  output: string;
+}): CommandEmbedResult {
+  const cleaned = cleanAnsiAndNewlines(opts.output);
+  const body = formatText(cleaned, {
+    language: "bash",
+    wrapInCodeBlock: cleaned.length > 0,
+    maxLength: 3500,
+    truncateAt: 3300,
+  });
+  const files = filesForTruncation(body.wasTruncated, cleaned, "shell-output.txt");
+
+  // Discord field values max 1024 — use description for payload when large
+  const useDescription = body.formatted.length > 1000 || body.wasTruncated;
+
+  return {
+    embed: {
+      color: EMBED_COLORS.info,
+      title: opts.title,
+      description: useDescription
+        ? (cleaned.length === 0 ? "*No output*" : body.formatted)
+        : undefined,
+      fields: [
+        { name: "PID", value: String(opts.processId), inline: true },
+        { name: "Input", value: wrapCommand(opts.input), inline: true },
+        ...(useDescription
+          ? []
+          : [{
+            name: "Output",
+            value: cleaned.length === 0 ? "*No output*" : body.formatted,
+            inline: false,
+          }]),
+      ],
+      timestamp: true,
+      footer: body.wasTruncated
+        ? { text: "Output truncated — full output attached as .txt" }
+        : undefined,
+    },
+    wasTruncated: body.wasTruncated,
+    files,
   };
 }

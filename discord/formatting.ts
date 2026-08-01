@@ -1,4 +1,7 @@
 // Enhanced formatting utilities for Discord messages
+import { filesForTruncation } from "./attachments.ts";
+import type { FileAttachment } from "./types.ts";
+
 export interface FormatOptions {
   maxLength?: number;
   truncateAt?: number;
@@ -337,7 +340,8 @@ export function createFormattedEmbed(
   title: string,
   content: string,
   color: number = 0x0099ff,
-  options: Partial<FormatOptions> = {}
+  options: Partial<FormatOptions> = {},
+  attachmentName = "output.txt",
 ): {
   embed: {
     color: number;
@@ -348,6 +352,7 @@ export function createFormattedEmbed(
     fields?: Array<{ name: string; value: string; inline?: boolean }>;
   };
   wasTruncated: boolean;
+  files?: FileAttachment[];
 } {
   const formatting = needsFormatting(content);
   // Already-fenced content (e.g. formatShellOutput / formatGitOutput) must not be wrapped again —
@@ -364,20 +369,24 @@ export function createFormattedEmbed(
   }
 
   const result = formatText(content, formatOptions);
-  
+  const files = filesForTruncation(result.wasTruncated, content, attachmentName);
+
   const embed = {
     color,
     title,
     description: result.formatted,
     timestamp: true,
-    footer: result.wasTruncated ? { 
-      text: `Content truncated (${result.originalLength} → ${result.truncatedLength} chars)` 
+    footer: result.wasTruncated ? {
+      text: files
+        ? "Content truncated — full output attached as .txt"
+        : `Content truncated (${result.originalLength} → ${result.truncatedLength} chars)`,
     } : undefined,
     fields: [] as Array<{ name: string; value: string; inline?: boolean }>
   };
 
   return {
     embed,
-    wasTruncated: result.wasTruncated
+    wasTruncated: result.wasTruncated,
+    files,
   };
 }

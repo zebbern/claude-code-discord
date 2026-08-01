@@ -13,8 +13,10 @@ import {
   AutocompleteInteraction,
   TextChannel,
   EmbedBuilder,
+  AttachmentBuilder,
   Message,
 } from "npm:discord.js@14.14.1";
+import { Buffer } from "node:buffer";
 
 import { sanitizeChannelName } from "./utils.ts";
 import { handlePaginationInteraction } from "./pagination.ts";
@@ -77,13 +79,21 @@ function convertMessageContent(content: MessageContent): any {
     });
   }
 
-  // Handle file attachments
+  // Handle file attachments (path on disk or in-memory content)
   if (content.files && content.files.length > 0) {
-    payload.files = content.files.map(f => ({
-      attachment: f.path,
-      name: f.name || 'attachment',
-      description: f.description,
-    }));
+    payload.files = content.files.map(f => {
+      const name = f.name || 'attachment';
+      if (f.content !== undefined) {
+        const data = typeof f.content === 'string'
+          ? new TextEncoder().encode(f.content)
+          : f.content;
+        return new AttachmentBuilder(Buffer.from(data), { name, description: f.description });
+      }
+      if (f.path) {
+        return new AttachmentBuilder(f.path, { name, description: f.description });
+      }
+      throw new Error('FileAttachment requires path or content');
+    });
   }
 
   return payload;
@@ -459,7 +469,7 @@ export async function createDiscordBot(
         await ctx.update({
           embeds: [{
             color: 0xffaa00,
-            title: '📖 Content Not Available',
+            title: 'Content Not Available',
             description: 'The full content is no longer available for expansion.',
             timestamp: true
           }],
@@ -533,7 +543,7 @@ export async function createDiscordBot(
       await myChannel.send(convertMessageContent({
         embeds: [{
           color: 0x00ff00,
-          title: `🚀 v${BOT_VERSION} — Startup Complete`,
+          title: `v${BOT_VERSION} — Startup Complete`,
           description: `Claude Code bot for branch ${branchName} has started`,
           fields: [
             { name: 'Category', value: actualCategoryName, inline: true },

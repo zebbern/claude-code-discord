@@ -172,7 +172,7 @@ export function createUnifiedSettingsHandlers(deps: UnifiedSettingsHandlerDeps) 
             await ctx.editReply({
               embeds: [{
                 color: 0xff0000,
-                title: '❌ Invalid Category',
+                title: 'Invalid Category',
                 description: `Unknown settings category: ${category}`,
                 timestamp: true
               }]
@@ -244,7 +244,7 @@ export function createUnifiedSettingsHandlers(deps: UnifiedSettingsHandlerDeps) 
             await ctx.editReply({
               embeds: [{
                 color: 0xff0000,
-                title: '❌ Invalid Action',
+                title: 'Invalid Action',
                 description: `Unknown todo action: ${action}`,
                 timestamp: true
               }]
@@ -335,7 +335,7 @@ export function createUnifiedSettingsHandlers(deps: UnifiedSettingsHandlerDeps) 
             await ctx.editReply({
               embeds: [{
                 color: 0xff0000,
-                title: '❌ Invalid Action',
+                title: 'Invalid Action',
                 description: `Unknown MCP action: ${action}`,
                 timestamp: true
               }]
@@ -397,7 +397,7 @@ async function showAllSettings(ctx: any, settings: UnifiedBotSettings) {
   await ctx.editReply({
     embeds: [{
       color: 0x0099ff,
-      title: '⚙️ All Bot Settings',
+      title: 'All Bot Settings',
       description: 'Use `/settings category:[category] action:[action] value:[value]` to modify settings',
       fields,
       timestamp: true
@@ -410,7 +410,7 @@ async function handleBotSettings(ctx: any, settings: UnifiedBotSettings, updateS
     await ctx.editReply({
       embeds: [{
         color: 0x0099ff,
-        title: '🤖 Bot Settings',
+        title: 'Bot Settings',
         description: 'Available actions: `mention-on`, `mention-off`',
         fields: [
           {
@@ -438,7 +438,7 @@ async function handleBotSettings(ctx: any, settings: UnifiedBotSettings, updateS
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Mentions Enabled',
+          title: 'Mentions Enabled',
           description: `Mentions enabled for <@${value}>`,
           timestamp: true
         }]
@@ -450,7 +450,7 @@ async function handleBotSettings(ctx: any, settings: UnifiedBotSettings, updateS
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Mentions Disabled',
+          title: 'Mentions Disabled',
           description: 'Mentions have been disabled',
           timestamp: true
         }]
@@ -482,7 +482,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
     await ctx.editReply({
       embeds: [{
         color: 0x0099ff,
-        title: '⚙️ Mode Settings',
+        title: 'Mode Settings',
         description: 'Available actions: `set-thinking`, `set-operation`, `set-effort`, `set-budget`, `toggle-1m`, `toggle-checkpoint`, `toggle-sandbox`, `toggle-structured-output`, `set-output-schema`',
         fields: [
           {
@@ -531,7 +531,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Thinking Mode Updated',
+          title: 'Thinking Mode Updated',
           description: `Thinking mode set to: **${THINKING_MODES[value as keyof typeof THINKING_MODES].name}**`,
           fields: [{
             name: 'Description',
@@ -560,7 +560,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       await ctx.editReply({
         embeds: [{
           color: warningColor,
-          title: '✅ Operation Mode Updated',
+          title: 'Operation Mode Updated',
           description: `Operation mode set to: **${mode.name}**`,
           fields: [
             {
@@ -592,7 +592,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Effort Level Updated',
+          title: 'Effort Level Updated',
           description: `Effort level set to: **${EFFORT_LEVELS[value as keyof typeof EFFORT_LEVELS].name}**`,
           fields: [{
             name: 'Description',
@@ -617,7 +617,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
         await ctx.editReply({
           embeds: [{
             color: 0x00ff00,
-            title: '✅ Budget Limit Removed',
+            title: 'Budget Limit Removed',
             description: 'No budget limit is set. Queries will run until completion.',
             timestamp: true
           }]
@@ -635,7 +635,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
         await ctx.editReply({
           embeds: [{
             color: 0x00ff00,
-            title: '✅ Budget Limit Set',
+            title: 'Budget Limit Set',
             description: `Maximum budget per query: **$${budget.toFixed(2)}**`,
             fields: [{
               name: 'Note',
@@ -654,7 +654,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       await ctx.editReply({
         embeds: [{
           color: newVal ? 0x00ff00 : 0xff6600,
-          title: newVal ? '✅ 1M Context Beta Enabled' : '⚠️ 1M Context Beta Disabled',
+          title: newVal ? '1M Context Beta Enabled' : '1M Context Beta Disabled',
           description: newVal
             ? 'Extended context window (up to 1M tokens) is now active. This uses the `context-1m-2025-08-07` beta.'
             : '1M context beta has been disabled. Standard context window will be used.',
@@ -670,7 +670,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       await ctx.editReply({
         embeds: [{
           color: newVal ? 0x00ff00 : 0xff6600,
-          title: newVal ? '✅ File Checkpointing Enabled' : '⚠️ File Checkpointing Disabled',
+          title: newVal ? 'File Checkpointing Enabled' : 'File Checkpointing Disabled',
           description: newVal
             ? 'File checkpointing is now active. Claude will create restore points for file changes, allowing rollback via `rewindFiles()`.'
             : 'File checkpointing has been disabled.',
@@ -686,7 +686,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
       await ctx.editReply({
         embeds: [{
           color: newVal ? 0x00ff00 : 0xff6600,
-          title: newVal ? '✅ Sandbox Mode Enabled' : '⚠️ Sandbox Mode Disabled',
+          title: newVal ? 'Sandbox Mode Enabled' : 'Sandbox Mode Disabled',
           description: newVal
             ? 'Sandbox mode is now active. Commands will run in an isolated environment with restricted filesystem and network access.'
             : 'Sandbox mode has been disabled. Commands will run with normal system access.',
@@ -703,7 +703,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
         await ctx.editReply({
           embeds: [{
             color: 0xff6600,
-            title: '📝 Structured Output Disabled',
+            title: 'Structured Output Disabled',
             description: 'Claude will respond with normal unstructured text.',
             timestamp: true
           }]
@@ -722,7 +722,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
         await ctx.editReply({
           embeds: [{
             color: 0x00ff00,
-            title: '📊 Structured Output Enabled',
+            title: 'Structured Output Enabled',
             description: 'Claude will respond with JSON matching the configured schema.\n\nDefault schema has `response`, `confidence`, and `sources` fields.\nUse `set-output-schema` to customize.',
             timestamp: true
           }]
@@ -745,7 +745,7 @@ async function handleModeSettings(ctx: any, settings: UnifiedBotSettings, update
         await ctx.editReply({
           embeds: [{
             color: 0x00ff00,
-            title: '📊 Output Schema Updated',
+            title: 'Output Schema Updated',
             description: `\`\`\`json\n${JSON.stringify(schema, null, 2).slice(0, 1000)}\n\`\`\``,
             timestamp: true
           }]
@@ -778,7 +778,7 @@ async function handleClaudeSettings(ctx: any, settings: UnifiedBotSettings, upda
     await ctx.editReply({
       embeds: [{
         color: 0x0099ff,
-        title: '🧠 Claude Settings',
+        title: 'Claude Settings',
         description: 'Available actions: `set-model`, `toggle-git-context`, `toggle-system-info`, `set-system-prompt`\n\n*Note: Only model and context options are supported by Claude Code CLI*',
         fields: [{
           name: 'Current Settings',
@@ -800,7 +800,7 @@ async function handleClaudeSettings(ctx: any, settings: UnifiedBotSettings, upda
         await ctx.editReply({
           embeds: [{
             color: 0xff6600,
-            title: '❌ Invalid Model',
+            title: 'Invalid Model',
             description: 'Please specify a valid Claude model.',
             fields: [{
               name: 'Available Models',
@@ -818,7 +818,7 @@ async function handleClaudeSettings(ctx: any, settings: UnifiedBotSettings, upda
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Model Updated',
+          title: 'Model Updated',
           description: `Default Claude model set to: **${modelInfo.name}**`,
           fields: [{
             name: 'Model Details',
@@ -836,7 +836,7 @@ async function handleClaudeSettings(ctx: any, settings: UnifiedBotSettings, upda
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Git Context Updated',
+          title: 'Git Context Updated',
           description: `Auto-include Git context: **${newGitContext ? 'Enabled' : 'Disabled'}**`,
           timestamp: true
         }]
@@ -849,7 +849,7 @@ async function handleClaudeSettings(ctx: any, settings: UnifiedBotSettings, upda
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ System Info Updated',
+          title: 'System Info Updated',
           description: `Auto-include System Info: **${newSystemInfo ? 'Enabled' : 'Disabled'}**`,
           timestamp: true
         }]
@@ -862,7 +862,7 @@ async function handleClaudeSettings(ctx: any, settings: UnifiedBotSettings, upda
         await ctx.editReply({
           embeds: [{
             color: 0x00ff00,
-            title: '✅ System Prompt Cleared',
+            title: 'System Prompt Cleared',
             description: 'Default system prompt has been removed',
             timestamp: true
           }]
@@ -872,7 +872,7 @@ async function handleClaudeSettings(ctx: any, settings: UnifiedBotSettings, upda
         await ctx.editReply({
           embeds: [{
             color: 0x00ff00,
-            title: '✅ System Prompt Set',
+            title: 'System Prompt Set',
             description: `System prompt updated:\n\`${value.substring(0, 200)}${value.length > 200 ? '...' : ''}\``,
             timestamp: true
           }]
@@ -896,7 +896,7 @@ async function listTodos(ctx: any) {
     await ctx.editReply({
       embeds: [{
         color: 0xffaa00,
-        title: '📝 No Todos Found',
+        title: 'No Todos Found',
         description: 'No todos found. Use `/todos action:add content:[todo]` to create your first todo.',
         timestamp: true
       }]
@@ -933,7 +933,7 @@ async function listTodos(ctx: any) {
   await ctx.editReply({
     embeds: [{
       color: 0x0099ff,
-      title: '📝 Development Todos',
+      title: 'Development Todos',
       fields,
       footer: {
         text: '💾 Persisted to disk | Use /todos action:complete content:[todo_id] to mark as complete'
@@ -969,7 +969,7 @@ async function addTodo(ctx: any, content: string, priority: 'low' | 'medium' | '
   await ctx.editReply({
     embeds: [{
       color: priorityColors[priority],
-      title: '✅ Todo Added',
+      title: 'Todo Added',
       fields: [
         { name: 'Content', value: content, inline: false },
         { name: 'Priority', value: priority.toUpperCase(), inline: true },
@@ -991,7 +991,7 @@ async function completeTodo(ctx: any, todoId: string) {
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Todo Not Found',
+        title: 'Todo Not Found',
         description: `No active todo found with ID starting with: ${todoId}`,
         timestamp: true
       }]
@@ -1006,7 +1006,7 @@ async function completeTodo(ctx: any, todoId: string) {
   await ctx.editReply({
     embeds: [{
       color: 0x00ff00,
-      title: '✅ Todo Completed',
+      title: 'Todo Completed',
       fields: [
         { name: 'Completed Todo', value: todo.content, inline: false },
         { name: 'Priority', value: todo.priority.toUpperCase(), inline: true },
@@ -1049,7 +1049,7 @@ async function showRateStatus(ctx: any, rateTier?: string) {
   await ctx.editReply({
     embeds: [{
       color: statusColor,
-      title: '📊 API Rate Limit Status',
+      title: 'API Rate Limit Status',
       fields: [
         { name: 'Current Tier', value: limits.name, inline: true },
         { name: "Today's Cost", value: summary.today.cost, inline: true },
@@ -1077,7 +1077,7 @@ async function listMCPServers(ctx: any, workDir: string) {
     await ctx.editReply({
       embeds: [{
         color: 0xffaa00,
-        title: '🔌 No MCP Servers',
+        title: 'No MCP Servers',
         description: `No MCP servers configured in \`.claude/mcp.json\`.\n\nUse \`/mcp action:add\` to add your first server.`,
         footer: { text: `📁 ${path.join(workDir, MCP_JSON_FILENAME)}` },
         timestamp: true
@@ -1112,7 +1112,7 @@ async function listMCPServers(ctx: any, workDir: string) {
   await ctx.editReply({
     embeds: [{
       color: 0x0099ff,
-      title: '🔌 MCP Servers',
+      title: 'MCP Servers',
       description: `Found **${serverNames.length}** server(s) configured in \`.claude/mcp.json\``,
       fields: fields.slice(0, 25), // Discord limit
       footer: {
@@ -1131,7 +1131,7 @@ async function addMCPServer(ctx: any, workDir: string, name: string, commandOrUr
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Server Exists',
+        title: 'Server Exists',
         description: `MCP server with name "${name}" already exists in \`.claude/mcp.json\`.`,
         timestamp: true
       }]
@@ -1161,7 +1161,7 @@ async function addMCPServer(ctx: any, workDir: string, name: string, commandOrUr
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Save Failed',
+        title: 'Save Failed',
         description: `Failed to save server to \`.claude/mcp.json\`. Check file permissions.`,
         timestamp: true
       }]
@@ -1174,7 +1174,7 @@ async function addMCPServer(ctx: any, workDir: string, name: string, commandOrUr
   await ctx.editReply({
     embeds: [{
       color: 0x00ff00,
-      title: '✅ MCP Server Added',
+      title: 'MCP Server Added',
       fields: [
         { name: 'Server Name', value: name, inline: true },
         { name: 'Command', value: `\`${fullCommand}\``, inline: false },
@@ -1216,7 +1216,7 @@ async function handleOutputSettings(ctx: any, settings: UnifiedBotSettings, upda
     await ctx.editReply({
       embeds: [{
         color: 0x0099ff,
-        title: '🎨 Output Settings',
+        title: 'Output Settings',
         description: 'Available actions: `toggle-highlighting`, `set-max-length`, `set-timestamp`',
         fields: [{
           name: 'Current Settings',
@@ -1236,7 +1236,7 @@ async function handleOutputSettings(ctx: any, settings: UnifiedBotSettings, upda
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Code Highlighting Updated',
+          title: 'Code Highlighting Updated',
           description: `Code highlighting: **${newHighlighting ? 'Enabled' : 'Disabled'}**`,
           timestamp: true
         }]
@@ -1249,7 +1249,7 @@ async function handleOutputSettings(ctx: any, settings: UnifiedBotSettings, upda
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Auto-Paging Updated',
+          title: 'Auto-Paging Updated',
           description: `Auto-page long output: **${newPaging ? 'Enabled' : 'Disabled'}**`,
           timestamp: true
         }]
@@ -1276,7 +1276,7 @@ async function handleOutputSettings(ctx: any, settings: UnifiedBotSettings, upda
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Max Output Length Updated',
+          title: 'Max Output Length Updated',
           description: `Max output length set to: **${maxLen}** characters`,
           timestamp: true
         }]
@@ -1295,7 +1295,7 @@ async function handleOutputSettings(ctx: any, settings: UnifiedBotSettings, upda
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Timestamp Format Updated',
+          title: 'Timestamp Format Updated',
           description: `Timestamp format set to: **${value}**`,
           timestamp: true
         }]
@@ -1316,7 +1316,7 @@ async function handleProxySettings(ctx: any, settings: UnifiedBotSettings, updat
     await ctx.editReply({
       embeds: [{
         color: 0x0099ff,
-        title: '🌐 Proxy Settings',
+        title: 'Proxy Settings',
         description: 'Available actions: `enable`, `disable`, `set-url`, `add-bypass`, `remove-bypass`, `list-bypass`',
         fields: [{
           name: 'Current Settings',
@@ -1342,7 +1342,7 @@ async function handleProxySettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Proxy Enabled',
+          title: 'Proxy Enabled',
           description: `Proxy enabled using: ${settings.proxyUrl}`,
           timestamp: true
         }]
@@ -1354,7 +1354,7 @@ async function handleProxySettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Proxy Disabled',
+          title: 'Proxy Disabled',
           description: 'Proxy has been disabled',
           timestamp: true
         }]
@@ -1375,7 +1375,7 @@ async function handleProxySettings(ctx: any, settings: UnifiedBotSettings, updat
         await ctx.editReply({
           embeds: [{
             color: 0x00ff00,
-            title: '✅ Proxy URL Set',
+            title: 'Proxy URL Set',
             description: `Proxy URL set to: ${value}`,
             timestamp: true
           }]
@@ -1407,7 +1407,7 @@ async function handleProxySettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Bypass Domain Added',
+          title: 'Bypass Domain Added',
           description: `Added "${value}" to proxy bypass list`,
           timestamp: true
         }]
@@ -1433,7 +1433,7 @@ async function handleProxySettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Bypass Domain Removed',
+          title: 'Bypass Domain Removed',
           description: `Removed "${value}" from proxy bypass list`,
           timestamp: true
         }]
@@ -1444,7 +1444,7 @@ async function handleProxySettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x0099ff,
-          title: '🌐 Proxy Bypass Domains',
+          title: 'Proxy Bypass Domains',
           description: settings.noProxyDomains.length > 0 
             ? settings.noProxyDomains.map(d => `• ${d}`).join('\n')
             : 'No bypass domains configured',
@@ -1467,7 +1467,7 @@ async function handleDeveloperSettings(ctx: any, settings: UnifiedBotSettings, u
     await ctx.editReply({
       embeds: [{
         color: 0x0099ff,
-        title: '🔧 Developer Settings',
+        title: 'Developer Settings',
         description: 'Available actions: `toggle-debug`, `toggle-verbose`, `toggle-metrics`, `show-debug`',
         fields: [{
           name: 'Current Settings',
@@ -1487,7 +1487,7 @@ async function handleDeveloperSettings(ctx: any, settings: UnifiedBotSettings, u
       await ctx.editReply({
         embeds: [{
           color: newDebug ? 0xff9900 : 0x00ff00,
-          title: newDebug ? '🔧 Debug Mode Enabled' : '✅ Debug Mode Disabled',
+          title: newDebug ? 'Debug Mode Enabled' : 'Debug Mode Disabled',
           description: newDebug 
             ? '⚠️ Debug mode is now **enabled**. Additional logging will be shown.'
             : 'Debug mode has been disabled.',
@@ -1502,7 +1502,7 @@ async function handleDeveloperSettings(ctx: any, settings: UnifiedBotSettings, u
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Verbose Error Reporting Updated',
+          title: 'Verbose Error Reporting Updated',
           description: `Verbose error reporting: **${newVerbose ? 'Enabled' : 'Disabled'}**`,
           timestamp: true
         }]
@@ -1515,7 +1515,7 @@ async function handleDeveloperSettings(ctx: any, settings: UnifiedBotSettings, u
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Performance Metrics Updated',
+          title: 'Performance Metrics Updated',
           description: `Performance metrics: **${newMetrics ? 'Enabled' : 'Disabled'}**`,
           timestamp: true
         }]
@@ -1536,7 +1536,7 @@ async function handleDeveloperSettings(ctx: any, settings: UnifiedBotSettings, u
       await ctx.editReply({
         embeds: [{
           color: 0x0099ff,
-          title: '🔧 Debug Information',
+          title: 'Debug Information',
           fields: [
             { name: 'Deno Version', value: debugInfo.denoVersion, inline: true },
             { name: 'V8 Version', value: debugInfo.v8Version, inline: true },
@@ -1565,7 +1565,7 @@ async function handleResetSettings(ctx: any, settings: UnifiedBotSettings, updat
     await ctx.editReply({
       embeds: [{
         color: 0xff6600,
-        title: '⚠️ Reset Settings',
+        title: 'Reset Settings',
         description: 'Available actions: `all`, `bot`, `claude`, `modes`, `output`, `proxy`, `developer`\n\n**Warning:** This will reset settings to their default values.',
         fields: [{
           name: 'Usage',
@@ -1586,7 +1586,7 @@ async function handleResetSettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ All Settings Reset',
+          title: 'All Settings Reset',
           description: 'All settings have been reset to their default values.',
           timestamp: true
         }]
@@ -1601,7 +1601,7 @@ async function handleResetSettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Bot Settings Reset',
+          title: 'Bot Settings Reset',
           description: 'Bot settings have been reset to defaults.',
           timestamp: true
         }]
@@ -1618,7 +1618,7 @@ async function handleResetSettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Claude Settings Reset',
+          title: 'Claude Settings Reset',
           description: 'Claude settings have been reset to defaults.',
           timestamp: true
         }]
@@ -1638,7 +1638,7 @@ async function handleResetSettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Mode Settings Reset',
+          title: 'Mode Settings Reset',
           description: 'Mode settings have been reset to defaults.',
           timestamp: true
         }]
@@ -1655,7 +1655,7 @@ async function handleResetSettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Output Settings Reset',
+          title: 'Output Settings Reset',
           description: 'Output settings have been reset to defaults.',
           timestamp: true
         }]
@@ -1671,7 +1671,7 @@ async function handleResetSettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Proxy Settings Reset',
+          title: 'Proxy Settings Reset',
           description: 'Proxy settings have been reset to defaults.',
           timestamp: true
         }]
@@ -1687,7 +1687,7 @@ async function handleResetSettings(ctx: any, settings: UnifiedBotSettings, updat
       await ctx.editReply({
         embeds: [{
           color: 0x00ff00,
-          title: '✅ Developer Settings Reset',
+          title: 'Developer Settings Reset',
           description: 'Developer settings have been reset to defaults.',
           timestamp: true
         }]
@@ -1738,7 +1738,7 @@ async function generateTodosFromCode(ctx: any, filePath: string, rateTier?: stri
       await ctx.editReply({
         embeds: [{
           color: 0xffaa00,
-          title: '📝 No Todos Found',
+          title: 'No Todos Found',
           description: `No TODO, FIXME, HACK, XXX, BUG, or NOTE comments found in the file.`,
           fields: [{
             name: 'File Scanned',
@@ -1785,7 +1785,7 @@ async function generateTodosFromCode(ctx: any, filePath: string, rateTier?: stri
     await ctx.editReply({
       embeds: [{
         color: 0x00ff00,
-        title: '✅ Todos Generated',
+        title: 'Todos Generated',
         description: `Found and added **${addedCount}** todos from code comments.`,
         fields: [
           { name: 'File Scanned', value: filePath, inline: false },
@@ -1799,7 +1799,7 @@ async function generateTodosFromCode(ctx: any, filePath: string, rateTier?: stri
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Error Reading File',
+        title: 'Error Reading File',
         description: error instanceof Error ? error.message : 'Failed to read file',
         timestamp: true
       }]
@@ -1813,7 +1813,7 @@ async function prioritizeTodos(ctx: any, rateTier?: string) {
     await ctx.editReply({
       embeds: [{
         color: 0xffaa00,
-        title: '📝 No Todos to Prioritize',
+        title: 'No Todos to Prioritize',
         description: 'No todos found. Add some todos first.',
         timestamp: true
       }]
@@ -1848,7 +1848,7 @@ async function prioritizeTodos(ctx: any, rateTier?: string) {
   await ctx.editReply({
     embeds: [{
       color: 0x00ff00,
-      title: '✅ Todos Prioritized',
+      title: 'Todos Prioritized',
       description: `Sorted **${activeTodos.length}** active todos by priority and age.`,
       fields: [{
         name: 'Top 10 Priorities',
@@ -1872,7 +1872,7 @@ async function removeMCPServer(ctx: any, workDir: string, serverName: string) {
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Server Not Found',
+        title: 'Server Not Found',
         description: `No MCP server found with name: "${serverName}"`,
         fields: [{
           name: 'Available Servers',
@@ -1896,7 +1896,7 @@ async function removeMCPServer(ctx: any, workDir: string, serverName: string) {
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Save Failed',
+        title: 'Save Failed',
         description: `Failed to save changes to \`.claude/mcp.json\`.`,
         timestamp: true
       }]
@@ -1911,7 +1911,7 @@ async function removeMCPServer(ctx: any, workDir: string, serverName: string) {
   await ctx.editReply({
     embeds: [{
       color: 0x00ff00,
-      title: '✅ MCP Server Removed',
+      title: 'MCP Server Removed',
       description: `Successfully removed MCP server: **${matchingName}**`,
       fields: [
         { name: 'Command', value: `\`${fullCommand}\``, inline: false },
@@ -1935,7 +1935,7 @@ async function testMCPConnection(ctx: any, workDir: string, serverName: string) 
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Server Not Found',
+        title: 'Server Not Found',
         description: `No MCP server found with name: "${serverName}"`,
         timestamp: true
       }]
@@ -1989,7 +1989,7 @@ async function testMCPConnection(ctx: any, workDir: string, serverName: string) 
   await ctx.editReply({
     embeds: [{
       color: testSuccess ? 0x00ff00 : 0xff0000,
-      title: testSuccess ? '✅ Command Available' : '❌ Command Not Found',
+      title: testSuccess ? 'Command Available' : 'Command Not Found',
       description: testMessage,
       fields: [
         { name: 'Server', value: matchingName, inline: true },
@@ -2012,7 +2012,7 @@ async function showMCPStatus(ctx: any, workDir: string) {
     await ctx.editReply({
       embeds: [{
         color: 0xffaa00,
-        title: '📊 MCP Status',
+        title: 'MCP Status',
         description: `No MCP servers configured in \`.claude/mcp.json\`.\n\nUse \`/mcp action:add server_name:[name] command:[command]\` to add a server.`,
         footer: { text: `📁 ${path.join(workDir, MCP_JSON_FILENAME)}` },
         timestamp: true
@@ -2053,7 +2053,7 @@ async function showMCPStatus(ctx: any, workDir: string) {
   await ctx.editReply({
     embeds: [{
       color: 0x00ff00,
-      title: '📊 MCP Server Status',
+      title: 'MCP Server Status',
       description: `**${serverNames.length}** MCP server(s) configured`,
       fields: [
         ...fields.slice(0, 20), // Discord field limit
@@ -2090,7 +2090,7 @@ async function handleMcpToggle(ctx: any, serverName: string, value?: string): Pr
       await ctx.editReply({
         embeds: [{
           color: 0xff0000,
-          title: '❌ No Active Session',
+          title: 'No Active Session',
           description: 'MCP toggle requires an active Claude session. Start a query first with `/claude`.',
         }]
       });
@@ -2101,7 +2101,7 @@ async function handleMcpToggle(ctx: any, serverName: string, value?: string): Pr
       await ctx.editReply({
         embeds: [{
           color: 0xff0000,
-          title: '❌ Server Not Found',
+          title: 'Server Not Found',
           description: `No MCP server named **${serverName}** found in the active session.\n\nAvailable: ${statuses.map(s => `\`${s.name}\``).join(', ') || 'none'}`,
         }]
       });
@@ -2116,7 +2116,7 @@ async function handleMcpToggle(ctx: any, serverName: string, value?: string): Pr
     await ctx.editReply({
       embeds: [{
         color: enabled ? 0x00ff00 : 0xffaa00,
-        title: enabled ? '✅ MCP Server Enabled' : '⏸️ MCP Server Disabled',
+        title: enabled ? 'MCP Server Enabled' : 'MCP Server Disabled',
         description: `**${serverName}** has been ${enabled ? 'enabled' : 'disabled'} mid-session.`,
       }]
     });
@@ -2124,7 +2124,7 @@ async function handleMcpToggle(ctx: any, serverName: string, value?: string): Pr
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Toggle Failed',
+        title: 'Toggle Failed',
         description: `Could not toggle **${serverName}**. Ensure an active Claude session exists and the server name is correct.`,
       }]
     });
@@ -2143,7 +2143,7 @@ async function handleMcpReconnect(ctx: any, serverName: string): Promise<void> {
     await ctx.editReply({
       embeds: [{
         color: 0x00ff00,
-        title: '🔄 MCP Server Reconnected',
+        title: 'MCP Server Reconnected',
         description: `**${serverName}** has been reconnected successfully.`,
       }]
     });
@@ -2151,7 +2151,7 @@ async function handleMcpReconnect(ctx: any, serverName: string): Promise<void> {
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Reconnect Failed',
+        title: 'Reconnect Failed',
         description: `Could not reconnect **${serverName}**. Ensure an active Claude session exists and the server name is correct.`,
       }]
     });

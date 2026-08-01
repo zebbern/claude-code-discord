@@ -175,7 +175,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
       await sendMessageContent(channel, {
         embeds: [{
           color: 0x5865F2,
-          title: '🧵 New Claude Session',
+          title: 'New Claude Session',
           description: `A new session thread has been created.\n\n**Prompt:** \`${prompt.substring(0, 200)}${prompt.length > 200 ? '...' : ''}\``,
           fields: [
             { name: 'Thread', value: `<#${thread.id}>`, inline: true },
@@ -202,6 +202,14 @@ export async function createClaudeCodeBot(config: BotConfig) {
 
     updateSessionId(oldKey: string, newSessionId: string) {
       sessionThreadManager.updateSessionId(oldKey, newSessionId);
+    },
+
+    getThreadChannelId(sessionId: string) {
+      return sessionThreadManager.getSessionThread(sessionId)?.threadId;
+    },
+
+    findSessionByThreadId(threadId: string) {
+      return sessionThreadManager.findSessionByThreadId(threadId);
     },
   };
 
@@ -411,7 +419,7 @@ export async function createClaudeCodeBot(config: BotConfig) {
         const { EmbedBuilder } = await import("npm:discord.js@14.14.1");
         const embed = new EmbedBuilder()
           .setColor(0xFFA500)
-          .setTitle("🔄 Update Available")
+          .setTitle("Update Available")
           .setDescription(`A newer version is available. You are running **v${BOT_VERSION}** (\`${result.localCommit}\`).`)
           .addFields(
             { name: "Latest Commit", value: `\`${result.remoteCommit}\``, inline: true },
@@ -556,7 +564,7 @@ function createAskUserDiscordHandler(bot: any, getTargetChannel?: () => any): (i
       // Build embed
       const embed = new EmbedBuilder()
         .setColor(0xff9900)
-        .setTitle(`❓ Claude needs your input — ${q.header}`)
+        .setTitle(`Claude needs your input — ${q.header}`)
         .setDescription(q.question)
         .setFooter({ text: q.multiSelect ? 'Select option(s), then click ✅ Confirm — Claude is waiting' : 'Click an option to answer — Claude is waiting' })
         .setTimestamp();

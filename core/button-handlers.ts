@@ -6,9 +6,11 @@
  */
 
 import type { ButtonHandlers, InteractionContext } from "../discord/index.ts";
+import { createFormattedEmbed, buildTextAttachment, EMBED_COLORS } from "../discord/index.ts";
 import type { MessageHistoryOps } from "./handler-registry.ts";
 import type { AllHandlers } from "./handler-registry.ts";
 import type { ClaudeMessage } from "../claude/index.ts";
+import { claudeCancelledEmbed } from "../claude/status-embed.ts";
 
 // ================================
 // Session Reader Utility
@@ -134,16 +136,19 @@ export function createButtonHandlers(
   const { claude: claudeHandlers, git: gitHandlers } = handlers;
 
   const buttonHandlers: ButtonHandlers = new Map([
-    // Cancel Claude session (kept for programmatic use, no longer on completion buttons)
+    // Cancel Claude session — shown on in-flight /claude status embeds
     ['cancel-claude', async (ctx: InteractionContext) => {
       const cancelled = claudeHandlers.onClaudeCancel(ctx);
       await ctx.update({
-        embeds: [{
-          color: cancelled ? 0xff0000 : 0x808080,
-          title: cancelled ? 'Cancel Successful' : 'Cancel Failed',
-          description: cancelled ? 'Claude Code session cancelled.' : 'No running Claude Code session.',
-          timestamp: true
-        }]
+        embeds: [cancelled
+          ? claudeCancelledEmbed()
+          : {
+            color: EMBED_COLORS.info,
+            title: '/claude · cancel failed',
+            description: 'No running Claude Code session in this channel.',
+            timestamp: true,
+          }],
+        components: [],
       });
     }],
 
@@ -155,7 +160,7 @@ export function createButtonHandlers(
         await ctx.update({
           embeds: [{
             color: 0xffaa00,
-            title: '📜 No Prompt History',
+            title: 'No Prompt History',
             description: 'No previous prompts found.',
             fields: [
               { name: 'Tip', value: 'Use `/claude` to send prompts — they\'ll appear here for reuse.', inline: false }
@@ -173,7 +178,7 @@ export function createButtonHandlers(
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
-          title: `📜 Prompt History (${historyPosition}/${totalMessages})`,
+          title: `Prompt History (${historyPosition}/${totalMessages})`,
           description: `\`\`\`\n${previousMessage}\n\`\`\``,
           timestamp: true
         }],
@@ -206,7 +211,7 @@ export function createButtonHandlers(
         await ctx.update({
           embeds: [{
             color: 0xffaa00,
-            title: '⬅️ No Older Prompts',
+            title: 'No Older Prompts',
             description: 'You\'ve reached the beginning of your prompt history.',
             timestamp: true
           }],
@@ -222,7 +227,7 @@ export function createButtonHandlers(
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
-          title: `📜 Prompt History (${historyPosition}/${totalMessages})`,
+          title: `Prompt History (${historyPosition}/${totalMessages})`,
           description: `\`\`\`\n${olderMessage}\n\`\`\``,
           timestamp: true
         }],
@@ -248,7 +253,7 @@ export function createButtonHandlers(
         await ctx.update({
           embeds: [{
             color: 0xffaa00,
-            title: '➡️ No Newer Prompts',
+            title: 'No Newer Prompts',
             description: 'You\'ve reached the end of your prompt history.',
             timestamp: true
           }],
@@ -264,7 +269,7 @@ export function createButtonHandlers(
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
-          title: `📜 Prompt History (${historyPosition}/${totalMessages})`,
+          title: `Prompt History (${historyPosition}/${totalMessages})`,
           description: `\`\`\`\n${newerMessage}\n\`\`\``,
           timestamp: true
         }],
@@ -290,7 +295,7 @@ export function createButtonHandlers(
         await ctx.update({
           embeds: [{
             color: 0xff0000,
-            title: '❌ No Prompt Selected',
+            title: 'No Prompt Selected',
             description: 'No prompt available to run.',
             timestamp: true
           }],
@@ -302,7 +307,7 @@ export function createButtonHandlers(
       await ctx.update({
         embeds: [{
           color: 0x00ff00,
-          title: '▶️ Running Prompt',
+          title: 'Running Prompt',
           description: `\`\`\`\n${currentMessage}\n\`\`\``,
           timestamp: true
         }],
@@ -321,7 +326,7 @@ export function createButtonHandlers(
       await ctx.update({
         embeds: [{
           color: 0x808080,
-          title: '✅ History Closed',
+          title: 'History Closed',
           description: 'Message history navigation closed.',
           timestamp: true
         }],
@@ -334,7 +339,7 @@ export function createButtonHandlers(
       await ctx.update({
         embeds: [{
           color: 0x808080,
-          title: '🔼 Content Collapsed',
+          title: 'Content Collapsed',
           description: 'Content has been collapsed. Use the expand button to view it again.',
           timestamp: true
         }],
@@ -350,7 +355,7 @@ export function createButtonHandlers(
         await ctx.editReply({
           embeds: [{
             color: 0x00ff00,
-            title: '📊 Git Status',
+            title: 'Git Status',
             fields: [
               { name: 'Branch', value: gitStatusInfo.branch || 'Unknown', inline: true },
               { name: 'Status', value: `\`\`\`\n${gitStatusInfo.status || 'No changes'}\n\`\`\``, inline: false },
@@ -363,7 +368,7 @@ export function createButtonHandlers(
         await ctx.editReply({
           embeds: [{
             color: 0xff0000,
-            title: '📊 Git Status Error',
+            title: 'Git Status Error',
             description: `Error: ${error instanceof Error ? error.message : String(error)}`,
             timestamp: true
           }]
@@ -384,7 +389,7 @@ export function createButtonHandlers(
         await ctx.editReply({
           embeds: [{
             color: 0xff0000,
-            title: '❌ Resume Failed',
+            title: 'Resume Failed',
             description: `${error instanceof Error ? error.message : String(error)}`,
             timestamp: true
           }]
@@ -401,7 +406,7 @@ export function createButtonHandlers(
           await ctx.editReply({
             embeds: [{
               color: 0xffaa00,
-              title: '📂 No Recent Sessions',
+              title: 'No Recent Sessions',
               description: 'No session history found for this project.',
               timestamp: true
             }]
@@ -418,7 +423,7 @@ export function createButtonHandlers(
         await ctx.editReply({
           embeds: [{
             color: 0x0099ff,
-            title: '📂 Recent Sessions',
+            title: 'Recent Sessions',
             description: 'Use `/resume` or `/claude session_id:<id>` to resume any session.',
             fields,
             timestamp: true
@@ -428,7 +433,7 @@ export function createButtonHandlers(
         await ctx.editReply({
           embeds: [{
             color: 0xff0000,
-            title: '📂 Sessions Error',
+            title: 'Sessions Error',
             description: `${error instanceof Error ? error.message : String(error)}`,
             timestamp: true
           }]
@@ -441,22 +446,13 @@ export function createButtonHandlers(
       await ctx.deferReply();
       try {
         const result = await handlers.system.onSystemInfo(ctx);
-        const info = result.data;
-        // Truncate to fit embed
-        const truncated = info.length > 4000 ? info.substring(0, 4000) + '...' : info;
-        await ctx.editReply({
-          embeds: [{
-            color: 0x0099ff,
-            title: '💻 System Info',
-            description: `\`\`\`\n${truncated}\n\`\`\``,
-            timestamp: true
-          }]
-        });
+        const { embed, files } = createFormattedEmbed('System Info', result.data, 0x0099ff, {}, 'system-info.txt');
+        await ctx.editReply({ embeds: [embed], files });
       } catch (error) {
         await ctx.editReply({
           embeds: [{
             color: 0xff0000,
-            title: '💻 System Info Error',
+            title: 'System Info Error',
             description: `${error instanceof Error ? error.message : String(error)}`,
             timestamp: true
           }]
@@ -488,7 +484,7 @@ export function createExpandButtonHandler(
       await ctx.update({
         embeds: [{
           color: 0xffaa00,
-          title: '📖 Content Not Available',
+          title: 'Content Not Available',
           description: 'The full content is no longer available for expansion.',
           timestamp: true
         }],
@@ -503,7 +499,7 @@ export function createExpandButtonHandler(
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
-          title: '📖 Full Content',
+          title: 'Full Content',
           description: expandId.startsWith('result-') ?
             `\`\`\`\n${fullContent}\n\`\`\`` :
             `\`\`\`json\n${fullContent}\n\`\`\``,
@@ -520,19 +516,20 @@ export function createExpandButtonHandler(
         }]
       });
     } else {
-      // Content is still too large, show first part with pagination
+      // Content is still too large — preview + attach full .txt
       const chunk = fullContent.substring(0, maxLength - 100);
       await ctx.update({
         embeds: [{
           color: 0x0099ff,
-          title: '📖 Full Content (Large - Showing First Part)',
+          title: 'Full Content (Large - Showing First Part)',
           description: expandId.startsWith('result-') ?
             `\`\`\`\n${chunk}...\n\`\`\`` :
             `\`\`\`json\n${chunk}...\n\`\`\``,
           fields: [
-            { name: 'Note', value: 'Content is very large. This shows the first portion.', inline: false }
+            { name: 'Note', value: 'Content is very large — full output attached as .txt.', inline: false }
           ],
-          timestamp: true
+          timestamp: true,
+          footer: { text: 'Output truncated — full output attached as .txt' },
         }],
         components: [{
           type: 'actionRow',
@@ -542,7 +539,8 @@ export function createExpandButtonHandler(
             label: '🔼 Collapse',
             style: 'secondary'
           }]
-        }]
+        }],
+        files: [buildTextAttachment(fullContent, 'expanded-content.txt')],
       });
     }
   };

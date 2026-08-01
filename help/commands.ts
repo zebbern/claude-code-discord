@@ -21,7 +21,7 @@ export interface HelpHandlerDeps {
 // Detailed command information
 export const COMMAND_HELP = {
   claude: {
-    title: "🤖 Claude Code Integration",
+    title: "Claude Code Integration",
     description: "Send prompts to Claude Code CLI for AI-powered development assistance",
     usage: "/claude prompt: [your message] session_id: [optional]",
     examples: [
@@ -40,7 +40,7 @@ export const COMMAND_HELP = {
     ]
   },
   continue: {
-    title: "⏭️ Continue Conversation",
+    title: "Continue Conversation",
     description: "Continue the most recent Claude Code conversation in this directory",
     usage: "/continue prompt: [optional additional message]",
     examples: [
@@ -58,19 +58,20 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-cancel": {
-    title: "❌ Cancel Claude Session",
+    title: "Cancel Claude Session",
     description: "Cancel any currently running Claude Code operation",
     usage: "/claude-cancel",
     examples: ["/claude-cancel"],
     parameters: [],
     notes: [
       "Immediately stops Claude Code execution",
+      "Also available as the Cancel button on the running /claude embed",
       "Safe to use - no data loss",
       "Use when Claude is taking too long or stuck"
     ]
   },
   git: {
-    title: "📂 Git Operations",
+    title: "Git Operations",
     description: "Execute Git commands in the current working directory",
     usage: "/git command: [git command without 'git' prefix]",
     examples: [
@@ -90,7 +91,7 @@ export const COMMAND_HELP = {
     ]
   },
   worktree: {
-    title: "🌿 Create Git Worktree",
+    title: "Create Git Worktree",
     description: "Create a new Git worktree and start a bot instance for it",
     usage: "/worktree branch: [branch name] ref: [optional reference]",
     examples: [
@@ -110,7 +111,7 @@ export const COMMAND_HELP = {
     ]
   },
   "worktree-list": {
-    title: "📋 List Git Worktrees",
+    title: "List Git Worktrees",
     description: "Display all Git worktrees in the repository",
     usage: "/worktree-list",
     examples: ["/worktree-list"],
@@ -122,7 +123,7 @@ export const COMMAND_HELP = {
     ]
   },
   "worktree-remove": {
-    title: "🗑️ Remove Git Worktree",
+    title: "Remove Git Worktree",
     description: "Remove a Git worktree and clean up associated files",
     usage: "/worktree-remove branch: [branch name]",
     examples: [
@@ -139,7 +140,7 @@ export const COMMAND_HELP = {
     ]
   },
   "worktree-bots": {
-    title: "🤖 List Worktree Bots",
+    title: "List Worktree Bots",
     description: "Show all running bot instances for worktrees",
     usage: "/worktree-bots",
     examples: ["/worktree-bots"],
@@ -151,7 +152,7 @@ export const COMMAND_HELP = {
     ]
   },
   "worktree-kill": {
-    title: "💀 Kill Worktree Bot",
+    title: "Kill Worktree Bot",
     description: "Terminate a specific worktree bot instance",
     usage: "/worktree-kill path: [full path to worktree]",
     examples: [
@@ -168,7 +169,7 @@ export const COMMAND_HELP = {
     ]
   },
   shell: {
-    title: "🖥️ Shell Commands",
+    title: "Shell Commands",
     description: "Execute shell commands with interactive support",
     usage: "/shell command: [command] input: [optional initial input]",
     examples: [
@@ -189,7 +190,7 @@ export const COMMAND_HELP = {
     ]
   },
   "shell-input": {
-    title: "📝 Send Shell Input",
+    title: "Send Shell Input",
     description: "Send input to a running shell process",
     usage: "/shell-input id: [process id] text: [input text]",
     examples: [
@@ -209,7 +210,7 @@ export const COMMAND_HELP = {
     ]
   },
   "shell-list": {
-    title: "📊 List Shell Processes",
+    title: "List Shell Processes",
     description: "Display all currently running shell processes",
     usage: "/shell-list",
     examples: ["/shell-list"],
@@ -221,7 +222,7 @@ export const COMMAND_HELP = {
     ]
   },
   "shell-kill": {
-    title: "⚡ Kill Shell Process",
+    title: "Kill Shell Process",
     description: "Terminate a running shell process",
     usage: "/shell-kill id: [process id]",
     examples: [
@@ -238,7 +239,7 @@ export const COMMAND_HELP = {
     ]
   },
   status: {
-    title: "🔍 System Status",
+    title: "System Status",
     description: "Display comprehensive status of all bot components",
     usage: "/status",
     examples: ["/status"],
@@ -251,7 +252,7 @@ export const COMMAND_HELP = {
     ]
   },
   settings: {
-    title: "⚙️ Bot Settings",
+    title: "Bot Settings",
     description: "Manage bot configuration and preferences",
     usage: "/settings action: [action] value: [optional value]",
     examples: [
@@ -271,7 +272,7 @@ export const COMMAND_HELP = {
     ]
   },
   pwd: {
-    title: "📍 Working Directory",
+    title: "Working Directory",
     description: "Display current working directory and bot information",
     usage: "/pwd",
     examples: ["/pwd"],
@@ -283,7 +284,7 @@ export const COMMAND_HELP = {
     ]
   },
   shutdown: {
-    title: "🛑 Bot Shutdown",
+    title: "Bot Shutdown",
     description: "Gracefully shutdown the bot and all associated processes",
     usage: "/shutdown",
     examples: ["/shutdown"],
@@ -296,7 +297,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-enhanced": {
-    title: "🚀 Enhanced Claude Code Integration",
+    title: "Enhanced Claude Code Integration",
     description: "Send prompts to Claude Code with advanced options and context",
     usage: "/claude-enhanced prompt: [message] model: [model] template: [template] ...",
     examples: [
@@ -321,7 +322,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-models": {
-    title: "🤖 Available Claude Models",
+    title: "Available Claude Models",
     description: "List all available Claude models and their capabilities",
     usage: "/claude-models",
     examples: ["/claude-models"],
@@ -333,7 +334,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-sessions": {
-    title: "📋 Claude Session Management",
+    title: "Claude Session Management",
     description: "Manage and view Claude Code conversation sessions",
     usage: "/claude-sessions action: [action] session_id: [optional]",
     examples: [
@@ -357,7 +358,7 @@ export const COMMAND_HELP = {
   // Template functionality is now handled through enhanced prompting
   /*
   "claude-templates": {
-    title: "📝 Claude Code Templates",
+    title: "Claude Code Templates",
     description: "Use predefined templates for common Claude Code tasks",
     usage: "/claude-templates template: [template] content: [your content]",
     examples: [
@@ -377,7 +378,7 @@ export const COMMAND_HELP = {
   },
   */
   "claude-context": {
-    title: "📋 Claude Context Preview",
+    title: "Claude Context Preview",
     description: "Preview what context information would be sent to Claude",
     usage: "/claude-context include_system_info: [true/false] include_git_context: [true/false] ...",
     examples: [
@@ -397,7 +398,7 @@ export const COMMAND_HELP = {
     ]
   },
   "system-info": {
-    title: "🖥️ System Information",
+    title: "System Information",
     description: "Display comprehensive system information including OS, CPU, and memory",
     usage: "/system-info",
     examples: ["/system-info"],
@@ -410,7 +411,7 @@ export const COMMAND_HELP = {
     ]
   },
   "processes": {
-    title: "⚙️ Running Processes",
+    title: "Running Processes",
     description: "List currently running processes on the system",
     usage: "/processes filter: [optional] limit: [number]",
     examples: [
@@ -430,7 +431,7 @@ export const COMMAND_HELP = {
     ]
   },
   "system-resources": {
-    title: "📊 System Resources",
+    title: "System Resources",
     description: "Display current system resource usage (CPU, Memory, Load)",
     usage: "/system-resources",
     examples: ["/system-resources"],
@@ -443,7 +444,7 @@ export const COMMAND_HELP = {
     ]
   },
   "network-info": {
-    title: "🌐 Network Information", 
+    title: "Network Information", 
     description: "Display network interfaces, connections, and routing information",
     usage: "/network-info",
     examples: ["/network-info"],
@@ -456,7 +457,7 @@ export const COMMAND_HELP = {
     ]
   },
   "disk-usage": {
-    title: "💽 Disk Space Usage",
+    title: "Disk Space Usage",
     description: "Show disk space usage for all mounted drives and filesystems",
     usage: "/disk-usage",
     examples: ["/disk-usage"],
@@ -469,7 +470,7 @@ export const COMMAND_HELP = {
     ]
   },
   "env-vars": {
-    title: "🔧 Environment Variables",
+    title: "Environment Variables",
     description: "List environment variables with optional filtering",
     usage: "/env-vars filter: [optional]",
     examples: [
@@ -489,7 +490,7 @@ export const COMMAND_HELP = {
     ]
   },
   "system-logs": {
-    title: "📋 System Logs",
+    title: "System Logs",
     description: "Display recent system logs with optional service filtering",
     usage: "/system-logs lines: [number] service: [service name]",
     examples: [
@@ -510,7 +511,7 @@ export const COMMAND_HELP = {
     ]
   },
   "port-scan": {
-    title: "🔍 Port Scanner",
+    title: "Port Scanner",
     description: "Check which ports are open and listening on a host",
     usage: "/port-scan host: [hostname] ports: [port range]",
     examples: [
@@ -531,7 +532,7 @@ export const COMMAND_HELP = {
     ]
   },
   "service-status": {
-    title: "🔧 Service Status",
+    title: "Service Status",
     description: "Check the status of system services using systemctl",
     usage: "/service-status service: [service name]",
     examples: [
@@ -551,7 +552,7 @@ export const COMMAND_HELP = {
     ]
   },
   "uptime": {
-    title: "⏰ System Uptime",
+    title: "System Uptime",
     description: "Display system uptime, boot time, and load averages",
     usage: "/uptime",
     examples: ["/uptime"],
@@ -564,7 +565,7 @@ export const COMMAND_HELP = {
     ]
   },
   "screenshot": {
-    title: "📸 Screenshot Capture",
+    title: "Screenshot Capture",
     description: "Capture and share a screenshot of the host machine's screen",
     usage: "/screenshot delay: [optional seconds]",
     examples: [
@@ -584,7 +585,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-explain": {
-    title: "🧠 Claude Code Explanation",
+    title: "Claude Code Explanation",
     description: "Ask Claude to explain code, concepts, or errors in detail",
     usage: "/claude-explain content: [code/concept] detail_level: [basic/detailed/expert] include_examples: [true/false]",
     examples: [
@@ -604,7 +605,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-debug": {
-    title: "🐛 Claude Code Debugging",
+    title: "Claude Code Debugging",
     description: "Get help debugging code issues and errors with Claude's assistance",
     usage: "/claude-debug error_or_code: [error/code] language: [language] context_files: [files]",
     examples: [
@@ -624,7 +625,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-optimize": {
-    title: "⚡ Claude Code Optimization",
+    title: "Claude Code Optimization",
     description: "Get code optimization suggestions from Claude with specific focus areas",
     usage: "/claude-optimize code: [code] focus: [performance/readability/memory/security/all] preserve_functionality: [true/false]",
     examples: [
@@ -644,7 +645,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-review": {
-    title: "🔍 Claude Code Review",
+    title: "Claude Code Review",
     description: "Get comprehensive code review from Claude with quality analysis",
     usage: "/claude-review code_or_file: [code/file] review_type: [quick/standard/deep] include_security: [true/false] include_performance: [true/false]",
     examples: [
@@ -665,7 +666,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-generate": {
-    title: "🔨 Claude Code Generation",
+    title: "Claude Code Generation",
     description: "Generate code, tests, or documentation with Claude's assistance",
     usage: "/claude-generate request: [description] type: [function/class/test/documentation/api/component] style: [clean/performance/functional/oop]",
     examples: [
@@ -685,7 +686,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-refactor": {
-    title: "🔧 Claude Code Refactoring",
+    title: "Claude Code Refactoring",
     description: "Refactor existing code with Claude's guidance and best practices",
     usage: "/claude-refactor code: [code] goal: [modernize/simplify/extract/typescript/performance] preserve_behavior: [true/false] add_tests: [true/false]",
     examples: [
@@ -706,7 +707,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-learn": {
-    title: "🎓 Claude Programming Tutor",
+    title: "Claude Programming Tutor",
     description: "Learn programming concepts with Claude as your personal tutor",
     usage: "/claude-learn topic: [concept] level: [beginner/intermediate/advanced] include_exercises: [true/false] step_by_step: [true/false]",
     examples: [
@@ -729,7 +730,7 @@ export const COMMAND_HELP = {
   // /claude-settings and /output-settings have been removed.
   // Use /settings category:claude and /settings category:output instead.
   "quick-model": {
-    title: "🚀 Quick Model Switch",
+    title: "Quick Model Switch",
     description: "Quickly switch Claude model for your next conversation",
     usage: "/quick-model model: [model-id]",
     examples: [
@@ -747,7 +748,7 @@ export const COMMAND_HELP = {
     ]
   },
   "fast": {
-    title: "⚡ Fast Mode Toggle",
+    title: "Fast Mode Toggle",
     description: "Toggle Opus 4.6 fast mode — 2.5x faster responses at higher per-token cost, same quality",
     usage: "/fast",
     examples: [
@@ -763,7 +764,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-info": {
-    title: "ℹ️ Claude Info & Diagnostics",
+    title: "Claude Info & Diagnostics",
     description: "Show Claude account info, available models, and MCP server status",
     usage: "/claude-info section: [account/models/mcp/all]",
     examples: [
@@ -783,7 +784,7 @@ export const COMMAND_HELP = {
     ]
   },
   "rewind": {
-    title: "⏪ Rewind File Changes",
+    title: "Rewind File Changes",
     description: "Rewind file changes to a previous state (requires file checkpointing)",
     usage: "/rewind turn: [turn_number] dry_run: [true/false]",
     examples: [
@@ -803,7 +804,7 @@ export const COMMAND_HELP = {
     ]
   },
   "claude-control": {
-    title: "🎛️ Mid-Session Controls",
+    title: "Mid-Session Controls",
     description: "Control an active Claude query — interrupt, switch models, change permissions, or stop tasks",
     usage: "/claude-control action: [interrupt/set-model/set-permissions/stop-task/status] value: [optional]",
     examples: [
@@ -828,7 +829,7 @@ export const COMMAND_HELP = {
     ]
   },
   mcp: {
-    title: "🔌 MCP Server Management",
+    title: "MCP Server Management",
     description: "Manage Model Context Protocol (MCP) servers — view status, toggle, or reconnect",
     usage: "/mcp action: [status/toggle/reconnect] value: [server name]",
     examples: [
@@ -896,7 +897,7 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
           await ctx.reply({
             embeds: [{
               color: 0xff6600,
-              title: '❓ Command Not Found',
+              title: 'Command Not Found',
               description: `Command "${commandName}" not found. Use \`/help\` without parameters to see all commands.`,
               fields: [
                 { 
@@ -920,61 +921,61 @@ export function createHelpHandlers(deps: HelpHandlerDeps) {
         await ctx.reply({
           embeds: [{
             color: 0x00ff00,
-            title: "🤖 Claude Code Discord Bot - Help",
+            title: "Claude Code Discord Bot - Help",
             description: `Bot for **${deps.repoName}** (${deps.branchName} branch)\n\nUse \`/help command:[name]\` for detailed help on specific commands.`,
             fields: [
               {
-                name: "🤖 Claude Code Commands",
-                value: "`/claude` - Send prompts to Claude Code\n`/claude-enhanced` - Advanced Claude with options\n`/resume` - Resume conversation\n`/claude-cancel` - Cancel running operation\n`/fast` - Toggle fast mode (2.5x speed)",
+                name: "Claude Code Commands",
+                value: "`/claude` - Send prompts to Claude Code\n`/claude-enhanced` - Advanced Claude with options\n`/resume` - Resume conversation\n`/claude-cancel` / Cancel button - Cancel running operation\n`/fast` - Toggle fast mode (2.5x speed)",
                 inline: false
               },
               {
-                name: "🚀 Enhanced Claude Features",
+                name: "Enhanced Claude Features",
                 value: "`/claude-models` - List available models\n`/claude-sessions` - Manage sessions\n`/claude-context` - Preview context",
                 inline: false
               },
               {
-                name: "🧠 Claude Development Tools",
+                name: "Claude Development Tools",
                 value: "`/claude-explain` - Explain code/concepts\n`/claude-debug` - Debug assistance\n`/claude-optimize` - Code optimization\n`/claude-review` - Code review\n`/claude-generate` - Generate code\n`/claude-refactor` - Refactor code\n`/claude-learn` - Programming tutor",
                 inline: false
               },
               {
-                name: "🆕 New Features",
+                name: "Other Features",
                 value: "`/todos` - Development task management\n`/mcp` - MCP server management (status, toggle, reconnect)\n`/agent` - Specialized AI agents\n`/claude-control` - Mid-session controls (interrupt, stop-task, set-model)",
                 inline: false
               },
               {
-                name: "⚙️ Settings",
+                name: "Settings",
                 value: "`/settings` - Unified settings hub (all categories)\n`/quick-model` - Quick model switch\n`/fast` - Toggle fast mode",
                 inline: false
               },
               {
-                name: "📂 Git Commands", 
+                name: "Git Commands",
                 value: "`/git` - Execute git commands\n`/worktree` - Create worktrees\n`/worktree-list` - List worktrees\n`/worktree-remove` - Remove worktree\n`/worktree-bots` - List bot instances\n`/worktree-kill` - Kill bot instance",
                 inline: false
               },
               {
-                name: "🖥️ Shell Commands",
+                name: "Shell Commands",
                 value: "`/shell` - Execute shell commands\n`/shell-input` - Send input to process\n`/shell-list` - List running processes\n`/shell-kill` - Kill process",
                 inline: false
               },
               {
-                name: "📊 System Monitoring",
+                name: "System Monitoring",
                 value: "`/system-info` - System information\n`/processes` - Running processes\n`/system-resources` - Resource usage\n`/network-info` - Network details\n`/disk-usage` - Disk space\n`/uptime` - System uptime",
                 inline: false
               },
               {
-                name: "🔧 System Tools",
+                name: "System Tools",
                 value: "`/env-vars` - Environment variables\n`/system-logs` - System logs\n`/port-scan` - Check open ports\n`/service-status` - Service status",
                 inline: false
               },
               {
-                name: "⚙️ Utility Commands",
+                name: "Utility Commands",
                 value: "`/status` - Show system status\n`/settings` - Manage bot settings\n`/pwd` - Show working directory\n`/shutdown` - Shutdown bot",
                 inline: false
               },
               {
-                name: "💡 Quick Tips",
+                name: "Quick Tips",
                 value: "• Use buttons on Claude responses for quick actions\n• Shell processes support interactive input\n• Each worktree gets its own bot instance\n• Session IDs persist across restarts",
                 inline: false
               }

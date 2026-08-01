@@ -302,7 +302,7 @@ export function createAgentHandlers(deps: AgentHandlerDeps) {
             await ctx.editReply({
               embeds: [{
                 color: 0xff0000,
-                title: '❌ Invalid Action',
+                title: 'Invalid Action',
                 description: `Unknown agent action: ${action}`,
                 timestamp: true
               }]
@@ -326,7 +326,7 @@ async function listAgents(ctx: any) {
   await ctx.editReply({
     embeds: [{
       color: 0x0099ff,
-      title: '🤖 Available AI Agents',
+      title: 'Available AI Agents',
       description: agentList,
       fields: [{
         name: 'Risk Levels',
@@ -349,7 +349,7 @@ async function startAgentSession(ctx: any, agentName: string) {
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Agent Not Found',
+        title: 'Agent Not Found',
         description: `No agent found with name: ${agentName}`,
         timestamp: true
       }]
@@ -378,7 +378,7 @@ async function startAgentSession(ctx: any, agentName: string) {
   await ctx.editReply({
     embeds: [{
       color: riskColor,
-      title: '🚀 Agent Session Started',
+      title: 'Agent Session Started',
       fields: [
         { name: 'Agent', value: agent.name, inline: true },
         { name: 'Risk Level', value: agent.riskLevel.toUpperCase(), inline: true },
@@ -410,7 +410,7 @@ async function chatWithAgent(
     await ctx.editReply({
       embeds: [{
         color: 0xff6600,
-        title: '⚠️ No Active Agent',
+        title: 'No Active Agent',
         description: 'No agent session active. Use `/agent action:start agent_name:[name]` to start one.',
         timestamp: true
       }]
@@ -423,7 +423,7 @@ async function chatWithAgent(
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Agent Not Found',
+        title: 'Agent Not Found',
         description: `Agent ${activeAgentName} is not available.`,
         timestamp: true
       }]
@@ -448,7 +448,7 @@ async function chatWithAgent(
   await ctx.editReply({
     embeds: [{
       color: 0xffff00,
-      title: `🤖 ${agent.name} Processing...`,
+      title: `${agent.name} Processing...`,
       description: 'Agent is analyzing your request...',
       fields: [
         { name: 'Agent', value: agent.name, inline: true },
@@ -517,7 +517,7 @@ async function chatWithAgent(
     await ctx.editReply({
       embeds: [{
         color: 0x00ff00,
-        title: `🤖 ${agent.name} - Task Complete`,
+        title: `${agent.name} - Task Complete`,
         description: 'Agent has finished processing your request.',
         fields: [
           { name: 'Status', value: 'Completed ✅', inline: true },
@@ -537,7 +537,7 @@ async function chatWithAgent(
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: `❌ ${agent.name} - Error`,
+        title: `${agent.name} - Error`,
         description: 'An error occurred while processing your request.',
         fields: [
           { name: 'Error', value: errorMessage.substring(0, 1000), inline: false },
@@ -569,7 +569,7 @@ async function showAgentStatus(ctx: any) {
   await ctx.editReply({
     embeds: [{
       color: 0x0099ff,
-      title: '📊 Agent Status',
+      title: 'Agent Status',
       fields: [
         {
           name: 'Current Agent',
@@ -599,7 +599,7 @@ async function showAgentInfo(ctx: any, agentName: string) {
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Agent Not Found',
+        title: 'Agent Not Found',
         description: `No agent found with name: ${agentName}`,
         timestamp: true
       }]
@@ -612,7 +612,7 @@ async function showAgentInfo(ctx: any, agentName: string) {
   await ctx.editReply({
     embeds: [{
       color: riskColor,
-      title: `🤖 ${agent.name}`,
+      title: `${agent.name}`,
       description: agent.description,
       fields: [
         { name: 'Model', value: agent.model, inline: true },
@@ -631,7 +631,7 @@ async function switchAgent(ctx: any, agentName: string) {
     await ctx.editReply({
       embeds: [{
         color: 0xff0000,
-        title: '❌ Agent Not Found',
+        title: 'Agent Not Found',
         description: `No agent found with name: ${agentName}`,
         timestamp: true
       }]
@@ -646,7 +646,7 @@ async function switchAgent(ctx: any, agentName: string) {
   await ctx.editReply({
     embeds: [{
       color: 0x00ff00,
-      title: '🔄 Agent Switched',
+      title: 'Agent Switched',
       fields: [
         { name: 'Previous Agent', value: previousAgent ? PREDEFINED_AGENTS[previousAgent]?.name || 'None' : 'None', inline: true },
         { name: 'New Agent', value: agent.name, inline: true },
@@ -667,7 +667,7 @@ async function endAgentSession(ctx: any) {
     await ctx.editReply({
       embeds: [{
         color: 0xffaa00,
-        title: '⚠️ No Active Session',
+        title: 'No Active Session',
         description: 'No active agent session to end.',
         timestamp: true
       }]
@@ -689,7 +689,7 @@ async function endAgentSession(ctx: any) {
   await ctx.editReply({
     embeds: [{
       color: 0x00ff00,
-      title: '✅ Session Ended',
+      title: 'Session Ended',
       description: `Agent session with ${PREDEFINED_AGENTS[activeAgent]?.name || activeAgent} has been ended.`,
       footer: { text: '💾 Session status saved to disk' },
       timestamp: true

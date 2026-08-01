@@ -137,7 +137,7 @@ function formatGenericTool(toolName: string, metadata: any): { title: string; co
   const { preview, isTruncated } = truncateContent(inputStr, 10, 800);
   
   return {
-    title: `🔧 Tool Use: ${toolName}`,
+    title: `Tool Use: ${toolName}`,
     color: 0x0099ff,
     description: `\`\`\`json\n${preview}\n\`\`\``
   };
@@ -192,7 +192,7 @@ export function createClaudeSender(sender: DiscordSender) {
           await sender.sendMessage({
             embeds: [{
               color: 0x9932cc,
-              title: '📝 Todo List Updated',
+              title: 'Todo List Updated',
               description: todoList,
               footer: { text: '⏳ Pending | 🔄 In Progress | ✅ Completed | 🔴 High | 🟡 Medium | 🟢 Low' },
               timestamp: true
@@ -227,7 +227,7 @@ export function createClaudeSender(sender: DiscordSender) {
             await sender.sendMessage({
               embeds: [{
                 color: 0xffaa00,
-                title: '✏️ Tool Use: Edit',
+                title: 'Tool Use: Edit',
                 fields,
                 timestamp: true
               }]
@@ -240,7 +240,7 @@ export function createClaudeSender(sender: DiscordSender) {
             const messageContent: MessageContent = {
               embeds: [{
                 color: 0x0099ff,
-                title: `🔧 Tool Use: ${toolName}`,
+                title: `Tool Use: ${toolName}`,
                 description: `\`\`\`json\n${preview}\n\`\`\``,
                 timestamp: true
               }]
@@ -289,7 +289,7 @@ export function createClaudeSender(sender: DiscordSender) {
         const messageContent: MessageContent = {
           embeds: [{
             color: 0x00ffff,
-            title: `✅ Tool Result${isTruncated ? ` (+${totalLines - 15} more lines)` : ''}`,
+            title: `Tool Result${isTruncated ? ` (+${totalLines - 15} more lines)` : ''}`,
             description: resultDescription,
             timestamp: true
           }]
@@ -321,7 +321,7 @@ export function createClaudeSender(sender: DiscordSender) {
           await sender.sendMessage({
             embeds: [{
               color: 0x9b59b6,
-              title: chunks.length > 1 ? `💭 Thinking (${i + 1}/${chunks.length})` : '💭 Thinking',
+              title: chunks.length > 1 ? `Thinking (${i + 1}/${chunks.length})` : 'Thinking',
               description: safeTruncate(chunks[i], DISCORD_EMBED_DESCRIPTION_LIMIT),
               timestamp: true
             }]
@@ -333,7 +333,7 @@ export function createClaudeSender(sender: DiscordSender) {
       case 'system': {
         const embedData: EmbedData = {
           color: msg.metadata?.subtype === 'completion' ? 0x00ff00 : 0xaaaaaa,
-          title: msg.metadata?.subtype === 'completion' ? '✅ Claude Code Complete' : `⚙️ System: ${msg.metadata?.subtype || 'info'}`,
+          title: msg.metadata?.subtype === 'completion' ? 'Claude Code Complete' : `System: ${msg.metadata?.subtype || 'info'}`,
           timestamp: true,
           fields: []
         };
@@ -414,7 +414,7 @@ export function createClaudeSender(sender: DiscordSender) {
         await sender.sendMessage({
           embeds: [{
             color: 0xff4444,
-            title: `🚫 Permission Denied: ${toolName}`,
+            title: `Permission Denied: ${toolName}`,
             description: 'This tool was blocked by the current permission mode (`dontAsk`). The bot denies tools that aren\'t pre-approved.',
             fields: [
               { name: 'Tool', value: `\`${toolName}\``, inline: true },
@@ -434,7 +434,7 @@ export function createClaudeSender(sender: DiscordSender) {
         await sender.sendMessage({
           embeds: [{
             color: 0x5865f2,
-            title: '🚀 Subagent Task Started',
+            title: 'Subagent Task Started',
             description,
             fields: taskType ? [{ name: 'Type', value: taskType, inline: true }] : [],
             timestamp: true
@@ -446,13 +446,12 @@ export function createClaudeSender(sender: DiscordSender) {
       case 'task_notification': {
         const status = msg.metadata?.status || 'unknown';
         const summary = msg.metadata?.summary || msg.content || 'No summary';
-        const statusEmoji = status === 'completed' ? '✅' : status === 'failed' ? '❌' : '⏹️';
         const statusColor = status === 'completed' ? 0x00ff00 : status === 'failed' ? 0xff0000 : 0xffaa00;
         
         await sender.sendMessage({
           embeds: [{
             color: statusColor,
-            title: `${statusEmoji} Subagent Task ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+            title: `Subagent Task ${status.charAt(0).toUpperCase() + status.slice(1)}`,
             description: summary.length > 4000 ? summary.substring(0, 3997) + '...' : summary,
             timestamp: true
           }]
@@ -468,7 +467,7 @@ export function createClaudeSender(sender: DiscordSender) {
           await sender.sendMessage({
             embeds: [{
               color: 0x888888,
-              title: `⏳ ${toolName} running...`,
+              title: `${toolName} running...`,
               description: `Elapsed: ${elapsed.toFixed(1)}s`,
               timestamp: true
             }]
@@ -482,7 +481,7 @@ export function createClaudeSender(sender: DiscordSender) {
           await sender.sendMessage({
             embeds: [{
               color: 0x00ccff,
-              title: '📋 Tool Summary',
+              title: 'Tool Summary',
               description: msg.content.length > 4000 ? msg.content.substring(0, 3997) + '...' : msg.content,
               timestamp: true
             }]

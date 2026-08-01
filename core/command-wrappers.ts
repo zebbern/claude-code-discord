@@ -6,7 +6,7 @@
  */
 
 import type { CommandHandlers, InteractionContext } from "../discord/index.ts";
-import { formatError, createFormattedEmbed } from "../discord/index.ts";
+import { formatError, createFormattedEmbed, buildTextAttachment } from "../discord/index.ts";
 import type { AllHandlers, MessageHistoryOps } from "./handler-registry.ts";
 import type { ProcessCrashHandler, ProcessHealthMonitor } from "../process/index.ts";
 import { expandableContent } from "../claude/index.ts";
@@ -61,12 +61,12 @@ function createDeferredHandler<T>(
       try {
         const result = await handler(ctx);
         const formatted = formatSuccess(result);
-        const { embed } = createFormattedEmbed(formatted.title, formatted.data, formatted.color);
-        await ctx.editReply({ embeds: [embed] });
+        const { embed, files } = createFormattedEmbed(formatted.title, formatted.data, formatted.color);
+        await ctx.editReply({ embeds: [embed], files });
       } catch (error) {
         const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), crashContext || errorTitle);
-        const { embed } = createFormattedEmbed(`❌ ${errorTitle}`, errorFormatted.formatted, 0xff0000);
-        await ctx.editReply({ embeds: [embed] });
+        const { embed, files } = createFormattedEmbed(`${errorTitle}`, errorFormatted.formatted, 0xff0000);
+        await ctx.editReply({ embeds: [embed], files });
 
         if (crashHandler && crashContext) {
           await crashHandler.reportCrash('main', error instanceof Error ? error : new Error(String(error)), crashContext);
@@ -92,27 +92,27 @@ export function createSystemCommandHandlers(
   return new Map([
     ['system-info', createDeferredHandler(
       async () => await systemHandlers.onSystemInfo({} as InteractionContext),
-      (r) => ({ title: '🖥️ System Information', data: r.data, color: 0x00ff00 }),
+      (r) => ({ title: 'System Information', data: r.data, color: 0x00ff00 }),
       'System Info Error', crashHandler, 'system-info'
     )],
     ['system-resources', createDeferredHandler(
       async () => await systemHandlers.onSystemResources({} as InteractionContext),
-      (r) => ({ title: '📊 System Resources', data: r.data, color: 0x00ffff }),
+      (r) => ({ title: 'System Resources', data: r.data, color: 0x00ffff }),
       'Resource Monitor Error', crashHandler, 'system-resources'
     )],
     ['network-info', createDeferredHandler(
       async () => await systemHandlers.onNetworkInfo({} as InteractionContext),
-      (r) => ({ title: '🌐 Network Information', data: r.data, color: 0x9932cc }),
+      (r) => ({ title: 'Network Information', data: r.data, color: 0x9932cc }),
       'Network Info Error', crashHandler, 'network-info'
     )],
     ['disk-usage', createDeferredHandler(
       async () => await systemHandlers.onDiskUsage({} as InteractionContext),
-      (r) => ({ title: '💽 Disk Usage', data: r.data, color: 0xff6600 }),
+      (r) => ({ title: 'Disk Usage', data: r.data, color: 0xff6600 }),
       'Disk Usage Error', crashHandler, 'disk-usage'
     )],
     ['uptime', createDeferredHandler(
       async () => await systemHandlers.onUptime({} as InteractionContext),
-      (r) => ({ title: '⏰ System Uptime', data: r.data, color: 0x339933 }),
+      (r) => ({ title: 'System Uptime', data: r.data, color: 0x339933 }),
       'Uptime Error', crashHandler, 'uptime'
     )],
   ]);
@@ -135,12 +135,12 @@ export function createParameterizedSystemHandlers(
         const limit = ctx.getInteger('limit') || 20;
         try {
           const result = await systemHandlers.onProcesses(ctx, filter || undefined, limit);
-          const { embed } = createFormattedEmbed('⚙️ Running Processes', result.data, 0x0099ff);
-          await ctx.editReply({ embeds: [embed] });
+          const { embed, files } = createFormattedEmbed('Running Processes', result.data, 0x0099ff, {}, 'processes.txt');
+          await ctx.editReply({ embeds: [embed], files });
         } catch (error) {
           const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'processes');
-          const { embed } = createFormattedEmbed('❌ Process List Error', errorFormatted.formatted, 0xff0000);
-          await ctx.editReply({ embeds: [embed] });
+          const { embed, files } = createFormattedEmbed('Process List Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed], files });
         }
       }
     }],
@@ -150,12 +150,12 @@ export function createParameterizedSystemHandlers(
         const filter = ctx.getString('filter');
         try {
           const result = await systemHandlers.onEnvVars(ctx, filter || undefined);
-          const { embed } = createFormattedEmbed('🔧 Environment Variables', result.data, 0x663399);
-          await ctx.editReply({ embeds: [embed] });
+          const { embed, files } = createFormattedEmbed('Environment Variables', result.data, 0x663399, {}, 'env-vars.txt');
+          await ctx.editReply({ embeds: [embed], files });
         } catch (error) {
           const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'env-vars');
-          const { embed } = createFormattedEmbed('❌ Environment Variables Error', errorFormatted.formatted, 0xff0000);
-          await ctx.editReply({ embeds: [embed] });
+          const { embed, files } = createFormattedEmbed('Environment Variables Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed], files });
         }
       }
     }],
@@ -166,12 +166,12 @@ export function createParameterizedSystemHandlers(
         const service = ctx.getString('service');
         try {
           const result = await systemHandlers.onSystemLogs(ctx, lines, service || undefined);
-          const { embed } = createFormattedEmbed('📋 System Logs', result.data, 0x990000);
-          await ctx.editReply({ embeds: [embed] });
+          const { embed, files } = createFormattedEmbed('System Logs', result.data, 0x990000, {}, 'system-logs.txt');
+          await ctx.editReply({ embeds: [embed], files });
         } catch (error) {
           const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'system-logs');
-          const { embed } = createFormattedEmbed('❌ System Logs Error', errorFormatted.formatted, 0xff0000);
-          await ctx.editReply({ embeds: [embed] });
+          const { embed, files } = createFormattedEmbed('System Logs Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed], files });
         }
       }
     }],
@@ -182,12 +182,12 @@ export function createParameterizedSystemHandlers(
         const ports = ctx.getString('ports');
         try {
           const result = await systemHandlers.onPortScan(ctx, host, ports || undefined);
-          const { embed } = createFormattedEmbed('🔍 Port Scan Results', result.data, 0x006600);
-          await ctx.editReply({ embeds: [embed] });
+          const { embed, files } = createFormattedEmbed('Port Scan Results', result.data, 0x006600, {}, 'port-scan.txt');
+          await ctx.editReply({ embeds: [embed], files });
         } catch (error) {
           const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'port-scan');
-          const { embed } = createFormattedEmbed('❌ Port Scan Error', errorFormatted.formatted, 0xff0000);
-          await ctx.editReply({ embeds: [embed] });
+          const { embed, files } = createFormattedEmbed('Port Scan Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed], files });
         }
       }
     }],
@@ -197,12 +197,12 @@ export function createParameterizedSystemHandlers(
         const service = ctx.getString('service');
         try {
           const result = await systemHandlers.onServiceStatus(ctx, service || undefined);
-          const { embed } = createFormattedEmbed('🔧 Service Status', result.data, 0x0066cc);
-          await ctx.editReply({ embeds: [embed] });
+          const { embed, files } = createFormattedEmbed('Service Status', result.data, 0x0066cc, {}, 'service-status.txt');
+          await ctx.editReply({ embeds: [embed], files });
         } catch (error) {
           const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), 'service-status');
-          const { embed } = createFormattedEmbed('❌ Service Status Error', errorFormatted.formatted, 0xff0000);
-          await ctx.editReply({ embeds: [embed] });
+          const { embed, files } = createFormattedEmbed('Service Status Error', errorFormatted.formatted, 0xff0000);
+          await ctx.editReply({ embeds: [embed], files });
         }
       }
     }],
@@ -242,7 +242,7 @@ export function createClaudeCommandHandlers(
             await ctx.update({
               embeds: [{
                 color: 0xffaa00,
-                title: '📖 Content Not Available',
+                title: 'Content Not Available',
                 description: 'The full content is no longer available for expansion.',
                 timestamp: true
               }],
@@ -256,7 +256,7 @@ export function createClaudeCommandHandlers(
             await ctx.update({
               embeds: [{
                 color: 0x0099ff,
-                title: '📖 Full Content',
+                title: 'Full Content',
                 description: expandId.startsWith('result-') ?
                   `\`\`\`\n${fullContent}\n\`\`\`` :
                   `\`\`\`json\n${fullContent}\n\`\`\``,
@@ -277,14 +277,15 @@ export function createClaudeCommandHandlers(
             await ctx.update({
               embeds: [{
                 color: 0x0099ff,
-                title: '📖 Full Content (Large - Showing First Part)',
+                title: 'Full Content (Large - Showing First Part)',
                 description: expandId.startsWith('result-') ?
                   `\`\`\`\n${chunk}...\n\`\`\`` :
                   `\`\`\`json\n${chunk}...\n\`\`\``,
                 fields: [
-                  { name: 'Note', value: 'Content is very large. This shows the first portion.', inline: false }
+                  { name: 'Note', value: 'Content is very large — full output attached as .txt.', inline: false }
                 ],
-                timestamp: true
+                timestamp: true,
+                footer: { text: 'Output truncated — full output attached as .txt' },
               }],
               components: [{
                 type: 'actionRow',
@@ -294,7 +295,8 @@ export function createClaudeCommandHandlers(
                   label: '🔼 Collapse',
                   style: 'secondary'
                 }]
-              }]
+              }],
+              files: [buildTextAttachment(fullContent, 'expanded-content.txt')],
             });
           }
         }

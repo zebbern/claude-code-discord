@@ -20,10 +20,12 @@ export {
   createFormattedEmbed
 } from "./formatting.ts";
 export { EMBED_COLORS, formatDuration, truncateField, firstNonEmptyLine } from "./embed-theme.ts";
+export { buildTextAttachment, filesForTruncation, MAX_TEXT_ATTACHMENT_BYTES } from "./attachments.ts";
 export {
   buildShellResultEmbed,
   buildShellRunningEmbed,
   buildShellErrorEmbed,
+  buildShellOutputFollowUpEmbed,
   buildGitResultEmbed,
   buildGitErrorEmbed,
 } from "./command-embeds.ts";

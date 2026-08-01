@@ -73,7 +73,7 @@ export function buildQuestionMessages(questions: AskUserQuestionItem[]): Message
     // Build embed
     const embed: EmbedData = {
       color: 0xff9900, // Orange — "waiting for you"
-      title: `❓ Claude needs your input — ${q.header}`,
+      title: `Claude needs your input — ${q.header}`,
       description: q.question,
       fields: q.options.map((opt, oi) => ({
         name: `${oi + 1}. ${opt.label}`,

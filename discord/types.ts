@@ -20,8 +20,10 @@ export interface ComponentData {
 }
 
 export interface FileAttachment {
-  /** File path or URL */
-  path: string;
+  /** File path or URL (mutually exclusive with content) */
+  path?: string;
+  /** In-memory file body (mutually exclusive with path) */
+  content?: string | Uint8Array;
   /** Optional display name */
   name?: string;
   /** Optional description */

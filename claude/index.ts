@@ -1,6 +1,23 @@
 // Claude Code integration exports
 export { claudeCommands, createClaudeHandlers } from "./command.ts";
 export type { SessionThreadCallbacks } from "./command.ts";
+export {
+  tryEnqueueClaudeJob,
+  takeClaudeJob,
+  clearClaudeJob,
+  peekClaudeJob,
+  hasClaudeJob,
+  resetClaudeQueueForTests,
+} from "./channel-queue.ts";
+export type { QueuedClaudeJob } from "./channel-queue.ts";
+export {
+  buildSessionFooter,
+  cancelClaudeComponents,
+  claudeCancelledEmbed,
+  shortSessionId,
+  resolveThreadChannelId,
+  CANCEL_CLAUDE_BUTTON_ID,
+} from "./status-embed.ts";
 export { cleanSessionId, sendToClaudeCode } from "./client.ts";
 export type { ClaudeModelOptions, SDKPermissionMode, ThinkingConfig, EffortLevel, SDKAgentDefinition, SDKModelInfo } from "./client.ts";
 export { createClaudeSender, expandableContent } from "./discord-sender.ts";

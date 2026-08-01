@@ -69,7 +69,7 @@ This document tracks issues identified during a comprehensive code audit that we
 
 **Mitigation:** Controllers and active-query state are now keyed per Discord channel. Cross-channel concurrent sessions no longer clobber each other. Haiku rate-limit fallback uses the same query timeout + `clearTimeout` / `setActiveQuery(null)` pattern as the primary race.
 
-**Remaining risk:** Two `/claude` commands in the *same* channel still share one controller/query slot — the second aborts/replaces the first. Acceptable for single-user sequential use; revisit only if same-channel concurrency becomes a real workflow.
+**Remaining risk:** Same-channel `/claude` now keeps one waiting slot (queue depth 1); a third call while one is queued is still busy-rejected. `/claude-continue`, `/claude-thread`, and enhanced paths still abort-replace rather than queue.
 
 ### Shell Callback Registration Race (Audit #7)
 
