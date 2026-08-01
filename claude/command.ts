@@ -178,6 +178,18 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
     async onClaudeThread(ctx: any, prompt: string, threadName?: string): Promise<ClaudeResponse> {
       const parentChannelId = typeof ctx.getChannelId === 'function' ? ctx.getChannelId() : undefined;
 
+      // Register/abort immediately so cancel works during defer + thread creation
+      if (parentChannelId) {
+        const existingController = deps.getClaudeController(parentChannelId);
+        if (existingController) {
+          existingController.abort();
+        }
+      }
+      const controller = new AbortController();
+      if (parentChannelId) {
+        deps.setClaudeController(controller, parentChannelId);
+      }
+
       await ctx.deferReply();
 
       // Create a dedicated thread for this session
@@ -197,14 +209,10 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
       }
 
       const channelId = threadChannelId || parentChannelId;
-      const existingController = channelId ? deps.getClaudeController(channelId) : null;
-      if (existingController) {
-        existingController.abort();
-      }
-
-      const controller = new AbortController();
-      if (channelId) {
-        deps.setClaudeController(controller, channelId);
+      // Rebind controller to the thread channel so cancel inside the thread hits the right key
+      if (threadChannelId && parentChannelId && threadChannelId !== parentChannelId) {
+        deps.setClaudeController(null, parentChannelId);
+        deps.setClaudeController(controller, threadChannelId);
       }
 
       try {

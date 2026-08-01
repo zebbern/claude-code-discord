@@ -2075,6 +2075,8 @@ async function showMCPStatus(ctx: any, workDir: string) {
  */
 // deno-lint-ignore no-explicit-any
 async function handleMcpToggle(ctx: any, serverName: string, value?: string): Promise<void> {
+  const channelId = typeof ctx.getChannelId === "function" ? ctx.getChannelId() : undefined;
+
   // Determine desired state: "on"/"off" or auto-detect from current status
   let enabled: boolean;
   if (value === 'on') {
@@ -2083,7 +2085,7 @@ async function handleMcpToggle(ctx: any, serverName: string, value?: string): Pr
     enabled = false;
   } else {
     // Default to toggling — check current status first
-    const statuses = await getMcpServerStatus();
+    const statuses = await getMcpServerStatus(channelId);
     if (!statuses) {
       await ctx.editReply({
         embeds: [{
@@ -2109,7 +2111,7 @@ async function handleMcpToggle(ctx: any, serverName: string, value?: string): Pr
     enabled = server.status === 'disabled' || server.status === 'failed';
   }
 
-  const success = await toggleMcpServerActive(serverName, enabled);
+  const success = await toggleMcpServerActive(serverName, enabled, channelId);
   if (success) {
     await ctx.editReply({
       embeds: [{
@@ -2135,7 +2137,8 @@ async function handleMcpToggle(ctx: any, serverName: string, value?: string): Pr
  */
 // deno-lint-ignore no-explicit-any
 async function handleMcpReconnect(ctx: any, serverName: string): Promise<void> {
-  const success = await reconnectMcpServerActive(serverName);
+  const channelId = typeof ctx.getChannelId === "function" ? ctx.getChannelId() : undefined;
+  const success = await reconnectMcpServerActive(serverName, channelId);
   if (success) {
     await ctx.editReply({
       embeds: [{
