@@ -28,7 +28,7 @@ Found a bug or have an idea for improvement? Submit it via [GitHub Issues >⩊<]
 
 </kbd>
 
-**v2.4.1** Docker SDK-only image + accurate container version checks. See [CHANGELOG](CHANGELOG.md).
+**v2.5.0** Security hardening, Discord UX (queue, Cancel, compact embeds), Docker SDK-only image. See [CHANGELOG](CHANGELOG.md).
 
 <img width="350" height="350" alt="preview" src="https://github.com/user-attachments/assets/e8091420-d271-48a4-8e55-279f2093d3ae" />
 

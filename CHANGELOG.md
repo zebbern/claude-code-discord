@@ -5,21 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.4.1] - 2026-08-01
+## [2.5.0] - 2026-08-01
 
-### Fixed
-- **Docker SDK-only image**: Removed Node.js/npm and `@anthropic-ai/claude-code` CLI from the Dockerfile (bot uses `@anthropic-ai/claude-agent-sdk` via Deno). Docs no longer recommend `docker exec … claude /login`.
-- **Docker version-check false positives**: Stop `git init` of `/app`; bake `GIT_COMMIT` at build time (GHCR workflow + compose build-arg). `getLocalCommit()` prefers `BOT_GIT_COMMIT` / `GIT_COMMIT`, else `git rev-parse HEAD`. When Docker has no usable commit identity, skip "Update Available" Discord notifies instead of lying.
-
-### Changed
-- Docker auth story is API-key only: **`ANTHROPIC_API_KEY` required** in Docker (compose comments, README quick start, `docs/docker.md`).
-
-## [2.4.0] - 2026-08-01
+First published release after v2.3.0. Consolidates security/stability work previously drafted as 2.4.x plus Discord UX improvements.
 
 ### Security
-- **`/git` argv spawn**: Git commands and worktree ops use `Deno.Command` argument arrays instead of shell `exec` / POSIX `shellEscape` (Audit #2 mitigation). Soft metacharacter validation kept as defense-in-depth.
+- **`/git` argv spawn**: Git commands and worktree ops use `Deno.Command` argument arrays instead of shell `exec` / POSIX `shellEscape` (Audit #2 mitigation). Soft metacharacter validation kept as defense-in-depth; quote-aware tokenization so `commit -m "msg"` still works.
 - **Worktree branch validation**: Reject shell metacharacters and invalid ref patterns in `/worktree` branch names.
 - **Shell output cap**: Truncate at 10 MB and kill the runaway process (prevents OOM / infinite `yes`-style floods).
+
+### Added
+- **Same-channel `/claude` queue**: One waiting prompt per channel while busy; further calls stay busy-rejected. Cancel drops the queue.
+- **Truncation → `.txt` attach**: When embed formatters truncate, full payload is attached as a text file (shell/git, system commands, expand paths).
+- **Cancel on running embeds**: Danger Cancel button on `/claude`, queued, `/claude-thread`, and `/resume` status embeds (same as `/claude-cancel`).
+- **Session footer**: Short session id (+ thread mention when mapped) on Claude status embeds; completion edits clear the Cancel button.
+- **Compact `/shell` / `/git` cards**: Shared embed theme; meta in fields, payload-only description; no double code fences.
+- **AGENTS.md**: Agent guidelines for this repo (verification, claimed-vs-wired, concurrency, testing policy).
 
 ### Fixed
 - **Per-channel Claude isolation**: Concurrent `/claude` in different channels no longer share one AbortController / active query; cancel and mid-session controls are channel-scoped.
@@ -27,9 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`/claude-thread` cancel window**: AbortController is registered before defer/thread create so cancel works during setup.
 - **Haiku fallback timeout**: Rate-limit Haiku retry uses the same timeout / `clearTimeout` / active-query clear pattern as the primary query race.
 - **Update check false positives**: No longer treat "local ahead of GitHub" as an update; avoid duplicate Update Available embeds on startup.
+- **Docker SDK-only image**: Removed Node.js/npm and `@anthropic-ai/claude-code` CLI from the Dockerfile (bot uses `@anthropic-ai/claude-agent-sdk` via Deno).
+- **Docker version-check false positives**: Bake `GIT_COMMIT` at build time; prefer `BOT_GIT_COMMIT` / `GIT_COMMIT` over a fake `/app` git repo.
+- **Busy `/claude`**: Same-channel overlap no longer silently aborts; shows busy/queue messaging instead.
 
-### Added
-- **AGENTS.md**: Agent guidelines for this repo (verification, claimed-vs-wired, concurrency, testing policy).
+### Changed
+- Docker auth is API-key only: **`ANTHROPIC_API_KEY` required** in Docker (compose, README, `docs/docker.md`).
+- Embed titles drop decorative emoji; status signaled by color and short labels.
+- `/shell` / `/git` result titles are command-scoped (`/shell`, `/git`) with exit/duration in fields.
 
 ## [2.3.0] - 2026-03-03
 
@@ -229,9 +235,9 @@ This is the first stable release of Claude Code Discord Bot - a Discord bot that
 
 ---
 
-[2.4.1]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.4.1
-[2.4.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.4.0
+[2.5.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.5.0
 [2.3.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.3.0
 [2.2.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.2.0
+[2.1.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.1.0
 [2.0.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.0.0
 [1.0.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v1.0.0
