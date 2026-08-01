@@ -360,12 +360,18 @@ export function createFormattedEmbed(
   wasTruncated: boolean;
 } {
   const formatting = needsFormatting(content);
-  
+  // Already-fenced content (e.g. formatShellOutput / formatGitOutput) must not be wrapped again —
+  // nested ``` fences show up as literal "```bash" text in Discord embeds.
+  const alreadyFenced = /^\s*```/.test(content);
+
   const formatOptions: FormatOptions = {
-    wrapInCodeBlock: formatting.needsCodeBlock,
+    wrapInCodeBlock: alreadyFenced ? false : formatting.needsCodeBlock,
     language: formatting.suggestedLanguage,
-    ...options
+    ...options,
   };
+  if (alreadyFenced) {
+    formatOptions.wrapInCodeBlock = false;
+  }
 
   const result = formatText(content, formatOptions);
   
