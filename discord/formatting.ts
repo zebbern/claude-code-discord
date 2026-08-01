@@ -129,7 +129,7 @@ export function formatFileContent(
 
 // Format shell command output with enhanced readability
 export function formatShellOutput(
-  command: string,
+  _command: string,
   output: string,
   exitCode: number = 0,
   options: Partial<FormatOptions> = {}
@@ -147,18 +147,13 @@ export function formatShellOutput(
     ...options
   };
 
-  // Clean up common shell output issues
-  let cleanOutput = output
+  // Clean up common shell output issues (command belongs in embed fields, not the payload)
+  const cleanOutput = output
     .replace(/\r\n/g, '\n') // Normalize line endings
     .replace(/\r/g, '\n') // Handle remaining carriage returns
     .replace(/\x1b\[[0-9;]*m/g, '') // Remove ANSI color codes
     .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '') // Remove other ANSI escape sequences
     .trim();
-
-  // Add command context if it's not too long
-  if (command.length < 100) {
-    cleanOutput = `$ ${command}\n${cleanOutput}`;
-  }
 
   const result = formatText(cleanOutput, formatOptions);
 
@@ -211,13 +206,8 @@ export function formatGitOutput(
     ...options
   };
 
-  // Add command context
-  let processedOutput = output;
-  if (command.length < 100) {
-    processedOutput = `git ${command}\n${output}`;
-  }
-
-  const result = formatText(processedOutput, formatOptions);
+  // Command belongs in embed fields, not the payload
+  const result = formatText(output, formatOptions);
 
   return {
     ...result,

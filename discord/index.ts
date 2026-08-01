@@ -19,6 +19,14 @@ export {
   needsFormatting,
   createFormattedEmbed
 } from "./formatting.ts";
+export { EMBED_COLORS, formatDuration, truncateField, firstNonEmptyLine } from "./embed-theme.ts";
+export {
+  buildShellResultEmbed,
+  buildShellRunningEmbed,
+  buildShellErrorEmbed,
+  buildGitResultEmbed,
+  buildGitErrorEmbed,
+} from "./command-embeds.ts";
 export type {
   BotConfig,
   CommandHandlers,

@@ -6,7 +6,14 @@
  */
 
 import type { CommandHandlers, InteractionContext } from "../discord/index.ts";
-import { formatShellOutput, formatGitOutput, formatError, createFormattedEmbed, cleanupPaginationStates } from "../discord/index.ts";
+import {
+  buildShellResultEmbed,
+  buildShellRunningEmbed,
+  buildShellErrorEmbed,
+  buildGitResultEmbed,
+  buildGitErrorEmbed,
+  cleanupPaginationStates,
+} from "../discord/index.ts";
 import type { AllHandlers } from "./handler-registry.ts";
 import type { ProcessCrashHandler, ProcessHealthMonitor } from "../process/index.ts";
 import { BOT_VERSION, getLastCheckResult } from "../util/version-check.ts";
@@ -55,20 +62,21 @@ export function createGitCommandHandlers(
       execute: async (ctx: InteractionContext) => {
         await ctx.deferReply();
         const command = ctx.getString('command', true)!;
+        const startedAt = Date.now();
         try {
           const result = await gitHandlers.onGit(ctx, command);
-          const formatted = formatGitOutput(command, result);
-          
-          const { embed } = createFormattedEmbed(
-            formatted.isError ? '❌ Git Command Error' : '✅ Git Command Result',
-            formatted.formatted,
-            formatted.isError ? 0xff0000 : 0x00ff00
-          );
-
+          const embed = buildGitResultEmbed({
+            command,
+            output: result,
+            durationMs: Date.now() - startedAt,
+          });
           await ctx.editReply({ embeds: [embed] });
         } catch (error) {
-          const errorFormatted = formatError(error instanceof Error ? error : new Error(String(error)), `git ${command}`);
-          const { embed } = createFormattedEmbed('❌ Git Command Exception', errorFormatted.formatted, 0xff0000);
+          const embed = buildGitErrorEmbed({
+            command,
+            error: error instanceof Error ? error.message : String(error),
+            durationMs: Date.now() - startedAt,
+          });
           await ctx.editReply({ embeds: [embed] });
           await crashHandler.reportCrash('main', error instanceof Error ? error : new Error(String(error)), 'git', `Command: ${command}`);
         }
@@ -288,78 +296,58 @@ export function createShellCommandHandlers(
         const command = ctx.getString('command', true)!;
         const input = ctx.getString('input');
         try {
+          const startedAt = Date.now();
           const executionResult = await shellHandlers.onShell(ctx, command, input || undefined);
           let isCompleted = false;
-          
+
           executionResult.onComplete(async (exitCode, output) => {
             if (isCompleted) return;
             isCompleted = true;
-            
-            const formatted = formatShellOutput(command, output, exitCode);
-            const { embed } = createFormattedEmbed(
-              exitCode === 0 ? '✅ Shell Command Complete' : '❌ Shell Command Failed',
-              formatted.formatted,
-              exitCode === 0 ? 0x00ff00 : 0xff0000
-            );
 
-            embed.fields = [
-              { name: 'Process ID', value: executionResult.processId.toString(), inline: true },
-              { name: 'Exit Code', value: exitCode.toString(), inline: true },
-              ...(embed.fields || [])
-            ];
-
+            const embed = buildShellResultEmbed({
+              command,
+              output,
+              exitCode,
+              processId: executionResult.processId,
+              durationMs: Date.now() - startedAt,
+            });
             await ctx.editReply({ embeds: [embed] });
-            
+
             if (exitCode !== 0) {
               await crashHandler.reportCrash('shell', new Error(`Process exited with code ${exitCode}`), executionResult.processId, `Command: ${command}`);
             }
           });
-          
+
           executionResult.onError(async (error) => {
             if (isCompleted) return;
             isCompleted = true;
-            
+
             await ctx.editReply({
-              embeds: [{
-                color: 0xff0000,
-                title: 'Shell Command Error',
-                description: `\`${command}\``,
-                fields: [
-                  { name: 'Process ID', value: executionResult.processId.toString(), inline: true },
-                  { name: 'Error', value: `\`\`\`\n${error.message}\n\`\`\``, inline: false }
-                ],
-                timestamp: true
-              }]
+              embeds: [buildShellErrorEmbed({
+                command,
+                processId: executionResult.processId,
+                error: error.message,
+                durationMs: Date.now() - startedAt,
+              })],
             });
           });
-          
+
           await ctx.editReply({
-            embeds: [{
-              color: 0xffff00,
-              title: 'Shell Command Started',
-              description: `\`${command}\``,
-              fields: [
-                { name: 'Process ID', value: executionResult.processId.toString(), inline: true },
-                { name: 'Status', value: 'Running...', inline: true }
-              ],
-              timestamp: true
-            }]
+            embeds: [buildShellRunningEmbed({
+              command,
+              processId: executionResult.processId,
+            })],
           });
-          
+
           setTimeout(async () => {
             if (!isCompleted) {
               try {
                 await ctx.editReply({
-                  embeds: [{
-                    color: 0x0099ff,
-                    title: 'Shell Command Running',
-                    description: `\`${command}\``,
-                    fields: [
-                      { name: 'Process ID', value: executionResult.processId.toString(), inline: true },
-                      { name: 'Status', value: 'Long-running process... (will update when complete)', inline: false }
-                    ],
-                    timestamp: true
-                  }]
+                  embeds: [buildShellRunningEmbed({
+                    command,
+                    processId: executionResult.processId,
+                    longRunning: true,
+                  })],
                 });
               } catch {
                 // Ignore errors if interaction is no longer valid
@@ -368,13 +356,10 @@ export function createShellCommandHandlers(
           }, 2000);
         } catch (error) {
           await ctx.editReply({
-            embeds: [{
-              color: 0xff0000,
-              title: 'Shell Command Error',
-              description: `\`${command}\``,
-              fields: [{ name: 'Error', value: `\`\`\`\n${error instanceof Error ? error.message : String(error)}\n\`\`\``, inline: false }],
-              timestamp: true
-            }]
+            embeds: [buildShellErrorEmbed({
+              command,
+              error: error instanceof Error ? error.message : String(error),
+            })],
           });
         }
       }
