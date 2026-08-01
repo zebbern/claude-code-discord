@@ -102,10 +102,19 @@ export function createClaudeHandlers(deps: ClaudeHandlerDeps) {
      */
     // deno-lint-ignore no-explicit-any
     async onClaude(ctx: any, prompt: string, channelId: string, explicitSessionId?: string): Promise<ClaudeResponse> {
-      // Only abort this channel's controller — other channels keep running
+      // Same-channel busy: do not silently abort — ask user to cancel first
       const existingController = deps.getClaudeController(channelId);
       if (existingController) {
-        existingController.abort();
+        await ctx.reply({
+          embeds: [{
+            color: 0xffaa00,
+            title: 'Claude Busy',
+            description:
+              'A Claude session is already running in this channel. Use `/claude-cancel` first, then try again.',
+            timestamp: true,
+          }],
+        });
+        return { response: 'A Claude session is already running in this channel.' };
       }
 
       const controller = new AbortController();

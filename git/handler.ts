@@ -6,8 +6,11 @@ import type { GitInfo, WorktreeResult, WorktreeListResult, GitStatus } from "./t
  * Rejects names containing shell metacharacters or patterns that could
  * be interpreted as flags/options.
  */
-/** Shell metacharacters — defense-in-depth even with argv spawn */
+/** Shell metacharacters — defense-in-depth even with argv spawn (branch names) */
 const SHELL_METACHARS = /[;&|`$(){}!\\\n\r"'<>]/;
+
+/** Metacharacters rejected outside quoted segments in `/git` command strings */
+const GIT_UNQUOTED_METACHARS = /[;&|`$(){}!\\\n\r<>]/;
 
 export function validateBranchName(branch: string): { valid: boolean; reason?: string } {
   if (!branch || !branch.trim()) {
@@ -37,29 +40,108 @@ export function validateBranchName(branch: string): { valid: boolean; reason?: s
   return { valid: true };
 }
 
+type GitTokenizeResult =
+  | { ok: true; tokens: string[] }
+  | { ok: false; reason: string };
+
 /**
- * Validate a user-supplied git command string (the part after `git `).
- * Soft metachar check remains as defense-in-depth; execution uses argv spawn.
+ * Shell-like argv tokenization (no shell execution).
+ * Respects single/double quotes; rejects metacharacters outside quotes.
+ * Strips a leading `git` token so callers can pass args to Deno.Command("git", …).
+ */
+function tokenizeGitCommand(command: string): GitTokenizeResult {
+  if (!command || !command.trim()) {
+    return { ok: false, reason: "Git command cannot be empty" };
+  }
+
+  const tokens: string[] = [];
+  let current = "";
+  let inSingle = false;
+  let inDouble = false;
+
+  for (let i = 0; i < command.length; i++) {
+    const ch = command[i]!;
+
+    if (inSingle) {
+      if (ch === "'") {
+        inSingle = false;
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+
+    if (inDouble) {
+      if (ch === '"') {
+        inDouble = false;
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+
+    if (ch === "'") {
+      inSingle = true;
+      continue;
+    }
+    if (ch === '"') {
+      inDouble = true;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      if (current) {
+        tokens.push(current);
+        current = "";
+      }
+      continue;
+    }
+    if (GIT_UNQUOTED_METACHARS.test(ch)) {
+      return { ok: false, reason: "Git command contains invalid characters" };
+    }
+    current += ch;
+  }
+
+  if (inSingle || inDouble) {
+    return { ok: false, reason: "Unclosed quote in git command" };
+  }
+  if (current) {
+    tokens.push(current);
+  }
+
+  if (tokens.length > 0 && tokens[0]!.toLowerCase() === "git") {
+    tokens.shift();
+  }
+
+  if (tokens.length === 0) {
+    return { ok: false, reason: "Git command cannot be empty" };
+  }
+
+  return { ok: true, tokens };
+}
+
+/**
+ * Validate a user-supplied git command string (the part after `/git`).
+ * Quotes are allowed for message text; metacharacters outside quotes are rejected.
+ * Execution uses argv spawn (no shell).
  */
 export function validateGitCommandArgs(command: string): { valid: boolean; reason?: string } {
-  if (!command || !command.trim()) {
-    return { valid: false, reason: "Git command cannot be empty" };
-  }
-  if (SHELL_METACHARS.test(command)) {
-    return { valid: false, reason: "Git command contains invalid characters" };
-  }
-  if (command.includes("\n") || command.includes("\r")) {
-    return { valid: false, reason: "Git command cannot contain newlines" };
+  const result = tokenizeGitCommand(command);
+  if (!result.ok) {
+    return { valid: false, reason: result.reason };
   }
   return { valid: true };
 }
 
 /**
- * Split a validated git command string into argv tokens.
- * Quotes/metacharacters are rejected by validateGitCommandArgs first.
+ * Split a validated git command string into argv tokens for Deno.Command.
+ * Respects quotes; strips a leading `git` if the user included it.
  */
 export function splitGitArgs(command: string): string[] {
-  return command.trim().split(/\s+/).filter(Boolean);
+  const result = tokenizeGitCommand(command);
+  if (!result.ok) {
+    return [];
+  }
+  return result.tokens;
 }
 
 /**

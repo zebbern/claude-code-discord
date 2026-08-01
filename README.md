@@ -20,7 +20,6 @@ Found a bug or have an idea for improvement? Submit it via [GitHub Issues >⩊<]
 | MCP server management | View status, toggle, and reconnect MCP servers mid-session | ✅ |
 | Hooks system | Passive SDK callbacks for tool use, notification, and task completion observability | ✅ |
 | Full SDK Integration | Built on `@anthropic-ai/claude-agent-sdk` with native agent support | ✅ |
-| Granular sandbox config | Full SDK sandbox with network rules, filesystem ACLs, and excluded commands | ✅ |
 | AskUserQuestion | Claude can ask clarifying questions mid-session via Discord buttons | ✅ |
 | Interactive permission prompts | Allow/Deny buttons when Claude wants to use unapproved tools | ✅ |
 | Role-based access control | Restrict destructive commands (`/shell`, `/git`, worktree ops) to specific Discord roles | ✅ |
@@ -28,6 +27,8 @@ Found a bug or have an idea for improvement? Submit it via [GitHub Issues >⩊<]
 | Audit trail & accountability | Channel history provides an easy-to-search record of who ran what and when | ✅ |
 
 </kbd>
+
+**v2.4.0** hardened security and stability: per-channel Claude isolation, safe `/git` argv execution (quoted commit messages supported), and a shell output cap. See [CHANGELOG](CHANGELOG.md).
 
 <img width="350" height="350" alt="preview" src="https://github.com/user-attachments/assets/e8091420-d271-48a4-8e55-279f2093d3ae" />
 
