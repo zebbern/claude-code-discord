@@ -1,5 +1,5 @@
 # Claude Code Discord Bot
-# Optimized production image with Claude CLI
+# SDK-only production image (Deno + @anthropic-ai/claude-agent-sdk)
 
 FROM denoland/deno:latest
 
@@ -7,37 +7,31 @@ FROM denoland/deno:latest
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
+# Build-time commit SHA for version checks (set by CI / compose; do not git-init /app)
+ARG GIT_COMMIT=
+ENV GIT_COMMIT=${GIT_COMMIT}
+
 # Set working directory
 WORKDIR /app
 
 # Set environment variable to indicate Docker container
 ENV DOCKER_CONTAINER=true
 
-# Install system dependencies
+# Install system dependencies (git for workspace ops; curl/ca for HTTPS)
 USER root
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git curl ca-certificates nodejs npm && \
+    apt-get install -y --no-install-recommends git curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# Create non-root user with home directory (needed for Claude CLI config)
+# Create non-root user with home directory (SDK may use ~/.claude)
 RUN groupadd -r -g ${GROUP_ID} claude && \
     useradd -r -u ${USER_ID} -g claude -m claude
-
-# Install Claude Code CLI globally via npm
-RUN npm install -g @anthropic-ai/claude-code && \
-    npm cache clean --force
-
-# Verify claude binary is accessible
-RUN claude --version
 
 # Copy all source files (as root)
 COPY . .
 
 # Remove lockfile if present (avoid version conflicts)
 RUN rm -f deno.lock
-
-# Initialize git repo in container (for non-git workspaces)
-RUN git init && git config user.email "bot@claude.local" && git config user.name "Claude Bot"
 
 # Pre-compile Deno dependencies
 RUN deno cache --no-lock index.ts

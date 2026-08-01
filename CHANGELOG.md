@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-08-01
+
+### Fixed
+- **Docker SDK-only image**: Removed Node.js/npm and `@anthropic-ai/claude-code` CLI from the Dockerfile (bot uses `@anthropic-ai/claude-agent-sdk` via Deno). Docs no longer recommend `docker exec … claude /login`.
+- **Docker version-check false positives**: Stop `git init` of `/app`; bake `GIT_COMMIT` at build time (GHCR workflow + compose build-arg). `getLocalCommit()` prefers `BOT_GIT_COMMIT` / `GIT_COMMIT`, else `git rev-parse HEAD`. When Docker has no usable commit identity, skip "Update Available" Discord notifies instead of lying.
+
+### Changed
+- Docker auth story is API-key only: **`ANTHROPIC_API_KEY` required** in Docker (compose comments, README quick start, `docs/docker.md`).
+
 ## [2.4.0] - 2026-08-01
 
 ### Security
@@ -220,6 +229,8 @@ This is the first stable release of Claude Code Discord Bot - a Discord bot that
 
 ---
 
+[2.4.1]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.4.1
+[2.4.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.4.0
 [2.3.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.3.0
 [2.2.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.2.0
 [2.0.0]: https://github.com/zebbern/claude-code-discord/releases/tag/v2.0.0

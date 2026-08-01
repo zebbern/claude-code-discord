@@ -44,7 +44,7 @@ claude-code-discord/
 │   ├── docker.md               # Docker guide
 │   └── updating.md             # Update instructions
 │
-├── Dockerfile                  # Container: Deno + Node.js + Claude CLI
+├── Dockerfile                  # Container: Deno + Agent SDK (no Claude CLI)
 ├── docker-compose.yml          # Docker Compose configuration
 └── .github/
     └── workflows/

@@ -15,6 +15,9 @@ export const BOT_VERSION: string = denoConfig.version ?? "unknown";
 const REPO_OWNER = "zebbern";
 const REPO_NAME = "claude-code-discord";
 
+/** Full SHA length or abbreviated (7+) */
+const COMMIT_SHA_RE = /^[0-9a-f]{7,40}$/i;
+
 export interface VersionCheckResult {
   upToDate: boolean;
   localCommit: string;
@@ -26,10 +29,34 @@ export interface VersionCheckResult {
   error?: string;
 }
 
+function isDockerContainer(): boolean {
+  return Deno.env.get("DOCKER_CONTAINER") === "true";
+}
+
 /**
- * Get the local HEAD commit hash using git.
+ * Build-time / runtime commit identity (Docker images set this via ARG/ENV).
+ * Prefer BOT_GIT_COMMIT, then GIT_COMMIT.
+ */
+function getEnvCommit(): string | undefined {
+  for (const key of ["BOT_GIT_COMMIT", "GIT_COMMIT"] as const) {
+    const value = Deno.env.get(key)?.trim();
+    if (value && COMMIT_SHA_RE.test(value)) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Get the local HEAD commit hash.
+ * Uses BOT_GIT_COMMIT / GIT_COMMIT when set (Docker builds), else `git rev-parse HEAD`.
  */
 async function getLocalCommit(): Promise<string> {
+  const fromEnv = getEnvCommit();
+  if (fromEnv) {
+    return fromEnv;
+  }
+
   const cmd = new Deno.Command("git", {
     args: ["rev-parse", "HEAD"],
     stdout: "piped",
@@ -75,25 +102,60 @@ async function isAncestor(ancestor: string, descendant: string): Promise<boolean
 /**
  * Check if the local version matches the latest on GitHub.
  * Distinguishes behind (need pull) from ahead (local-only commits) and diverged.
+ *
+ * In Docker without a usable commit identity (no GIT_COMMIT / BOT_GIT_COMMIT and
+ * git HEAD unavailable), returns an error so callers skip "Update Available" notifies.
  */
 export async function checkForUpdates(): Promise<VersionCheckResult> {
   try {
-    const [localCommit, remoteCommit] = await Promise.all([
-      getLocalCommit(),
-      getRemoteCommit(),
-    ]);
+    let localCommit: string;
+    try {
+      localCommit = await getLocalCommit();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        upToDate: true,
+        localCommit: "unknown",
+        remoteCommit: "unknown",
+        error: isDockerContainer()
+          ? `Docker image has no commit identity (set GIT_COMMIT at build time): ${message}`
+          : message,
+      };
+    }
 
-    const upToDate = localCommit === remoteCommit;
+    if (!COMMIT_SHA_RE.test(localCommit)) {
+      return {
+        upToDate: true,
+        localCommit: "unknown",
+        remoteCommit: "unknown",
+        error: isDockerContainer()
+          ? "Docker image has no usable commit identity (set GIT_COMMIT at build time)"
+          : "Unusable local commit identity",
+      };
+    }
+
+    const remoteCommit = await getRemoteCommit();
+
+    const upToDate = localCommit === remoteCommit ||
+      localCommit.startsWith(remoteCommit.substring(0, 7)) ||
+      remoteCommit.startsWith(localCommit.substring(0, 7));
     let behind = false;
     let ahead = false;
 
     if (!upToDate) {
-      // local ancestor of remote → we are behind; remote ancestor of local → we are ahead
-      behind = await isAncestor(localCommit, remoteCommit);
-      ahead = await isAncestor(remoteCommit, localCommit);
-      // If both false, histories diverged — treat as behind so operators still get a signal
-      if (!behind && !ahead) {
+      // When only an env SHA is available (typical Docker image), git objects may be
+      // missing — fall back to "not equal remote" ⇒ treat as behind for pull notify.
+      const hasEnvCommit = Boolean(getEnvCommit());
+      if (hasEnvCommit && isDockerContainer()) {
         behind = true;
+      } else {
+        // local ancestor of remote → we are behind; remote ancestor of local → we are ahead
+        behind = await isAncestor(localCommit, remoteCommit);
+        ahead = await isAncestor(remoteCommit, localCommit);
+        // If both false, histories diverged — treat as behind so operators still get a signal
+        if (!behind && !ahead) {
+          behind = true;
+        }
       }
     }
 
@@ -162,7 +224,7 @@ export async function runVersionCheck(): Promise<{
         { name: "Latest Commit", value: `\`${result.remoteCommit}\``, inline: true },
         {
           name: "How to Update",
-          value: Deno.env.get("DOCKER_CONTAINER")
+          value: isDockerContainer()
             ? "```\ndocker compose pull && docker compose up -d\n```"
             : "```\ngit pull origin main && deno task start\n```",
           inline: false
@@ -196,7 +258,8 @@ export function startPeriodicUpdateCheck(
     try {
       const result = await checkForUpdates();
       lastCheckResult = result;
-      if (notify && result.behind) {
+      // Skip notify when we lack identity / check failed — don't lie about updates
+      if (notify && result.behind && !result.error) {
         onUpdateAvailable(result);
       }
     } catch {

@@ -8,7 +8,7 @@ Works on all platforms with Docker installed.
 git clone https://github.com/zebbern/claude-code-discord.git
 cd claude-code-discord
 cp .env.example .env
-# Edit .env with your DISCORD_TOKEN and APPLICATION_ID
+# Edit .env: DISCORD_TOKEN, APPLICATION_ID, and ANTHROPIC_API_KEY (required in Docker)
 docker compose up -d
 ```
 

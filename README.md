@@ -28,7 +28,7 @@ Found a bug or have an idea for improvement? Submit it via [GitHub Issues >⩊<]
 
 </kbd>
 
-**v2.4.0** hardened security and stability: per-channel Claude isolation, safe `/git` argv execution (quoted commit messages supported), and a shell output cap. See [CHANGELOG](CHANGELOG.md).
+**v2.4.1** Docker SDK-only image + accurate container version checks. See [CHANGELOG](CHANGELOG.md).
 
 <img width="350" height="350" alt="preview" src="https://github.com/user-attachments/assets/e8091420-d271-48a4-8e55-279f2093d3ae" />
 
@@ -42,10 +42,8 @@ Found a bug or have an idea for improvement? Submit it via [GitHub Issues >⩊<]
 git clone https://github.com/zebbern/claude-code-discord.git
 cd claude-code-discord
 cp .env.example .env
-# Edit .env with your DISCORD_TOKEN and APPLICATION_ID
+# Edit .env: DISCORD_TOKEN, APPLICATION_ID, and ANTHROPIC_API_KEY (required in Docker)
 docker compose up -d
-# if not using ANTHROPIC_API_TOKEN:
-docker exec -it claude-code-discord claude /login
 ```
 
 Need a Discord bot token first? See [Discord Bot Setup](docs/setup-discord.md).

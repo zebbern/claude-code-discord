@@ -26,7 +26,7 @@ The bot automatically checks for updates on startup. If a newer version is avail
 
 > **Update Available** Update available! You are X commits behind.
 
-This check is non-blocking and compares your local git commit against the latest commit on `main` via the GitHub API.
+This check is non-blocking and compares your local git commit (or the image's baked-in `GIT_COMMIT` in Docker) against the latest commit on `main` via the GitHub API. Docker images without a usable commit identity skip the Discord notify rather than reporting a false update.
 
 ## GHCR Image Tags
 
