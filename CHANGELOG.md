@@ -5,13 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.4.0] - 2026-08-01
 
 ### Security
 - **`/git` argv spawn**: Git commands and worktree ops use `Deno.Command` argument arrays instead of shell `exec` / POSIX `shellEscape` (Audit #2 mitigation). Soft metacharacter validation kept as defense-in-depth.
+- **Worktree branch validation**: Reject shell metacharacters and invalid ref patterns in `/worktree` branch names.
+- **Shell output cap**: Truncate at 10 MB and kill the runaway process (prevents OOM / infinite `yes`-style floods).
 
 ### Fixed
-- **Haiku fallback timeout**: Rate-limit Haiku retry now uses the same timeout / `clearTimeout` / active-query clear pattern as the primary query race.
+- **Per-channel Claude isolation**: Concurrent `/claude` in different channels no longer share one AbortController / active query; cancel and mid-session controls are channel-scoped.
+- **MCP mid-session channelId**: `/mcp toggle` and `/mcp reconnect` target the active query in the invoking channel.
+- **`/claude-thread` cancel window**: AbortController is registered before defer/thread create so cancel works during setup.
+- **Haiku fallback timeout**: Rate-limit Haiku retry uses the same timeout / `clearTimeout` / active-query clear pattern as the primary query race.
+- **Update check false positives**: No longer treat "local ahead of GitHub" as an update; avoid duplicate Update Available embeds on startup.
+
+### Added
+- **AGENTS.md**: Agent guidelines for this repo (verification, claimed-vs-wired, concurrency, testing policy).
 
 ## [2.3.0] - 2026-03-03
 

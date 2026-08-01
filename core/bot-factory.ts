@@ -277,7 +277,7 @@ export function setupPeriodicCleanup(
     }
   };
 
-  return setInterval(cleanup, intervalMs);
+  return setInterval(cleanup, intervalMs) as unknown as number;
 }
 
 /**

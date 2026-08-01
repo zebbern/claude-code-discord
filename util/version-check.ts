@@ -19,7 +19,10 @@ export interface VersionCheckResult {
   upToDate: boolean;
   localCommit: string;
   remoteCommit: string;
+  /** True only when remote main contains commits we do not have (we are behind). */
   behind?: boolean;
+  /** True when we have local commits not on remote main (we are ahead). */
+  ahead?: boolean;
   error?: string;
 }
 
@@ -57,7 +60,21 @@ async function getRemoteCommit(): Promise<string> {
 }
 
 /**
+ * Return true if `ancestor` is an ancestor of `descendant` (git merge-base --is-ancestor).
+ */
+async function isAncestor(ancestor: string, descendant: string): Promise<boolean> {
+  const cmd = new Deno.Command("git", {
+    args: ["merge-base", "--is-ancestor", ancestor, descendant],
+    stdout: "null",
+    stderr: "null",
+  });
+  const output = await cmd.output();
+  return output.success;
+}
+
+/**
  * Check if the local version matches the latest on GitHub.
+ * Distinguishes behind (need pull) from ahead (local-only commits) and diverged.
  */
 export async function checkForUpdates(): Promise<VersionCheckResult> {
   try {
@@ -67,12 +84,25 @@ export async function checkForUpdates(): Promise<VersionCheckResult> {
     ]);
 
     const upToDate = localCommit === remoteCommit;
+    let behind = false;
+    let ahead = false;
+
+    if (!upToDate) {
+      // local ancestor of remote → we are behind; remote ancestor of local → we are ahead
+      behind = await isAncestor(localCommit, remoteCommit);
+      ahead = await isAncestor(remoteCommit, localCommit);
+      // If both false, histories diverged — treat as behind so operators still get a signal
+      if (!behind && !ahead) {
+        behind = true;
+      }
+    }
 
     return {
       upToDate,
       localCommit: localCommit.substring(0, 7),
       remoteCommit: remoteCommit.substring(0, 7),
-      behind: !upToDate,
+      behind,
+      ahead,
     };
   } catch (error) {
     return {
@@ -106,6 +136,16 @@ export async function runVersionCheck(): Promise<{
 
   if (result.upToDate) {
     console.log(`[Version Check] Up to date (${result.localCommit})`);
+    return { updateAvailable: false };
+  }
+
+  // Local-only commits: not an "update available" situation
+  if (result.ahead && !result.behind) {
+    console.log(`[Version Check] Ahead of GitHub main (local ${result.localCommit}, remote ${result.remoteCommit})`);
+    return { updateAvailable: false };
+  }
+
+  if (!result.behind) {
     return { updateAvailable: false };
   }
 
@@ -143,17 +183,20 @@ export function getLastCheckResult(): VersionCheckResult | null {
 /**
  * Start periodic update checks.
  * Runs checkForUpdates every `intervalMs` (default: 12 hours).
- * Calls `onUpdateAvailable` when an update is detected.
+ * Calls `onUpdateAvailable` when the bot is behind remote main.
+ *
+ * The first run only populates the cache (no Discord notify) so startup
+ * does not double-fire with `runVersionCheck()`.
  */
 export function startPeriodicUpdateCheck(
   onUpdateAvailable: (result: VersionCheckResult) => void,
   intervalMs = 12 * 60 * 60 * 1000
 ): number {
-  const check = async () => {
+  const check = async (notify: boolean) => {
     try {
       const result = await checkForUpdates();
       lastCheckResult = result;
-      if (result.behind) {
+      if (notify && result.behind) {
         onUpdateAvailable(result);
       }
     } catch {
@@ -161,8 +204,10 @@ export function startPeriodicUpdateCheck(
     }
   };
 
-  // Run initial check to populate cache
-  check();
+  // Populate cache only — startup Discord notify is owned by runVersionCheck()
+  void check(false);
 
-  return setInterval(check, intervalMs) as unknown as number;
+  return setInterval(() => {
+    void check(true);
+  }, intervalMs) as unknown as number;
 }

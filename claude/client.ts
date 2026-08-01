@@ -412,7 +412,7 @@ export async function sendToClaudeCode(
   // First try with specified model (or default), with a timeout to prevent indefinite hangs
   const timeoutMs = DEFAULT_QUERY_TIMEOUT_MS;
   const channelId = modelOptions?.channelId;
-  let timeoutId: number | undefined;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     const result = await Promise.race([
       executeWithErrorHandling(),
@@ -460,7 +460,7 @@ export async function sendToClaudeCode(
     if (error.message && (error.message.includes('exit code 1') || error.message.includes('exited with code 1'))) {
       console.log("Rate limit detected, retrying with Haiku (fast fallback)...");
 
-      let haikuTimeoutId: number | undefined;
+      let haikuTimeoutId: ReturnType<typeof setTimeout> | undefined;
       try {
         const retryResult = await Promise.race([
           executeWithErrorHandling("haiku"),

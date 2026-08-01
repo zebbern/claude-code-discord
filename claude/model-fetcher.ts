@@ -398,8 +398,10 @@ export async function fetchModels(): Promise<Record<string, ModelInfo> | null> {
     return cachedModels;
   }
 
-  // Fallback: use hardcoded defaults
-  console.log("Model fetcher: No dynamic source available, using hardcoded defaults");
+  // Fallback: use hardcoded defaults (normal when no API key and CLI has no parseable model IDs)
+  console.log(
+    "Model fetcher: No ANTHROPIC_API_KEY and CLI parse found no models; using built-in model list"
+  );
   return null;
 }
 

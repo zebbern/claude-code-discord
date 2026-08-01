@@ -361,7 +361,9 @@ export function withCrashReporting<T extends any[], R>(
 
 // Health check utilities
 export class ProcessHealthMonitor {
-  private intervals = new Map<string, number>();
+  // Deno vs Node typings disagree on setInterval handle type
+  // deno-lint-ignore no-explicit-any
+  private intervals = new Map<string, any>();
   private healthStatus = new Map<string, boolean>();
   
   constructor(private crashHandler: ProcessCrashHandler) {}
